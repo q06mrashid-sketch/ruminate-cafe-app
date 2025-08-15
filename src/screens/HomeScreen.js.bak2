@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { View, Text, StyleSheet, ScrollView, Pressable, Image, Animated } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Image } from 'react-native';
 import { palette } from '../design/theme';
 import GlowingGlassButton from '../components/GlowingGlassButton';
 import { getMembershipSummary } from '../services/membership';
@@ -47,15 +47,6 @@ export default function HomeScreen({ navigation }) {
 
   
   const signedIn = !!member?.signedIn;
-
-  const quoteOpacity = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (signedIn) {
-      try { quoteOpacity.setValue(0); } catch {}
-      Animated.timing(quoteOpacity, { toValue: 1, duration: 1000, useNativeDriver: true }).start();
-    }
-  }, [signedIn]);
 return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -90,18 +81,13 @@ return (
           </View>
 
           {signedIn ? (
-  <Animated.View style={[styles.rumiWrap, { opacity: quoteOpacity }]}>
-    <Text style={styles.rumiQuote}>"Let the beauty we love be what we do."</Text>
-    <Text style={styles.rumiAttribution}>— Rumi</Text>
-  </Animated.View>
-) : (
-  <>
-    <View style={{ height: 18 }} />
-    <GlowingGlassButton text="Join today" variant="dark" ring onPress={() => navigation.navigate('MembershipStart')} />
-    <View style={{ height: 10 }} />
-    <GlowingGlassButton text="Learn about Membership & Profit Sharing" variant="light" onPress={() => navigation.navigate('Membership')} />
-  </>
-)} />
+            <View style={styles.rumiWrap}>
+              <Text style={styles.rumiQuote}>"Let the beauty we love be what we do."</Text>
+              <Text style={styles.rumiAttribution}>— Rumi</Text>
+            </View>
+          ) : (
+            <View style={{ height: 18 }} />
+          <GlowingGlassButton text="Join today" variant="dark" ring onPress={() => navigation.navigate('MembershipStart')} />
           <View style={{ height: 10 }} />
           <GlowingGlassButton text="Learn about Membership & Profit Sharing" variant="light" onPress={() => navigation.navigate('Membership')} />
           )}

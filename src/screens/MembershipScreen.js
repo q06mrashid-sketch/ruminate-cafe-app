@@ -4,7 +4,7 @@ import { ScrollView, View, Text, StyleSheet, Pressable } from 'react-native';
 import { palette } from '../design/theme';
 
 export default function MembershipScreen({ navigation }) {
-  const [tier, setTier] = useState('paid'); // 'paid' | 'free'
+  const [tier, setTier] = useState('paid');
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -24,23 +24,19 @@ export default function MembershipScreen({ navigation }) {
           <View style={styles.infoCard}>
             <Text style={styles.tierTitle}>Paid Membership — £20/month</Text>
             <Text style={styles.copy}>
-              Real value, gentle pace, transparent impact. Membership helps us fund community impact whilst giving you monthly freebies, ongoing discounts, a real stake via dividends, and a voice in how we grow.
+              Real value, gentle pace, transparent impact. Your monthly fee looks after you and the community.
             </Text>
 
             <Text style={styles.perkTitle}>Perks you get</Text>
             <Text style={styles.perk}>• 3 free drinks every month</Text>
             <Text style={styles.perk}>• 10% off after that</Text>
             <Text style={styles.perk}>• Share of the Member Pool (5% dividends)</Text>
-            <Text style={styles.perk}>• Voting on select collective issues</Text>
+            <Text style={styles.perk}>• Voting on select community issues</Text>
             <Text style={styles.perk}>• Loyalty card included (8 stamps → 9th free)</Text>
 
             <View style={{ height: 16 }} />
             <Pressable style={[styles.cta, styles.ctaPrimary]} onPress={() => navigation.navigate('MembershipStart')}>
               <Text style={styles.ctaPrimaryText}>Join with Apple Pay</Text>
-            </Pressable>
-            <View style={{ height: 10 }} />
-            <Pressable style={[styles.cta, styles.ctaSecondary]} onPress={() => navigation.navigate('MembershipInfo')}>
-              <Text style={styles.ctaSecondaryText}>Learn about membership…</Text>
             </Pressable>
           </View>
         ) : (
@@ -57,19 +53,28 @@ export default function MembershipScreen({ navigation }) {
             <Text style={styles.mutedSmall}>Paid members also keep a loyalty card — perks stack.</Text>
 
             <View style={{ height: 16 }} />
-            <Pressable
-              style={[styles.cta, styles.ctaSecondary]}
-              onPress={() => navigation.navigate('MembershipStart', { mode: 'free' })}
-            >
+            <Pressable style={[styles.cta, styles.ctaSecondary]} onPress={() => navigation.navigate('MembershipStart', { mode: 'free' })}>
               <Text style={styles.ctaSecondaryText}>Create loyalty card</Text>
             </Pressable>
           </View>
         )}
 
         <View style={styles.card}>
+          <Text style={styles.cardTitle}>How profit sharing works</Text>
+          <Text style={styles.perk}>
+            Each month, 5% of qualifying revenue is placed into the Member Pool. At period end, the pool is
+            distributed to active paid members as dividends. Payouts are pro-rata by active membership
+            (subject to rounding and compliance). You’ll receive a notice in-app and by email when a dividend is issued.
+          </Text>
+        </View>
+
+        <View style={styles.card}>
           <Text style={styles.cardTitle}>How our collective works</Text>
           <Text style={styles.perk}>
-            We’re a small Muslim-led collective. Anyone can participate. We don’t pursue profit for the sake of profit- we intend to always strengthen our community and our Ummah. We don’t follow the typical profit-sharing structure, where only the people at the top benefit. Net profits are instead shared fairly amongst staff, contributors, community projects, and even public members.
+            We’re a small Muslim-led collective. Anyone can participate. We don’t pursue profit for the sake of profit —
+            we intend to always strengthen our community and our Ummah. We don’t follow the typical profit-sharing
+            structure, where only the people at the top benefit. Net profits are instead shared fairly amongst staff,
+            contributors, community projects, and even public members.
           </Text>
         </View>
 
@@ -92,9 +97,7 @@ export default function MembershipScreen({ navigation }) {
           <Text style={styles.perk}>• Capital Pool — 18%</Text>
           <Text style={styles.perk}>• Community Pool — 15%</Text>
           <Text style={styles.perk}>• Member Pool — 5% (shared equally among paid members)</Text>
-          <Text style={styles.mutedSmall}>
-            We only share from true profit after costs and reinvestment.
-          </Text>
+          <Text style={styles.mutedSmall}>We only share from true profit after costs and reinvestment, not from capital.</Text>
         </View>
 
         <View style={{ height: 24 }} />

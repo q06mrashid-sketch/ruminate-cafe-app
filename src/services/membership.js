@@ -1,20 +1,27 @@
-import { supabase } from '../lib/supabase';
-import { FUNCTIONS_URL } from '../lib/env';
+import { supabase, hasSupabase } from '../lib/supabase';
 
-async function ensureSession() {
+export async function getSessionUser() {
+  if (!hasSupabase) return { signedIn: false, user: null };
   const { data: { session } } = await supabase.auth.getSession();
-  if (session?.access_token) return session;
-  const anon = await supabase.auth.signInAnonymously();
-  if (anon.error) throw anon.error;
-  return (await supabase.auth.getSession()).data.session;
+  return { signedIn: !!session, user: session?.user ?? null };
 }
 
 export async function getMembershipSummary() {
-  const session = await ensureSession();
-  const res = await fetch(`${FUNCTIONS_URL}/me-membership`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${session.access_token}` }
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+  const { signedIn, user } = await getSessionUser();
+  if (!signedIn || !user) return { signedIn: false, status: 'none', tier: 'free', next_billing_at: null };
+
+  const uid = user.id;
+  const [{ data: prof }, { data: sub }] = await Promise.all([
+    supabase.from('profiles').select('tier').eq('user_id', uid).maybeSingle(),
+    supabase.from('subscriptions').select('status,current_period_end').eq('user_id', uid).maybeSingle(),
+  ]);
+
+  const tier = prof?.tier ?? 'free';
+  const active = sub && ['active', 'trialing'].includes(sub.status) && (!sub.current_period_end || new Date(sub.current_period_end) > new Date());
+  return {
+    signedIn: true,
+    tier,
+    status: active ? 'active' : 'none',
+    next_billing_at: sub?.current_period_end ?? null,
+  };
 }

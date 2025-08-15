@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, TextInput, Pressable, ScrollView, Alert, Platform } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -95,7 +96,7 @@ export default function MembershipStartScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <KeyboardAwareScrollView enableOnAndroid={true} enableAutomaticScroll={true} keyboardShouldPersistTaps="handled" extraScrollHeight={24} contentContainerStyle={styles.content}>
         <Text style={styles.title}>Membership & Loyalty</Text>
 
         <Seg value={mode} setValue={setMode} />
@@ -173,7 +174,7 @@ export default function MembershipStartScreen() {
         )}
 
         <View style={{ height: 24 }} />
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }
