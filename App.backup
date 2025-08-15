@@ -1,0 +1,97 @@
+import 'react-native-gesture-handler';
+import 'react-native-reanimated';
+import React from 'react';
+import { StatusBar, Text as RNText, Platform } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { NavigationContainer } from '@react-navigation/native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
+import { useFonts, Fraunces_500Medium, Fraunces_600SemiBold, Fraunces_700Bold } from '@expo-google-fonts/fraunces';
+
+import ErrorBoundary from './ErrorBoundary';
+import HomeScreen from './src/screens/HomeScreen';
+import MembershipScreen from './src/screens/MembershipScreen';
+import ReceiptScreen from './src/screens/ReceiptScreen';
+import AdminScreen from './src/screens/AdminScreen';
+import MenuScreen from './src/screens/MenuScreen';
+import MembershipInfoScreen from './src/screens/MembershipInfoScreen';
+import MembershipStartScreen from './src/screens/MembershipStartScreen';
+import CommunityStatsScreen from './src/screens/CommunityStatsScreen';
+import { navTheme, tabColors, palette } from './src/design/theme';
+
+const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator();
+
+const iconFor = (routeName) => ({ color, size }) => (
+  <Ionicons
+    name={
+      routeName === 'Home' ? 'home-outline' :
+      routeName === 'Menu' ? 'restaurant-outline' :
+      routeName === 'Membership' ? 'id-card-outline' :
+      routeName === 'Receipts' ? 'receipt-outline' :
+      'settings-outline'
+    }
+    size={size}
+    color={color}
+  />
+);
+
+function Tabs() {
+  return (
+    <Tab.Navigator
+      initialRouteName="Home"
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarActiveTintColor: tabColors.active,
+        tabBarInactiveTintColor: tabColors.inactive,
+        tabBarLabelStyle: { fontFamily: 'Fraunces_600SemiBold', fontSize: 11, marginBottom: 0, paddingBottom: 0 },
+        tabBarItemStyle: { paddingTop: 2, paddingBottom: 2 },
+        tabBarStyle: {
+          backgroundColor: tabColors.barBg,
+          borderTopColor: tabColors.barBorder,
+          height: 50,
+          paddingBottom: Platform.OS === 'ios' ? 4 : 2,
+          paddingTop: 4
+        },
+        tabBarIcon: iconFor(route.name),
+      })}
+    >
+      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Menu" component={MenuScreen} />
+      <Tab.Screen name="Membership" component={MembershipScreen} />
+      <Tab.Screen name="Receipts" component={ReceiptScreen} />
+      <Tab.Screen name="Admin" component={AdminScreen} />
+    </Tab.Navigator>
+  );
+}
+
+export default function App() {
+  const [fontsLoaded] = useFonts({ Fraunces_500Medium, Fraunces_600SemiBold, Fraunces_700Bold });
+  if (!fontsLoaded) return null;
+
+  if (!RNText.defaultProps) RNText.defaultProps = {};
+  RNText.defaultProps.style = [{ fontFamily: 'Fraunces_500Medium', color: palette.coffee }];
+
+  return (
+    <SafeAreaProvider>
+      <StatusBar barStyle="dark-content" />
+      <ErrorBoundary>
+        <NavigationContainer theme={navTheme}>
+          <Stack.Navigator
+            screenOptions={{
+              headerStyle: { backgroundColor: '#F8EBDD' },
+              headerTintColor: palette.coffee,
+              headerTitleStyle: { fontFamily: 'Fraunces_700Bold' },
+            }}
+          >
+            <Stack.Screen name="Tabs" component={Tabs} options={{ headerShown: false }} />
+            <Stack.Screen name="MembershipInfo" component={MembershipInfoScreen} options={{ title: 'Membership & Profit Sharing' }} />
+            <Stack.Screen name="MembershipStart" component={MembershipStartScreen} options={{ title: 'Join Ruminate' }} />
+            <Stack.Screen name="CommunityStats" component={CommunityStatsScreen} options={{ title: 'Community Fund' }} />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </ErrorBoundary>
+    </SafeAreaProvider>
+  );
+}

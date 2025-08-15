@@ -1,29 +1,22 @@
 {
   "expo": {
-    "name": "Ruminate_Cafe_App_clean",
-    "slug": "Ruminate_Cafe_App_clean",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
+    "name": "Ruminate Cafe",
+    "slug": "ruminate-cafe-app",
     "ios": {
-      "supportsTablet": true
+      "bundleIdentifier": "com.anonymous.ruminatecafeapp",
+      "infoPlist": {
+        "NSCameraUsageDescription": "We use the camera to scan loyalty QR codes."
+      }
     },
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "edgeToEdgeEnabled": true
+      "package": "com.anonymous.ruminatecafeapp",
+      "permissions": [
+        "android.permission.CAMERA"
+      ]
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    }
+    "plugins": [
+      "expo-font",
+      "expo-sqlite"
+    ]
   }
 }

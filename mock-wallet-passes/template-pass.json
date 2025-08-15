@@ -1,0 +1,24 @@
+{
+  "formatVersion": 1,
+  "passTypeIdentifier": "pass.com.ruminatecafe.demo",
+  "serialNumber": "SERIAL_PLACEHOLDER",
+  ''"teamIdentifier''": ''"TEAMIDPLACEHOLDER''",
+  ''"organizationName''": ''"Ruminate Café''",
+  ''"description''": ''"Ruminate Café Membership Pass''",
+  ''"foregroundColor''": ''"rgb(91, 58, 41)''",
+  ''"backgroundColor''": ''"rgb(245, 232, 208)''",
+  ''"labelColor''": ''"rgb(91, 58, 41)''",
+  ''"storeCard''": {
+    ''"primaryFields''": [
+      { ''"key''": ''"memberName''", ''"label''": ''"Member''", ''"value''": ''"NAME_PLACEHOLDER''" }
+    ],
+    ''"secondaryFields''": [
+      { ''"key''": ''"freeDrinks''", ''"label''": ''"Free Drinks Left''", ''"value''": ''"DRINKS_PLACEHOLDER''" }
+    ]
+  },
+  ''"barcode''": {
+    ''"format''": ''"PKBarcodeFormatQR''",
+    ''"message''": ''"ID_PLACEHOLDER''",
+    ''"messageEncoding''": ''"iso-8859-1''"
+  }
+}
