@@ -1,11 +1,14 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, Animated } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
 import { palette } from '../design/theme';
 import GlowingGlassButton from '../components/GlowingGlassButton';
+import { supabase } from '../lib/supabase';
 import { getMembershipSummary } from '../services/membership';
 import { getFundCurrent } from '../services/community';
 import { getToday, getPayItForward, getFreeDrinkProgress, openInstagramProfile } from '../services/homeData';
+import { getCMS } from '../services/cms';
 
 function ProgressBar({ value, max, tint = palette.clay, track = '#EED8C4' }) {
   const pct = Math.max(0, Math.min(1, max > 0 ? value / max : 0));
@@ -25,38 +28,74 @@ function Chip({ children }) {
 }
 
 export default function HomeScreen({ navigation }) {
-  const [member, setMember] = useState({ status: 'none', next_billing_at: null });
+  const isFocused = useIsFocused();
+
+  const [member, setMember] = useState({ status: 'none', next_billing_at: null, signedIn: false });
   const [fund, setFund] = useState({ total_cents: 0, goal_cents: 0 });
   const [today, setToday] = useState({ openNow: false, until: '--:--', specials: [] });
   const [pif, setPif] = useState({ available: 0, contributed: 0 });
   const [loyalty, setLoyalty] = useState({ current: 0, target: 10 });
+  const [rumiQuote, setRumiQuote] = useState(null);
 
+  // Load data whenever screen focuses
   useEffect(() => {
     let mounted = true;
     (async () => {
-      try { const m = await getMembershipSummary(); if (mounted && m) setMember(m); } catch {}
+      try {
+        const m = await getMembershipSummary();
+        if (mounted && m) {
+          // Preserve your original “Active/Not a member” logic; signedIn derives from summary or session (see auth effect below)
+          setMember(prev => ({ ...prev, ...m }));
+        }
+      } catch {}
       try { const f = await getFundCurrent(); if (mounted && f) setFund(f); } catch {}
       try { const t = await getToday(); if (mounted) setToday(t); } catch {}
       try { const s = await getPayItForward(); if (mounted) setPif(s); } catch {}
       try { const d = await getFreeDrinkProgress(); if (mounted) setLoyalty(d); } catch {}
+
+      try {
+        const cms = await getCMS();
+        if (!mounted || !cms) return;
+        const s1 = cms['special 1'] || null;
+        const s2 = cms['special 2'] || null;
+        if (s1 || s2) {
+          setToday(prev => ({ ...prev, specials: [s1, s2].filter(Boolean) }));
+        }
+        if (cms['rumi quote']) setRumiQuote(cms['rumi quote']);
+      } catch {}
     })();
     return () => { mounted = false; };
+  }, [isFocused]);
+
+  // Keep signed-in flag in sync with Supabase auth
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (active) setMember(prev => ({ ...prev, signedIn: !!data?.session?.user }));
+      } catch {}
+    })();
+    const sub = supabase.auth.onAuthStateChange((_event, session) => {
+      setMember(prev => ({ ...prev, signedIn: !!session?.user }));
+    });
+    return () => { try { sub.data.subscription.unsubscribe(); } catch {} active = false; };
   }, []);
 
   const nextBill = member?.next_billing_at ? new Date(member.next_billing_at).toLocaleDateString() : null;
-
-  
   const signedIn = !!member?.signedIn;
+  const membershipLabel = !signedIn ? 'Not signed in' : (member?.tier === 'paid' ? 'Member' : 'Free');
+  const membershipColor = (signedIn && member?.tier === 'paid') ? palette.clay : palette.coffee;
 
   const quoteOpacity = useRef(new Animated.Value(0)).current;
-
   useEffect(() => {
     if (signedIn) {
       try { quoteOpacity.setValue(0); } catch {}
       Animated.timing(quoteOpacity, { toValue: 1, duration: 1000, useNativeDriver: true }).start();
     }
   }, [signedIn]);
-return (
+
+  return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
@@ -68,42 +107,52 @@ return (
           <View style={{ height: 18 }} />
 
           <View style={styles.rowBetween}>
-            <Text style={styles.sectionLabel}>Membership</Text>
-            <Text style={[styles.sectionValue, { color: member?.status === 'active' ? palette.clay : palette.coffee }]}>
-              {member?.status === 'active' ? 'Active' : 'Not a member'}
-              {nextBill ? ` · renews ${nextBill}` : ''}
-            </Text>
-          </View>
-
-          <View style={{ marginTop: 20 }}>
-            <Text style={styles.sectionLabel}>Community fund (this month)</Text>
-            <ProgressBar value={fund.total_cents} max={fund.goal_cents} />
-            <Text style={styles.muted}>
-              £{(fund.total_cents / 100).toFixed(2)} / £{(fund.goal_cents / 100).toFixed(2)}
-            </Text>
-          </View>
-
-          <View style={{ marginTop: 20 }}>
-            <Text style={styles.sectionLabel}>Free drinks progress</Text>
-            <ProgressBar value={loyalty.current} max={loyalty.target} tint={palette.coffee} track="#F1E3D3" />
-            <Text style={styles.muted}>{loyalty.current} / {loyalty.target} stamps</Text>
-          </View>
+  <Text style={styles.sectionLabel}>Membership</Text>
+  <Text style={[styles.sectionValue, { color: membershipColor }]}>
+    {membershipLabel}{nextBill ? ` · renews ${nextBill}` : ''}
+  </Text>
+</View>
 
           {signedIn ? (
-  <Animated.View style={[styles.rumiWrap, { opacity: quoteOpacity }]}>
-    <Text style={styles.rumiQuote}>"Let the beauty we love be what we do."</Text>
-    <Text style={styles.rumiAttribution}>— Rumi</Text>
-  </Animated.View>
-) : (
-  <>
-    <View style={{ height: 18 }} />
-    <GlowingGlassButton text="Join today" variant="dark" ring onPress={() => navigation.navigate('MembershipStart')} />
-    <View style={{ height: 10 }} />
-    <GlowingGlassButton text="Learn about Membership & Profit Sharing" variant="light" onPress={() => navigation.navigate('Membership')} />
-  </>
-)} />
-          <View style={{ height: 10 }} />
-          <GlowingGlassButton text="Learn about Membership & Profit Sharing" variant="light" onPress={() => navigation.navigate('Membership')} />
+            <View>
+              <Pressable onPress={() => navigation.navigate('Community')} style={{ marginTop: 16 }}>
+                <Text style={styles.sectionLabel}>Community fund (this month)</Text>
+                <ProgressBar value={fund?.total_cents || 0} max={(fund?.goal_cents || 0) || 1} />
+                <Text style={styles.muted}>
+                  £{((fund?.total_cents || 0) / 100).toFixed(2)}
+                  {(fund?.goal_cents || 0) ? ` / £${((fund?.goal_cents || 0) / 100).toFixed(2)}` : ''}
+                </Text>
+              </Pressable>
+
+              <View style={{ marginTop: 20 }}>
+                <Text style={styles.sectionLabel}>Free drinks progress</Text>
+                <ProgressBar value={loyalty.current} max={loyalty.target} tint={palette.coffee} track="#F1E3D3" />
+                <Text style={styles.muted}>{loyalty.current} / {loyalty.target} stamps</Text>
+              </View>
+
+              {rumiQuote ? (
+                <Animated.View style={[{ marginTop: 16, alignItems: 'center', paddingHorizontal: 12 }, { opacity: quoteOpacity }]}>
+                  <Text style={styles.rumiQuoteStandalone}>“{rumiQuote}”</Text>
+                  <Text style={styles.rumiAttributionStandalone}>— Rumi</Text>
+                </Animated.View>
+              ) : null}
+            </View>
+          ) : (
+            <View>
+              <View style={{ height: 18 }} />
+              <GlowingGlassButton text="Join today" variant="dark" ring onPress={() => navigation.navigate('MembershipStart')} />
+              <View style={{ height: 10 }} />
+              <GlowingGlassButton text="Learn about Membership & Profit Sharing" variant="light" onPress={() => navigation.navigate('Membership')} />
+
+              <Pressable onPress={() => navigation.navigate('Community')} style={{ marginTop: 16 }}>
+                <Text style={styles.sectionLabel}>Community fund (this month)</Text>
+                <ProgressBar value={fund?.total_cents || 0} max={(fund?.goal_cents || 0) || 1} />
+                <Text style={styles.muted}>
+                  £{((fund?.total_cents || 0) / 100).toFixed(2)}
+                  {(fund?.goal_cents || 0) ? ` / £${((fund?.goal_cents || 0) / 100).toFixed(2)}` : ''}
+                </Text>
+              </Pressable>
+            </View>
           )}
         </View>
 
@@ -138,7 +187,7 @@ return (
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Recent receipts</Text>
-          <Pressable onPress={() => navigation.navigate('Receipts')}>
+          <Pressable onPress={() => navigation.navigate('Receipt')}>
             <Text style={styles.link}>View all receipts →</Text>
           </Pressable>
         </View>
@@ -190,7 +239,19 @@ const styles = StyleSheet.create({
   igCard: { borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: palette.border },
   igImage: { width: '100%', height: 180 },
 
-  rumiWrap: { paddingVertical: 30, paddingHorizontal: 20, alignItems: 'center' },
-  rumiQuote: { fontSize: 18, fontStyle: 'italic', textAlign: 'center', color: '#fff', marginBottom: 5 },
-  rumiAttribution: { fontSize: 14, color: '#ccc' },
+  rumiQuoteStandalone: {
+    fontSize: 18,
+    lineHeight: 26,
+    textAlign: 'center',
+    fontStyle: 'italic',
+    color: palette.clay,
+    fontFamily: 'Fraunces_600SemiBold',
+  },
+  rumiAttributionStandalone: {
+    marginTop: 4,
+    fontSize: 14,
+    textAlign: 'center',
+    color: '#6b5a54',
+    fontFamily: 'Fraunces_600SemiBold',
+  },
 });

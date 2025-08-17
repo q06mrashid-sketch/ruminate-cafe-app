@@ -1,0 +1,23 @@
+
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import SwipeTabs from './SwipeTabs';
+import MembershipInfoScreen from '../screens/MembershipInfoScreen';
+import MembershipStartScreen from '../screens/MembershipStartScreen';
+import LoyaltyCardCreateScreen from '../screens/LoyaltyCardCreateScreen';
+
+const Stack = createNativeStackNavigator();
+
+export default function Router() {
+  return (
+    <NavigationContainer>
+      <Stack.Navigator initialRouteName="MainTabs" screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="MainTabs" component={SwipeTabs} />
+        <Stack.Screen name="MembershipInfo" component={MembershipInfoScreen} />
+        <Stack.Screen name="MembershipStart" component={MembershipStartScreen} />
+        <Stack.Screen name="LoyaltyCardCreate" component={LoyaltyCardCreateScreen} />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}

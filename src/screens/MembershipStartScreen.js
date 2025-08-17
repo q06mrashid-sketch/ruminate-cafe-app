@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -6,6 +7,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { palette } from '../design/theme';
 import GlowingGlassButton from '../components/GlowingGlassButton';
 import { supabase, hasSupabase } from '../lib/supabase';
+import { useNavigation } from '@react-navigation/native';
 
 const Seg = ({ value, setValue }) => (
   <View style={styles.segWrap}>
@@ -38,6 +40,7 @@ const TierToggle = ({ tier, setTier }) => (
 );
 
 export default function MembershipStartScreen() {
+  const navigation = useNavigation();
   const [mode, setMode] = useState('create');
   const [tier, setTier] = useState('paid');
   const [name, setName] = useState('');
@@ -58,7 +61,7 @@ export default function MembershipStartScreen() {
     if (!email || !password) { Alert.alert('Missing details', 'Email and password are required.'); return; }
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) Alert.alert('Sign in failed', error.message);
-    else Alert.alert('Welcome back', 'Signed in successfully.');
+    else { Alert.alert('Welcome back', 'Signed in successfully.'); navigation.navigate('Home'); }
   }
 
   async function handleForgot() {
@@ -85,13 +88,12 @@ export default function MembershipStartScreen() {
   async function handleCreateFree() {
     const data = await signUpCommon({ name, phone, tier: 'free' });
     if (!data) return;
-    Alert.alert('Loyalty card created', 'You can start collecting stamps immediately.');
-  }
+    Alert.alert('Loyalty card created', 'You can start collecting stamps immediately.'); navigation.navigate('Home'); }
 
   async function handleCreatePaid() {
     const data = await signUpCommon({ name, phone, tier: 'paid' });
     if (!data) return;
-    Alert.alert('Membership', 'Apple Pay / Stripe PaymentSheet would open here in the dev build.');
+    Alert.alert('Membership', 'Apple Pay / Stripe PaymentSheet would open here in the dev build.'); navigation.navigate('Home');
   }
 
   return (
@@ -214,3 +216,10 @@ const styles = StyleSheet.create({
 
   link:{ color:palette.clay, fontFamily:'Fraunces_600SemiBold' },
 });
+
+
+async function handleEmailSignIn(email, password, navigation) {
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+  navigation.navigate('Home');
+}

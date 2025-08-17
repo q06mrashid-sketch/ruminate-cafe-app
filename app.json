@@ -17,6 +17,10 @@
     "plugins": [
       "expo-font",
       "expo-sqlite"
-    ]
+    ],
+    "extra": {
+      "CMS_FUNCTIONS_URL": "https://eamewialuovzguldcdcf.functions.supabase.co",
+      "CMS_ANON": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhbWV3aWFsdW92emd1bGRjZGNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUxNjY5MjIsImV4cCI6MjA3MDc0MjkyMn0.oZy-UH7mB7NSFZZyivm3dbCtjsbOahcD2_coUNiiQNs"
+    }
   }
 }

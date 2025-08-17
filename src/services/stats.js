@@ -1,11 +1,14 @@
-import { supabase, hasSupabase } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 
 export async function getMyStats() {
-  if (!hasSupabase) {
-    return { freebiesLeft: 0, dividendsPending: 0, discountUses: 0, payItForwardContrib: 0, communityContrib: 0 };
-  }
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) return {
+    freebiesLeft: 0, dividendsPending: 0, discountUses: 0, payItForwardContrib: 0, communityContrib: 0
+  };
   const { data, error } = await supabase.functions.invoke('me-stats', { body: {} });
-  if (error) return { freebiesLeft: 0, dividendsPending: 0, discountUses: 0, payItForwardContrib: 0, communityContrib: 0 };
+  if (error) return {
+    freebiesLeft: 0, dividendsPending: 0, discountUses: 0, payItForwardContrib: 0, communityContrib: 0
+  };
   return {
     freebiesLeft: data?.freebiesLeft ?? 0,
     dividendsPending: data?.dividendsPending ?? 0,

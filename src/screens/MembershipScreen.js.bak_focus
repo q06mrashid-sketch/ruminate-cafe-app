@@ -1,0 +1,101 @@
+import React, { useEffect, useState } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { ScrollView, View, Text, StyleSheet } from 'react-native';
+import { palette } from '../design/theme';
+import QRCode from 'react-native-qrcode-svg';
+import { getMembershipSummary } from '../services/membership';
+import { getMyStats } from '../services/stats';
+import { supabase } from '../lib/supabase';
+
+function Stat({ label, value, suffix='' }) {
+  return (
+    <View style={styles.statBox}>
+      <Text style={styles.statValue}>{value}{suffix}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  );
+}
+
+export default function MembershipScreen() {
+  const [summary, setSummary] = useState({ signedIn:false, tier:'free', status:'none', next_billing_at:null });
+  const [stats, setStats] = useState({ freebiesLeft:0, dividendsPending:0, discountUses:0, payItForwardContrib:0, communityContrib:0 });
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    let on = true;
+    (async () => {
+      try { const m = await getMembershipSummary(); if (on) setSummary(m); } catch {}
+      try { const s = await getMyStats(); if (on) setStats(s); } catch {}
+      try { const u = await supabase.auth.getUser(); if (on) setUser(u.data.user || null); } catch {}
+    })();
+    return () => { on = false; };
+  }, []);
+
+  const isPaid = summary.tier === 'paid';
+  const payload = user ? JSON.stringify({ v:1, type:'member', uid:user.id, email:user.email, tier:summary.tier, ts:Date.now() }) : 'ruminate:member';
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <Text style={styles.title}>Your Membership</Text>
+        <Text style={styles.sub}>
+          Tier: <Text style={styles.bold}>{isPaid ? 'Paid' : 'Free'}</Text>
+          {isPaid && summary.next_billing_at ? <Text style={styles.mutedSmall}> · renews {new Date(summary.next_billing_at).toLocaleDateString()}</Text> : null}
+        </Text>
+
+        {summary.signedIn ? (
+          <>
+            <View style={styles.qrCard}>
+              <Text style={styles.cardTitle}>Your QR</Text>
+              <View style={styles.qrWrap}>
+                <QRCode value={payload} size={180} />
+              </View>
+              <Text style={styles.mutedSmall}>Show at the counter to redeem perks and stamps.</Text>
+            </View>
+
+            <View style={styles.gridRow}>
+              <Stat label="Free drinks left" value={stats.freebiesLeft} />
+              <Stat label="Dividends pending" value={stats.dividendsPending} suffix="£" />
+            </View>
+            <View style={styles.gridRow}>
+              <Stat label="Discount uses" value={stats.discountUses} />
+              <Stat label="Pay-it-forward" value={stats.payItForwardContrib} suffix="£" />
+            </View>
+            <View style={styles.gridRow}>
+              <Stat label="Community fund" value={stats.communityContrib} suffix="£" />
+              <View style={[styles.statBox,{opacity:0}]} />
+            </View>
+          </>
+        ) : (
+          <View style={styles.infoCard}>
+            <Text style={styles.cardTitle}>Not signed in</Text>
+            <Text style={styles.muted}>Sign in to see your QR and member stats.</Text>
+          </View>
+        )}
+
+        <View style={{height:24}} />
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container:{ flex:1, backgroundColor:palette.cream },
+  content:{ padding:16, paddingBottom:28 },
+  title:{ fontSize:24, color:palette.coffee, fontFamily:'Fraunces_700Bold' },
+  sub:{ marginTop:6, color:palette.coffee, fontFamily:'Fraunces_600SemiBold' },
+  bold:{ fontFamily:'Fraunces_700Bold', color:palette.coffee },
+  muted:{ color:palette.coffee, opacity:0.9 },
+  mutedSmall:{ fontSize:13, color:palette.coffee, opacity:0.8 },
+
+  infoCard:{ backgroundColor:palette.paper, borderColor:palette.border, borderWidth:1, borderRadius:14, padding:16, marginTop:14 },
+
+  qrCard:{ backgroundColor:palette.paper, borderColor:palette.border, borderWidth:1, borderRadius:14, padding:16, marginTop:14, marginBottom:16 },
+  cardTitle:{ fontSize:18, color:palette.coffee, fontFamily:'Fraunces_700Bold', marginBottom:10 },
+  qrWrap:{ alignItems:'center', justifyContent:'center', paddingVertical:12 },
+
+  gridRow:{ flexDirection:'row', marginBottom:12 },
+  statBox:{ flex:1, backgroundColor:palette.paper, borderColor:palette.border, borderWidth:1, borderRadius:14, paddingVertical:16, paddingHorizontal:12, marginRight:12 },
+  statValue:{ fontSize:28, color:palette.clay, fontFamily:'Fraunces_700Bold' },
+  statLabel:{ marginTop:6, color:palette.coffee, fontFamily:'Fraunces_600SemiBold' },
+});

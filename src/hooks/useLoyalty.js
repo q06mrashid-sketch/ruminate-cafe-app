@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { initDB, loadMockData, getAllMembers, updateFreeDrinks } from '../services/offlineSync';
 
 /**
