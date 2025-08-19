@@ -168,12 +168,15 @@ export default function HomeScreen({ navigation }) {
 
           <View style={[styles.card, styles.gridItem, styles.gridItemRight]}>
             <Text style={styles.cardTitle}>Pay-it-Forward</Text>
-            <View style={styles.pifCenter}>
-              <Text style={styles.pifBig}>{pif.available}</Text>
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.muted}>drinks available</Text>
-                <Text style={styles.muted}>Total contributed: {pif.contributed}</Text>
-              </View>
+            <View style={styles.pifTile}>
+  <View style={styles.pifNumberWrap}>
+    <Text style={styles.pifBig}>{pif.available}</Text>
+  </View>
+  <View style={styles.pifMeta}>
+    <Text style={styles.muted}>drinks available</Text>
+    <Text style={styles.muted}>Total contributed: {pif.contributed}</Text>
+  </View>
+</View>
             </View>
           </View>
         </View>
@@ -225,8 +228,11 @@ const styles = StyleSheet.create({
   muted: { marginTop: 6, color: palette.coffee },
   link: { marginTop: 6, color: palette.clay, fontFamily: 'Fraunces_600SemiBold' },
 
-  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    pifCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },,
+    pifTile: { flex: 1, justifyContent: 'space-between', alignItems: 'center' },,
+    pifNumberWrap: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', width: '100%' },,
+    pifMeta: { alignItems: 'center', paddingBottom: 6 },
+    
 
   barOuter: { height: 10, borderRadius: 10, overflow: 'hidden' },
   barInner: { height: 10, borderRadius: 10 },
