@@ -1,4 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { getPIFStats } from '../services/pif';
+
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, Animated, TouchableOpacity} from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
@@ -12,7 +14,8 @@ import { getCMS } from '../services/cms';
 
 function ProgressBar({ value, max, tint = palette.clay, track = '#EED8C4' }) {
   const pct = Math.max(0, Math.min(1, max > 0 ? value / max : 0));
-  return (
+    useEffect(()=>{ getPIFStats().then(setPif).catch(()=>setPif({available:0,contributed:0})); },[]);
+return (
     <View style={[styles.barOuter, { backgroundColor: track }]}>
       <View style={[styles.barInner, { width: `${pct * 100}%`, backgroundColor: tint }]} />
     </View>
@@ -56,8 +59,7 @@ let mounted = true;
       } catch {}
       try { const f = await getFundCurrent(); if (mounted && f) setFund(f); } catch {}
       try { const t = await getToday(); if (mounted) setToday(t); } catch {}
-      try { const s = await getPayItForward(); if (mounted) setPif(s); } catch {}
-      try { const d = await getFreeDrinkProgress(); if (mounted) setLoyalty(d); } catch {}
+      try { const s = await       try { const d = await getFreeDrinkProgress(); if (mounted) setLoyalty(d); } catch {}
 
       try {
         const cms = await getCMS();
