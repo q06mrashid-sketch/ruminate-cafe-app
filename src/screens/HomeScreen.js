@@ -167,17 +167,17 @@ export default function HomeScreen({ navigation }) {
           </View>
 
           <View style={[styles.card, styles.gridItem, styles.gridItemRight]}>
-            <Text style={styles.cardTitle}>Pay-it-Forward</Text>
-            <View style={styles.pifTile}>
-  <View style={styles.pifNumberWrap}>
-    <Text style={styles.pifBig}>{pif.available}</Text>
-  </View>
-  <View style={styles.pifMeta}>
-    <Text style={styles.muted}>drinks available</Text>
-    <Text style={styles.muted}>Total contributed: {pif.contributed}</Text>
+  <Text style={styles.cardTitle}>Pay-it-Forward</Text>
+  <View style={styles.pifTile}>
+    <View style={styles.pifNumberWrap}>
+      <Text style={styles.pifBig}>{pif.available}</Text>
+    </View>
+    <View style={styles.pifMeta}>
+      <Text style={styles.muted}>drinks available</Text>
+      <Text style={styles.muted}>Total contributed: {pif.contributed}</Text>
+    </View>
   </View>
 </View>
-            </View>
           </View>
         </View>
 
