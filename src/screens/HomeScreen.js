@@ -225,9 +225,9 @@ const styles = StyleSheet.create({
   muted: { marginTop: 6, color: palette.coffee },
   link: { marginTop: 6, color: palette.clay, fontFamily: 'Fraunces_600SemiBold' },
 
-  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },,
-    pifTile: { flex: 1, justifyContent: 'space-between', alignItems: 'center' },,
-    pifNumberWrap: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', width: '100%' },,
+  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    pifTile: { flex: 1, justifyContent: 'space-between', alignItems: 'center' },
+    pifNumberWrap: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', width: '100%' },
     pifMeta: { alignItems: 'center', paddingBottom: 6 },
 
   barOuter: { height: 10, borderRadius: 10, overflow: 'hidden' },
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
   chip: { backgroundColor: '#F1E3D3', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, marginRight: 6, marginBottom: 6 },
   chipText: { color: palette.coffee, fontFamily: 'Fraunces_600SemiBold', fontSize: 12 },
 
-  pifBig: { fontSize: 40, lineHeight: 40, color: palette.clay, fontFamily: 'Fraunces_700Bold' },
+  pifBig: { textAlign: 'center',  fontSize: 40, lineHeight: 40, color: palette.clay, fontFamily: 'Fraunces_700Bold' },
 
   igCard: { borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: palette.border },
   igImage: { width: '100%', height: 180 },
