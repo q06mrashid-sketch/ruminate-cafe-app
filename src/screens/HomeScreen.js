@@ -1,13 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { View, Text, StyleSheet, ScrollView, Pressable, Image, Animated } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Image, Animated, TouchableOpacity} from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { palette } from '../design/theme';
 import GlowingGlassButton from '../components/GlowingGlassButton';
 import { supabase } from '../lib/supabase';
 import { getMembershipSummary } from '../services/membership';
 import { getFundCurrent } from '../services/community';
-import { getToday, getPayItForward, getFreeDrinkProgress, openInstagramProfile } from '../services/homeData';
+import {  getToday, getPayItForward, getFreeDrinkProgress, openInstagramProfile , getWeeklyHours } from '../services/homeData';
 import { getCMS } from '../services/cms';
 
 function ProgressBar({ value, max, tint = palette.clay, track = '#EED8C4' }) {
@@ -28,6 +28,9 @@ function Chip({ children }) {
 }
 
 export default function HomeScreen({ navigation }) {
+  const [hoursExpanded,setHoursExpanded]=useState(false);
+  const [weekHours,setWeekHours]=useState([]);
+
   const isFocused = useIsFocused();
 
   const [member, setMember] = useState({ status: 'none', next_billing_at: null, signedIn: false });
@@ -39,7 +42,8 @@ export default function HomeScreen({ navigation }) {
 
   // Load data whenever screen focuses
   useEffect(() => {
-    let mounted = true;
+        getWeeklyHours().then(setWeekHours).catch(()=>setWeekHours([]));
+let mounted = true;
     (async () => {
       try {
         const m = await getMembershipSummary();
@@ -164,7 +168,23 @@ export default function HomeScreen({ navigation }) {
             <View style={styles.chipsRow}>
               {today.specials.map((s) => <Chip key={s}>{s}</Chip>)}
             </View>
-          </View>
+          
+<View style={styles.hoursToggleWrap}>
+  <TouchableOpacity onPress={()=>setHoursExpanded(!hoursExpanded)}>
+    <Text style={styles.hoursToggle}>{hoursExpanded ? 'Hide opening times' : 'Show all opening times'}</Text>
+  </TouchableOpacity>
+</View>
+{hoursExpanded ? (
+  <View style={styles.hoursTable}>
+    {weekHours.map(row=>(
+      <View key={row.key} style={styles.hoursRow}>
+        <Text style={styles.hoursDay}>{row.label}</Text>
+        <Text style={styles.hoursTime}>{row.text}</Text>
+      </View>
+    ))}
+  </View>
+) : null}
+</View>
 
           <View style={[styles.card, styles.gridItem, styles.gridItemRight]}>
             <Text style={styles.cardTitle}>Pay-it-Forward</Text>
@@ -257,4 +277,9 @@ const styles = StyleSheet.create({
     color: '#6b5a54',
     fontFamily: 'Fraunces_600SemiBold',
   },
-});
+hoursToggleWrap: { marginTop: 8, alignItems: 'center' },
+    hoursToggle: { fontFamily: 'Fraunces_700Bold', color: palette.coffee, fontSize: 14 },
+    hoursTable: { marginTop: 8 },
+    hoursRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
+    hoursDay: { fontFamily: 'Fraunces_700Bold', color: palette.coffee, fontSize: 14 },
+    hoursTime: { fontFamily: 'Fraunces_600SemiBold', color: '#6b5a54', fontSize: 14 }});
