@@ -29,6 +29,7 @@ function Chip({ children }) {
 
 export default function HomeScreen({ navigation }) {
   const [hoursExpanded,setHoursExpanded]=useState(false);
+  const communityProgress=Math.max(0,Math.min(1,fund?.progress||0));
   const [weekHours,setWeekHours]=useState([]);
 
   const isFocused = useIsFocused();
@@ -42,7 +43,8 @@ export default function HomeScreen({ navigation }) {
 
   // Load data whenever screen focuses
   useEffect(() => {
-        getWeeklyHours().then(setWeekHours).catch(()=>setWeekHours([]));
+            getFundProgress().then(setFund).catch(()=>setFund({progress:0,total_cents:0,goal_cents:0}));
+getWeeklyHours().then(setWeekHours).catch(()=>setWeekHours([]));
 let mounted = true;
     (async () => {
       try {
