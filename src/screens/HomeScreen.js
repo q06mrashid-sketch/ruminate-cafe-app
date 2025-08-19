@@ -6,8 +6,8 @@ import { palette } from '../design/theme';
 import GlowingGlassButton from '../components/GlowingGlassButton';
 import { supabase } from '../lib/supabase';
 import { getMembershipSummary } from '../services/membership';
-import { getFundCurrent } from '../services/community';
-import {  getToday, getPayItForward, getFreeDrinkProgress, openInstagramProfile , getWeeklyHours } from '../services/homeData';
+import { getFundCurrent, getFundProgress } from '../services/community';
+import { getToday, getPayItForward, getFreeDrinkProgress, openInstagramProfile, getWeeklyHours } from '../services/homeData';
 import { getCMS } from '../services/cms';
 
 function ProgressBar({ value, max, tint = palette.clay, track = '#EED8C4' }) {
@@ -29,7 +29,6 @@ function Chip({ children }) {
 
 export default function HomeScreen({ navigation }) {
   const [hoursExpanded,setHoursExpanded]=useState(false);
-  const communityProgress=Math.max(0,Math.min(1,fund?.progress||0));
   const [weekHours,setWeekHours]=useState([]);
 
   const isFocused = useIsFocused();
@@ -37,6 +36,7 @@ export default function HomeScreen({ navigation }) {
   const [member, setMember] = useState({ status: 'none', next_billing_at: null, signedIn: false });
   const [fund, setFund] = useState({ total_cents: 0, goal_cents: 0 });
   const [today, setToday] = useState({ openNow: false, until: '--:--', specials: [] });
+  const communityProgress=Math.max(0,Math.min(1,fund?.progress||0));
   const [pif, setPif] = useState({ available: 0, contributed: 0 });
   const [loyalty, setLoyalty] = useState({ current: 0, target: 10 });
   const [rumiQuote, setRumiQuote] = useState(null);
