@@ -14,7 +14,6 @@ import { getCMS } from '../services/cms';
 
 function ProgressBar({ value, max, tint = palette.clay, track = '#EED8C4' }) {
   const pct = Math.max(0, Math.min(1, max > 0 ? value / max : 0));
-    useEffect(()=>{ getPIFStats().then(setPif).catch(()=>setPif({available:0,contributed:0})); },[]);
 return (
     <View style={[styles.barOuter, { backgroundColor: track }]}>
       <View style={[styles.barInner, { width: `${pct * 100}%`, backgroundColor: tint }]} />
@@ -30,7 +29,7 @@ function Chip({ children }) {
   );
 }
 
-export default function HomeScreen({ navigation }) {
+export default function HomeScreen( { navigation } ) {
   const [hoursExpanded,setHoursExpanded]=useState(false);
   const [weekHours,setWeekHours]=useState([]);
 
@@ -59,7 +58,8 @@ let mounted = true;
       } catch {}
       try { const f = await getFundCurrent(); if (mounted && f) setFund(f); } catch {}
       try { const t = await getToday(); if (mounted) setToday(t); } catch {}
-      try { const s = await       try { const d = await getFreeDrinkProgress(); if (mounted) setLoyalty(d); } catch {}
+      try { const s = await getPIFStats(); if (mounted) setPif(s); } catch {}
+      try { const d = await getFreeDrinkProgress(); if (mounted) setLoyalty(d); } catch {}
 
       try {
         const cms = await getCMS();
