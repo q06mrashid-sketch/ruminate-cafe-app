@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
   },
 
   gridRow: { flexDirection: 'row', marginBottom: 14 },
-  gridItem: { flex: 1, aspectRatio: 1, justifyContent: 'space-between' },
+  gridItem: { position: 'relative', flex: 1, aspectRatio: 1, justifyContent: 'space-between' },
   gridItemRight: { marginLeft: 12 },
 
   sectionLabel: { fontSize: 15, color: palette.coffee, fontFamily: 'Fraunces_600SemiBold' },
@@ -277,9 +277,9 @@ const styles = StyleSheet.create({
     color: '#6b5a54',
     fontFamily: 'Fraunces_600SemiBold',
   },
-hoursToggleWrap: { marginTop: 8, alignItems: 'center' },
+hoursToggleWrap: { position: 'absolute', bottom: 8, left: 0, right: 0, alignItems: 'center' },
     hoursToggle: { fontFamily: 'Fraunces_700Bold', color: palette.coffee, fontSize: 14 },
-    hoursTable: { marginTop: 8 },
+    hoursTable: {marginTop: 8 , paddingBottom: 28 },
     hoursRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
     hoursDay: { fontFamily: 'Fraunces_700Bold', color: palette.coffee, fontSize: 14 },
     hoursTime: { fontFamily: 'Fraunces_600SemiBold', color: '#6b5a54', fontSize: 14 }});
