@@ -161,7 +161,7 @@ let mounted = true;
         </View>
 
         <View style={styles.gridRow}>
-          <View style={[styles.card, styles.gridItem]}>
+          <View style={[styles.card, (hoursExpanded ? styles.gridItemAuto : styles.gridItem)]}>
             <Text style={styles.cardTitle}>Today</Text>
             <Text style={styles.muted}>🕑 {today.openNow ? 'Open now' : 'Closed'} until {today.until}</Text>
             <Text style={[styles.sectionLabel, { marginTop: 8 }]}>Specials</Text>
