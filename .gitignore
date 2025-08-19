@@ -25,3 +25,7 @@ android/build/
 # Supabase local artifacts
 supabase/.temp/
 supabase/.branches/
+yarn.lock
+.yarnrc.yml
+npm_install_verbose.log
+metro.config.js.bak_*

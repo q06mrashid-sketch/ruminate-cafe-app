@@ -219,7 +219,8 @@ let mounted = true;
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: palette.cream },
+  gridItemAuto: { flex: 1, justifyContent: 'space-between', position: 'relative' },
+container: { flex: 1, backgroundColor: palette.cream },
   content: { padding: 16, paddingBottom: 28 },
 
   hero: { marginBottom: 18 },

@@ -51,5 +51,8 @@
     "@types/react": "~19.0.10",
     "typescript": "~5.8.3",
     "unicode-match-property-value-ecmascript": "^2.2.0"
+  },
+  "overrides": {
+    "exponential-backoff": "3.1.1"
   }
 }
