@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
   muted: { marginTop: 6, color: palette.coffee },
   link: { marginTop: 6, color: palette.clay, fontFamily: 'Fraunces_600SemiBold' },
 
-  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },,
+  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     pifCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
   barOuter: { height: 10, borderRadius: 10, overflow: 'hidden' },
