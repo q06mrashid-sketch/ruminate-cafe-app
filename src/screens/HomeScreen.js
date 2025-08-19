@@ -167,17 +167,14 @@ export default function HomeScreen({ navigation }) {
           </View>
 
           <View style={[styles.card, styles.gridItem, styles.gridItemRight]}>
-  <Text style={styles.cardTitle}>Pay-it-Forward</Text>
-  <View style={styles.pifTile}>
-    <View style={styles.pifNumberWrap}>
-      <Text style={styles.pifBig}>{pif.available}</Text>
-    </View>
+            <Text style={styles.cardTitle}>Pay-it-Forward</Text>
+            <View style={styles.pifTile}>
+    <View style={styles.pifNumberWrap}><Text style={styles.pifBig}>{pif.available}</Text></View>
     <View style={styles.pifMeta}>
       <Text style={styles.muted}>drinks available</Text>
       <Text style={styles.muted}>Total contributed: {pif.contributed}</Text>
     </View>
   </View>
-</View>
           </View>
         </View>
 
@@ -232,7 +229,6 @@ const styles = StyleSheet.create({
     pifTile: { flex: 1, justifyContent: 'space-between', alignItems: 'center' },,
     pifNumberWrap: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', width: '100%' },,
     pifMeta: { alignItems: 'center', paddingBottom: 6 },
-    
 
   barOuter: { height: 10, borderRadius: 10, overflow: 'hidden' },
   barInner: { height: 10, borderRadius: 10 },
@@ -241,7 +237,7 @@ const styles = StyleSheet.create({
   chip: { backgroundColor: '#F1E3D3', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, marginRight: 6, marginBottom: 6 },
   chipText: { color: palette.coffee, fontFamily: 'Fraunces_600SemiBold', fontSize: 12 },
 
-  pifBig: { textAlign: 'center',  fontSize: 40, lineHeight: 40, color: palette.clay, fontFamily: 'Fraunces_700Bold' },
+  pifBig: { fontSize: 40, lineHeight: 40, color: palette.clay, fontFamily: 'Fraunces_700Bold' },
 
   igCard: { borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: palette.border },
   igImage: { width: '100%', height: 180 },
