@@ -1,0 +1,7 @@
+npm verbose cli /Users/mohammadrashid/.nvm/versions/node/v22.18.0/bin/node /Users/mohammadrashid/.nvm/versions/node/v22.18.0/bin/npm
+npm info using npm@10.9.3
+npm info using node@v22.18.0
+npm verbose title npm i
+npm verbose argv "i" "--loglevel" "verbose"
+npm verbose logfile logs-max:10 dir:/Users/mohammadrashid/.npm/_logs/2025-08-18T19_22_48_878Z-
+npm verbose logfile /Users/mohammadrashid/.npm/_logs/2025-08-18T19_22_48_878Z-debug-0.log
