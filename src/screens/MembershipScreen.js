@@ -28,7 +28,11 @@ const [stats, setStats] = useState({ freebiesLeft:0, dividendsPending:0, discoun
   const refresh = useCallback(async () => {
     try { const m = await getMembershipSummary(); if (m) setSummary(m); } catch {}
     try { const s = await getMyStats(); setStats(s); } catch {}
-    try { const u = await supabase.auth.getUser(); setUser(u?.data?.user || null); } catch {}
+    if (supabase) {
+      try { const u = await supabase.auth.getUser(); setUser(u?.data?.user || null); } catch {}
+    } else {
+      try { setUser(null); } catch {}
+    }
   }, []);
 
   useEffect(() => { refresh(); }, [refresh]);
