@@ -16,3 +16,16 @@ export async function getPayItForward(){ return { available:7, contributed:124 }
 export async function getFreeDrinkProgress(){ return { current:3, target:8 }; }
 
 export async function openInstagramProfile(){ const app='instagram://user?username=ruminatecafe'; const web='https://www.instagram.com/ruminatecafe/'; try{ const can=await Linking.canOpenURL(app); await Linking.openURL(can?app:web); } catch { Linking.openURL(web); } }
+
+export async function getLatestInstagramPost(){
+  try{
+    const res=await fetch('https://www.instagram.com/ruminatecafe/?__a=1&__d=dis');
+    const json=await res.json();
+    const node=json?.graphql?.user?.edge_owner_to_timeline_media?.edges?.[0]?.node;
+    const image=node?.display_url||null;
+    const caption=node?.edge_media_to_caption?.edges?.[0]?.node?.text||'';
+    return { image, caption };
+  }catch{
+    return { image:null, caption:'' };
+  }
+}
