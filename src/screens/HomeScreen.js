@@ -142,7 +142,7 @@ export default function HomeScreen({ navigation }) {
               <View style={{ height: 18 }} />
               <GlowingGlassButton text="Join today" variant="dark" ring onPress={() => navigation.navigate('MembershipStart')} />
               <View style={{ height: 10 }} />
-              <GlowingGlassButton text="Learn about Membership & Profit Sharing" variant="light" onPress={() => navigation.navigate('Membership')} />
+              <GlowingGlassButton text="Learn about Membership & Profit Sharing" variant="light" onPress={() => navigation.navigate('MembershipInfo')} />
 
               <Pressable onPress={() => navigation.navigate('Community')} style={{ marginTop: 16 }}>
                 <Text style={styles.sectionLabel}>Community fund (this month)</Text>
