@@ -13,13 +13,15 @@ const SUPABASE_URL =
   process.env.EXPO_PUBLIC_SUPABASE_URL ||
   process.env.SUPABASE_URL ||
   extras.EXPO_PUBLIC_SUPABASE_URL ||
-  extras.SUPABASE_URL;
+  extras.SUPABASE_URL ||
+  'https://eamewialuovzguldcdcf.supabase.co';
 
 const SUPABASE_ANON_KEY =
   process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
   process.env.SUPABASE_ANON_KEY ||
   extras.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
-  extras.SUPABASE_ANON_KEY;
+  extras.SUPABASE_ANON_KEY ||
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhbWV3aWFsdW92emd1bGRjZGNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUxNjY5MjIsImV4cCI6MjA3MDc0MjkyMn0.oZy-UH7mB7NSFZZyivm3dbCtjsbOahcD2_coUNiiQNs';
 
 export const hasSupabase =
   typeof SUPABASE_URL === 'string' && SUPABASE_URL.length > 0 &&
