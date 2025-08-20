@@ -83,6 +83,7 @@ export default function MembershipStartScreen() {
       password,
       options: { data: profile },
     });
+
     if (error) {
       if (/already\s+registered/i.test(error.message)) {
         Alert.alert(

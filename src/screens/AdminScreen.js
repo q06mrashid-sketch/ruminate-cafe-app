@@ -30,10 +30,12 @@ export default function AdminScreen({ navigation }){
         </View>
 
         <View style={{ marginTop:12 }}>
+
           <GlowingGlassButton text="Change account details" variant="light" onPress={() => navigation.navigate('AccountDetails')} />
         </View>
 
         <View style={{ marginTop:12 }}>
+
           <GlowingGlassButton text="Sign out" variant="light" onPress={async()=>{
             try { await signOut(); } catch {}
             try { navigation.reset({ index:0, routes:[{ name:'Home' }] }); } catch {}

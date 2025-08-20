@@ -19,7 +19,6 @@ function GlassTabBar({ state, descriptors, navigation }) {
   const insets = useSafeAreaInsets();
   return (
     <View pointerEvents="box-none" style={[styles.tabWrap, { paddingBottom: (insets.bottom || 8) + 4 }]}>
-
       <BlurView intensity={90} tint="light" style={styles.glass}>
         <LinearGradient
           colors={['rgba(255,255,255,0.45)', 'rgba(255,255,255,0.15)']}
