@@ -17,7 +17,7 @@ export default function MenuScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: palette.cream },
+  container: { flex: 1 },
   content: { padding: 16 },
   title: { fontSize: 24, color: palette.coffee, fontFamily: 'Fraunces_700Bold' },
   card: {

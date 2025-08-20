@@ -174,12 +174,11 @@ const [stats, setStats] = useState({ freebiesLeft:3, dividendsPending:0, loyalty
 }
 
 const styles = StyleSheet.create({
-  container:{ flex:1, backgroundColor:palette.cream },
+  container:{ flex:1 },
   content:{ padding:16, paddingBottom:28 },
   title:{ fontSize:24, color:palette.coffee, fontFamily:'Fraunces_700Bold' },
   mutedSmall:{ fontSize:13, color:palette.coffee, opacity:0.8 },
-  referralText:{ fontSize:16, color:palette.coffee, fontFamily:'Fraunces_700Bold' },
-
+  referralText:{ fontSize:18, color:palette.clay, fontFamily:'Fraunces_700Bold', textAlign:'center' },
   card:{ backgroundColor:palette.paper, borderColor:palette.border, borderWidth:1, borderRadius:14, padding:16, marginTop:14 },
   cardTitle:{ fontSize:18, color:palette.coffee, fontFamily:'Fraunces_700Bold', marginBottom:10 },
   perk:{ color:palette.coffee, lineHeight:22, marginTop:6, fontFamily:'Fraunces_600SemiBold' },

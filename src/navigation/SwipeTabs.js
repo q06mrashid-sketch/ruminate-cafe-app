@@ -19,9 +19,10 @@ function GlassTabBar({ state, descriptors, navigation }) {
   const insets = useSafeAreaInsets();
   return (
     <View pointerEvents="box-none" style={[styles.tabWrap, { paddingBottom: (insets.bottom || 8) + 4 }]}>
-      <BlurView intensity={80} tint="light" style={styles.glass}>
+
+      <BlurView intensity={90} tint="light" style={styles.glass}>
         <LinearGradient
-          colors={['rgba(255,255,255,0.35)', 'rgba(255,255,255,0.15)']}
+          colors={['rgba(255,255,255,0.45)', 'rgba(255,255,255,0.15)']}
           start={{x:0,y:0}}
           end={{x:1,y:1}}
           style={StyleSheet.absoluteFill}
@@ -100,12 +101,12 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.5)',
+    borderColor: 'rgba(255,255,255,0.4)',
     shadowColor: '#000',
     shadowOpacity: 0.07,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
-    backgroundColor: Platform.OS === 'ios' ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.45)',
+    backgroundColor: Platform.OS === 'ios' ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.25)',
     width: '92%',
   },
   tabBtn: { flex: 1, borderRadius: 16, paddingVertical: 6, alignItems: 'center', justifyContent: 'center', gap: 4 },

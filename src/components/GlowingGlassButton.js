@@ -58,14 +58,14 @@ export default function GlowingGlassButton({
             {
               transform: [
                 { translateX: sweepX.interpolate({ inputRange: [-1,1], outputRange: [-240, 240] }) },
-                { translateY: -40 },
-                { rotate: '15deg' }
+                { translateY: sweepX.interpolate({ inputRange: [-1,1], outputRange: [-40, 40] }) },
+                { rotate: '15deg' },
               ]
             }
           ]}
         >
           <LinearGradient
-            colors={['transparent','rgba(255,255,255,0.08)','transparent']}
+            colors={['transparent','rgba(255,255,255,0.04)','transparent']}
             start={{x:0,y:0}} end={{x:1,y:1}}
             style={{ flex: 1 }}
           />
