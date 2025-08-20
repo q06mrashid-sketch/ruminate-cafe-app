@@ -10,6 +10,7 @@ import { supabase } from '../lib/supabase';
 import { getMembershipSummary } from '../services/membership';
 import { getFundCurrent, getFundProgress } from '../services/community';
 import { getToday, getPayItForward, getFreeDrinkProgress, openInstagramProfile, getWeeklyHours } from '../services/homeData';
+import { getMyStats } from '../services/stats';
 import { getCMS } from '../services/cms';
 
 function ProgressBar({ value, max, tint = palette.clay, track = '#EED8C4' }) {
@@ -40,7 +41,8 @@ export default function HomeScreen({ navigation }) {
   const [today, setToday] = useState({ openNow: false, until: '--:--', specials: [] });
   const communityProgress=Math.max(0,Math.min(1,fund?.progress||0));
   const [pif, setPif] = useState({ available: 0, contributed: 0 });
-  const [loyalty, setLoyalty] = useState({ current: 0, target: 10 });
+  const [loyalty, setLoyalty] = useState({ current: 0, target: 8 });
+  const [freebiesLeft, setFreebiesLeft] = useState(0);
   const [rumiQuote, setRumiQuote] = useState(null);
 
   // Load data whenever screen focuses
@@ -60,6 +62,7 @@ let mounted = true;
       try { const t = await getToday(); if (mounted) setToday(t); } catch {}
       try { const s = await getPIFStats(); if (mounted) setPif(s); } catch {}
       try { const d = await getFreeDrinkProgress(); if (mounted) setLoyalty(d); } catch {}
+      try { const stats = await getMyStats(); if (mounted) setFreebiesLeft(stats.freebiesLeft || 0); } catch {}
 
       try {
         const cms = await getCMS();
@@ -141,10 +144,18 @@ let mounted = true;
               </Pressable>
 
               <View style={{ marginTop: 20 }}>
-                <Text style={styles.sectionLabel}>Free drinks progress</Text>
+                <Text style={styles.sectionLabel}>Loyalty stamps progress</Text>
                 <ProgressBar value={loyalty.current} max={loyalty.target} tint={palette.coffee} track="#F1E3D3" />
                 <Text style={styles.muted}>{loyalty.current} / {loyalty.target} stamps</Text>
               </View>
+
+              {member?.tier === 'paid' && (
+                <View style={{ marginTop: 16 }}>
+                  <Text style={styles.sectionLabel}>Free drinks remaining</Text>
+                  <ProgressBar value={freebiesLeft} max={3} tint={palette.clay} track="#F1E3D3" />
+                  <Text style={styles.muted}>{freebiesLeft} / 3 drinks</Text>
+                </View>
+              )}
 
               {rumiQuote ? (
                 <Animated.View style={[{ marginTop: 16, alignItems: 'center', paddingHorizontal: 12 }, { opacity: quoteOpacity }]}>

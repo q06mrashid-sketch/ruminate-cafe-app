@@ -40,10 +40,12 @@ export default function MembershipSignedInPanel({ summary, stats, user }) {
         <Text style={styles.mutedSmall}>Show at the counter to redeem perks and stamps.</Text>
       </View>
 
-      <View style={styles.gridRow}>
-        <Stat label="Free drinks left" value={stats.freebiesLeft} />
-        <Stat label="Dividends pending" value={Number(stats.dividendsPending).toFixed(2)} prefix="£" />
-      </View>
+      {isPaid && (
+        <View style={styles.gridRow}>
+          <Stat label="Free drinks left" value={stats.freebiesLeft} />
+          <Stat label="Dividends pending" value={Number(stats.dividendsPending).toFixed(2)} prefix="£" />
+        </View>
+      )}
       <View style={styles.gridRow}>
         <Stat label="Loyalty stamps" value={`${stats.loyaltyStamps}/8`} />
         <Stat label="Pay-it-forward" value={Number(stats.payItForwardContrib || 0).toFixed(2)} prefix="£" />
