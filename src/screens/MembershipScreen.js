@@ -14,10 +14,12 @@ import GlowingGlassButton from '../components/GlowingGlassButton';
 import { getPIFByEmail } from '../services/pif';
 import { createReferral } from '../services/referral';
 import 'react-native-get-random-values';
+import FreeDrinksCounter from '../components/FreeDrinksCounter';
+import LoyaltyStampTile from '../components/LoyaltyStampTile';
 
-function Stat({ label, value, prefix = '', suffix = '' }) {
+function Stat({ label, value, prefix = '', suffix = '', style }) {
   return (
-    <View style={styles.statBox}>
+    <View style={[styles.statBox, style]}>
       <Text style={styles.statValue}>{prefix}{value}{suffix}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
@@ -87,15 +89,25 @@ export default function MembershipScreen({ navigation }) {
             </View>
 
             {summary.tier === 'paid' && (
-              <View style={styles.gridRow}>
-                <Stat label="Free drinks left" value={stats.freebiesLeft} />
-                <Stat label="Dividends pending" value={Number(stats.dividendsPending).toFixed(2)} prefix="£" />
+              <View style={{ marginTop: 14, alignItems: 'center' }}>
+                <FreeDrinksCounter count={stats.freebiesLeft} />
               </View>
             )}
-            <View style={styles.gridRow}>
-              <Stat label="Loyalty stamps" value={`${stats.loyaltyStamps}/8`} />
-              <Stat label="Pay-it-forward" value={(pifSelfCents/100).toFixed(2)} prefix="£" />
+
+            <View style={{ marginTop: 14 }}>
+              <LoyaltyStampTile count={stats.loyaltyStamps} onRedeem={() => {}} />
             </View>
+
+            {summary.tier === 'paid' ? (
+              <View style={styles.gridRow}>
+                <Stat label="Dividends pending" value={Number(stats.dividendsPending).toFixed(2)} prefix="£" />
+                <Stat label="Pay-it-forward" value={(pifSelfCents/100).toFixed(2)} prefix="£" />
+              </View>
+            ) : (
+              <View style={{ marginTop: 14 }}>
+                <Stat label="Pay-it-forward" value={(pifSelfCents/100).toFixed(2)} prefix="£" style={{ marginRight: 0 }} />
+              </View>
+            )}
 
             <View style={{ marginTop: 16 }}>
               <Text style={styles.referralText}>
