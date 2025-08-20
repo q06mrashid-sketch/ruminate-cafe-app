@@ -15,6 +15,13 @@ export async function redeemReferral(code, userId) {
   if (hasSupabase && supabase) {
     try {
       await supabase.rpc('redeem_referral', { p_code: code, p_referred: userId });
-    } catch {}
+    } catch {
+      try {
+        await supabase
+          .from('referrals')
+          .update({ referred: userId })
+          .eq('code', code);
+      } catch {}
+    }
   }
 }
