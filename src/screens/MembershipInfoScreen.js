@@ -21,7 +21,7 @@ export default function MembershipInfoScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: palette.cream }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1 }} edges={['top']}>
       <ScrollView ref={scrollRef} contentContainerStyle={styles.content}>
         <Text style={styles.title}>Membership & Loyalty</Text>
 

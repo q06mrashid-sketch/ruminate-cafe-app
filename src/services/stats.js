@@ -22,22 +22,29 @@ export async function getMyStats() {
         communityContrib: 0,
       };
     }
-    const { data, error } = await supabase.functions.invoke('me-stats', { body: {} });
+    const [{ data: profile }, { data, error }] = await Promise.all([
+      supabase.from('profiles').select('free_drinks, discount_credits').eq('user_id', session.user.id).maybeSingle(),
+      supabase.functions.invoke('me-stats', { body: {} })
+    ]);
+
     if (error) {
       return {
-        freebiesLeft: 3,
+        freebiesLeft: (profile?.free_drinks ?? 0) + 3,
         dividendsPending: 0,
         loyaltyStamps: 0,
         payItForwardContrib: 0,
         communityContrib: 0,
+        discountCredits: profile?.discount_credits ?? 0,
       };
     }
+
     return {
-      freebiesLeft: data?.freebiesLeft ?? 3,
+      freebiesLeft: (data?.freebiesLeft ?? 3) + (profile?.free_drinks ?? 0),
       dividendsPending: data?.dividendsPending ?? 0,
       loyaltyStamps: data?.loyaltyStamps ?? data?.discountUses ?? 0,
       payItForwardContrib: data?.payItForwardContrib ?? 0,
       communityContrib: data?.communityContrib ?? 0,
+      discountCredits: profile?.discount_credits ?? 0,
     };
   } catch {
     return {
@@ -46,6 +53,7 @@ export async function getMyStats() {
       loyaltyStamps: 0,
       payItForwardContrib: 0,
       communityContrib: 0,
+      discountCredits: 0,
     };
   }
 }
