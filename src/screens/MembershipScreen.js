@@ -10,10 +10,10 @@ import { getMyStats } from '../services/stats';
 import GlowingGlassButton from '../components/GlowingGlassButton';
 import { getPIFByEmail } from '../services/pif';
 
-function Stat({ label, value, suffix = '' }) {
+function Stat({ label, value, prefix = '', suffix = '' }) {
   return (
     <View style={styles.statBox}>
-      <Text style={styles.statValue}>{value}{suffix}</Text>
+      <Text style={styles.statValue}>{prefix}{value}{suffix}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
   );
@@ -22,7 +22,7 @@ function Stat({ label, value, suffix = '' }) {
 export default function MembershipScreen({ navigation }) {
   const [summary, setSummary] = useState({ signedIn:false, tier:'free', status:'none', next_billing_at:null });
   const [pifSelfCents,setPifSelfCents]=useState(0);
-const [stats, setStats] = useState({ freebiesLeft:0, dividendsPending:0, discountUses:0, payItForwardContrib:0, communityContrib:0 });
+const [stats, setStats] = useState({ freebiesLeft:3, dividendsPending:0, loyaltyStamps:0, payItForwardContrib:0, communityContrib:0 });
   const [user, setUser] = useState(null);
 
   const refresh = useCallback(async () => {
@@ -42,10 +42,21 @@ const [stats, setStats] = useState({ freebiesLeft:0, dividendsPending:0, discoun
 
   useEffect(()=>{ let m=true; const email=(typeof user!=='undefined'&&user&&user.email)?user.email:(summary&&summary.user&&summary.user.email)?summary.user.email:(globalThis&&globalThis.auth&&globalThis.auth.user&&globalThis.auth.user.email)?globalThis.auth.user.email:null; if(!email){ setPifSelfCents(0); return; } getPIFByEmail(email).then(r=>{ if(m) setPifSelfCents(Number(r.total_cents)||0); }).catch(()=>{ if(m) setPifSelfCents(0); }); return ()=>{ m=false }; },[user,summary]);
 
+  const [notice, setNotice] = useState('');
+  useEffect(() => {
+    if (stats.loyaltyStamps >= 8) {
+      setStats(s => ({ ...s, loyaltyStamps: s.loyaltyStamps - 8, freebiesLeft: s.freebiesLeft + 1 }));
+      setNotice("You've earned a free drink!");
+      const t = setTimeout(() => setNotice(''), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [stats.loyaltyStamps]);
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Membership</Text>
+        {notice ? <Text style={styles.notice}>{notice}</Text> : null}
 
         {summary.signedIn ? (
           <>
@@ -59,15 +70,11 @@ const [stats, setStats] = useState({ freebiesLeft:0, dividendsPending:0, discoun
 
             <View style={styles.gridRow}>
               <Stat label="Free drinks left" value={stats.freebiesLeft} />
-              <Stat label="Dividends pending" value={stats.dividendsPending} suffix="£" />
+              <Stat label="Dividends pending" value={Number(stats.dividendsPending).toFixed(2)} prefix="£" />
             </View>
             <View style={styles.gridRow}>
-              <Stat label="Discount uses" value={stats.discountUses} />
-              <Stat label="Pay-it-forward" value={(pifSelfCents/100).toFixed(2)} suffix="£" />
-            </View>
-            <View style={styles.gridRow}>
-              <Stat label="Community fund" value={stats.communityContrib} suffix="£" />
-              <View style={[styles.statBox,{opacity:0}]} />
+              <Stat label="Loyalty stamps" value={`${stats.loyaltyStamps}/8`} />
+              <Stat label="Pay-it-forward" value={(pifSelfCents/100).toFixed(2)} prefix="£" />
             </View>
 
             <View style={{ marginTop: 16 }}>
@@ -153,6 +160,8 @@ const styles = StyleSheet.create({
   statBox:{ flex:1, backgroundColor:palette.paper, borderColor:palette.border, borderWidth:1, borderRadius:14, paddingVertical:16, paddingHorizontal:12, marginRight:12 },
   statValue:{ fontSize:28, color:palette.clay, fontFamily:'Fraunces_700Bold' },
   statLabel:{ marginTop:6, color:palette.coffee, fontFamily:'Fraunces_600SemiBold' },
+
+  notice:{ backgroundColor:palette.paper, borderColor:palette.border, borderWidth:1, borderRadius:10, padding:10, marginTop:12, textAlign:'center', color:palette.clay, fontFamily:'Fraunces_700Bold' },
 
   qrWrap:{ alignItems:'center', justifyContent:'center', paddingVertical:12 },
 

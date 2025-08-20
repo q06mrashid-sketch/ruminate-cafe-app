@@ -6,10 +6,10 @@ import { palette } from '../../design/theme';
 import { supabase } from '../../lib/supabase';
 import { useNavigation } from '@react-navigation/native';
 
-function Stat({ label, value, suffix='' }) {
+function Stat({ label, value, prefix='', suffix='' }) {
   return (
     <View style={styles.statBox}>
-      <Text style={styles.statValue}>{value}{suffix}</Text>
+      <Text style={styles.statValue}>{prefix}{value}{suffix}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
   );
@@ -42,15 +42,11 @@ export default function MembershipSignedInPanel({ summary, stats, user }) {
 
       <View style={styles.gridRow}>
         <Stat label="Free drinks left" value={stats.freebiesLeft} />
-        <Stat label="Dividends pending" value={stats.dividendsPending} suffix="£" />
+        <Stat label="Dividends pending" value={Number(stats.dividendsPending).toFixed(2)} prefix="£" />
       </View>
       <View style={styles.gridRow}>
-        <Stat label="Discount uses" value={stats.discountUses} />
-        <Stat label="Pay-it-forward" value={stats.payItForwardContrib} suffix="£" />
-      </View>
-      <View style={styles.gridRow}>
-        <Stat label="Community fund" value={stats.communityContrib} suffix="£" />
-        <View style={[styles.statBox,{opacity:0}]} />
+        <Stat label="Loyalty stamps" value={`${stats.loyaltyStamps}/8`} />
+        <Stat label="Pay-it-forward" value={Number(stats.payItForwardContrib || 0).toFixed(2)} prefix="£" />
       </View>
     </>
   );
