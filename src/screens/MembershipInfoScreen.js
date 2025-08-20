@@ -1,14 +1,28 @@
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScrollView, View, Text, StyleSheet } from 'react-native';
 import { palette } from '../design/theme';
 import GlowingGlassButton from '../components/GlowingGlassButton';
 
 export default function MembershipInfoScreen({ navigation }) {
+  const scrollRef = useRef(null);
+  const profitRef = useRef(null);
+
+  const scrollToProfit = () => {
+    if (!scrollRef.current || !profitRef.current) return;
+    profitRef.current.measureLayout(
+      scrollRef.current,
+      (_x, y) => {
+        scrollRef.current.scrollTo({ y, animated: true });
+      },
+      () => {}
+    );
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.cream }} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.content}>
         <Text style={styles.title}>Membership & Loyalty</Text>
 
         <View style={styles.card}>
@@ -22,13 +36,14 @@ export default function MembershipInfoScreen({ navigation }) {
           <Text style={styles.tierTitle}>Member — £20/month</Text>
           <Text style={styles.desc}>• 3 free drinks every month.</Text>
           <Text style={styles.desc}>• 10% discount after free drinks are used.</Text>
-          <Text style={styles.desc}>• Share of 5% “Member Pool” (periodic dividends).</Text>
+          <Text style={styles.desc}>• Share of 5% “Member Pool” (periodic dividends*)</Text>
+          <Text style={styles.asterisk} onPress={scrollToProfit}>*See “How profit sharing works” below.</Text>
           <Text style={styles.desc}>• Voting on select community issues.</Text>
           <Text style={styles.desc}>• Includes Loyalty card benefits (8 stamps → 9th free).</Text>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.tierTitle}>How profit sharing works</Text>
+        <View ref={profitRef} style={styles.card}>
+          <Text style={styles.tierTitle}>*How profit sharing works</Text>
           <Text style={styles.desc}>
             Each month, 5% of qualifying revenue is placed into the Member Pool. At period end,
             the pool is distributed to active paid members as dividends. Payouts are pro-rata by
@@ -59,4 +74,5 @@ const styles = StyleSheet.create({
   },
   tierTitle: { fontSize: 18, color: palette.coffee, fontFamily: 'Fraunces_700Bold', marginBottom: 6 },
   desc: { color: palette.coffee, marginTop: 6, lineHeight: 20, fontFamily: 'Fraunces_600SemiBold' },
+  asterisk: { color: palette.clay, marginTop: 4, fontFamily: 'Fraunces_600SemiBold' },
 });

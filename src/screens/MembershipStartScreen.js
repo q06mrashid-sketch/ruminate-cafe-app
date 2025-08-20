@@ -2,12 +2,13 @@
 import React, { useState } from 'react';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { View, Text, StyleSheet, TextInput, Pressable, ScrollView, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Pressable, Alert, Platform } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { palette } from '../design/theme';
 import GlowingGlassButton from '../components/GlowingGlassButton';
 import { supabase, hasSupabase } from '../lib/supabase';
 import { useNavigation } from '@react-navigation/native';
+import { redeemReferral } from '../services/referral';
 
 const Seg = ({ value, setValue }) => (
   <View style={styles.segWrap}>
@@ -47,6 +48,7 @@ export default function MembershipStartScreen() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [referral, setReferral] = useState('');
 
   async function ensureSupabase() {
     if (!hasSupabase || !supabase) {
@@ -82,6 +84,9 @@ export default function MembershipStartScreen() {
       options: { data: profile },
     });
     if (error) { Alert.alert('Sign up failed', error.message); return null; }
+    if (data?.user && referral) {
+      try { await redeemReferral(referral, data.user.id); } catch {}
+    }
     return data;
   }
 
@@ -146,6 +151,10 @@ export default function MembershipStartScreen() {
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>Phone (optional)</Text>
               <TextInput value={phone} onChangeText={setPhone} placeholder="+44 7…" placeholderTextColor="#A89182" style={styles.input} keyboardType="phone-pad" />
+            </View>
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Referral code (optional)</Text>
+              <TextInput value={referral} onChangeText={setReferral} placeholder="Enter code" placeholderTextColor="#A89182" style={styles.input} autoCapitalize="none" />
             </View>
 
             {tier === 'paid' ? (
