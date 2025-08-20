@@ -38,7 +38,8 @@ const [stats, setStats] = useState({ freebiesLeft:3, dividendsPending:0, loyalty
   useEffect(() => { refresh(); }, [refresh]);
   useFocusEffect(useCallback(() => { let on = true; (async()=>{ if(on) await refresh(); })(); return () => { on = false; }; }, [refresh]));
 
-  const payload = user ? JSON.stringify({ v:1, type:'member', uid:user.id, email:user.email, tier:summary.tier, ts:Date.now() }) : 'ruminate:member';
+  // Stable opaque member identifier for QR payload
+  const payload = user ? `ruminate:${user.id}` : 'ruminate:member';
 
   useEffect(()=>{ let m=true; const email=(typeof user!=='undefined'&&user&&user.email)?user.email:(summary&&summary.user&&summary.user.email)?summary.user.email:(globalThis&&globalThis.auth&&globalThis.auth.user&&globalThis.auth.user.email)?globalThis.auth.user.email:null; if(!email){ setPifSelfCents(0); return; } getPIFByEmail(email).then(r=>{ if(m) setPifSelfCents(Number(r.total_cents)||0); }).catch(()=>{ if(m) setPifSelfCents(0); }); return ()=>{ m=false }; },[user,summary]);
 

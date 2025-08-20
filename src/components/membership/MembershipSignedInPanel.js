@@ -17,7 +17,8 @@ function Stat({ label, value, prefix='', suffix='' }) {
 
 export default function MembershipSignedInPanel({ summary, stats, user }) {
   const navigation = useNavigation();
-  const payload = user ? JSON.stringify({ v:1, type:'member', uid:user.id, email:user.email, tier:summary.tier, ts:Date.now() }) : 'ruminate:member';
+  // Stable opaque member identifier for QR payload
+  const payload = user ? `ruminate:${user.id}` : 'ruminate:member';
   const isPaid = summary.tier === 'paid';
 
   return (
