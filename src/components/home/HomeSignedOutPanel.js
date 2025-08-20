@@ -9,7 +9,7 @@ export default function HomeSignedOutPanel({ navigation }) {
       <View style={{ height: 18 }} />
       <GlowingGlassButton text="Join today" variant="dark" ring onPress={() => navigation.navigate('MembershipStart')} />
       <View style={{ height: 10 }} />
-      <GlowingGlassButton text="Learn about Membership & Profit Sharing" variant="light" onPress={() => navigation.navigate('Membership')} />
+      <GlowingGlassButton text="Learn about Membership & Profit Sharing" variant="light" onPress={() => navigation.navigate('MembershipInfo')} />
     </>
   );
 }
