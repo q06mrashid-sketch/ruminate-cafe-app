@@ -29,3 +29,6 @@ yarn.lock
 .yarnrc.yml
 npm_install_verbose.log
 metro.config.js.bak_*
+
+# Wallet pass artifacts
+*.pkpass

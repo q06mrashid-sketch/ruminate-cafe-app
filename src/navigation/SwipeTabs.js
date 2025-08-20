@@ -66,7 +66,7 @@ export default function SwipeTabs() {
       <Tab.Screen
         name="Membership"
         component={MembershipScreen}
-        options={{ title: 'Membership', tabBarIcon: ({ color }) => <Ionicons name="person-circle" size={22} color={color} /> }}
+        options={{ title: 'You', tabBarIcon: ({ color }) => <Ionicons name="qr-code-outline" size={22} color={color} /> }}
       />
       <Tab.Screen
         name="Receipts"
