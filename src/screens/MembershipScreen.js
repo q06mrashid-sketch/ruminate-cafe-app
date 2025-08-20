@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ScrollView, View, Text, StyleSheet, Pressable } from 'react-native';
+import { ScrollView, View, Text, StyleSheet, Pressable, Share } from 'react-native';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 import membershipPassBase64 from '../../assets/membershipPassBase64';
@@ -8,10 +8,12 @@ import { useFocusEffect } from '@react-navigation/native';
 import QRCode from 'react-native-qrcode-svg';
 import { palette } from '../design/theme';
 import { supabase } from '../lib/supabase';
-import { getMembershipSummary, signOut as signOutSvc } from '../services/membership';
+import { getMembershipSummary } from '../services/membership';
 import { getMyStats } from '../services/stats';
 import GlowingGlassButton from '../components/GlowingGlassButton';
 import { getPIFByEmail } from '../services/pif';
+import { createReferral } from '../services/referral';
+import 'react-native-get-random-values';
 
 function Stat({ label, value, prefix = '', suffix = '' }) {
   return (
@@ -97,15 +99,23 @@ const [stats, setStats] = useState({ freebiesLeft:3, dividendsPending:0, loyalty
             </View>
 
             <View style={{ marginTop: 16 }}>
-              <GlowingGlassButton
-                text="Sign out"
-                variant="light"
-                onPress={async () => {
-                  try { await signOutSvc(); } catch {}
-                  try { setSummary({ signedIn:false, tier:'free', status:'none', next_billing_at:null }); } catch {}
-                  try { navigation.reset({ index: 0, routes: [{ name: 'Home' }] }); } catch {}
-                }}
-              />
+              <Text style={styles.mutedSmall}>
+                Refer a friend: they get 10% off their first drink and you get a free drink.
+              </Text>
+              <View style={{ marginTop: 8 }}>
+                <GlowingGlassButton
+                  text="Refer a friend"
+                  variant="light"
+                  onPress={async () => {
+                    try {
+                      const code = crypto?.randomUUID?.() || Math.random().toString(36).slice(2, 10);
+                      if (user) await createReferral(user.id, code);
+                      const link = `https://ruminate.cafe/signup?ref=${code}`;
+                      await Share.share({ message: link });
+                    } catch {}
+                  }}
+                />
+              </View>
             </View>
           </>
         ) : (
