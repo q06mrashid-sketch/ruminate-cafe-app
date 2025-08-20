@@ -36,7 +36,7 @@ const [stats, setStats] = useState({ freebiesLeft:0, dividendsPending:0, discoun
 
   const payload = user ? JSON.stringify({ v:1, type:'member', uid:user.id, email:user.email, tier:summary.tier, ts:Date.now() }) : 'ruminate:member';
 
-  useEffect(()=>{ let m=true; const email=(typeof user!=='undefined'&&user&&user.email)?user.email:(summary&&summary.user&&summary.user.email)?summary.user.email:(globalThis&&globalThis.auth&&globalThis.auth.user&&globalThis.auth.user.email)?globalThis.auth.user.email:null; if(!email){return;} getPIFByEmail(email).then(r=>{ if(m) setPifSelfCents(Number(r.total_cents)||0); }).catch(()=>{}); return ()=>{ m=false }; },[user,summary]);
+  useEffect(()=>{ let m=true; const email=(typeof user!=='undefined'&&user&&user.email)?user.email:(summary&&summary.user&&summary.user.email)?summary.user.email:(globalThis&&globalThis.auth&&globalThis.auth.user&&globalThis.auth.user.email)?globalThis.auth.user.email:null; if(!email){ setPifSelfCents(0); return; } getPIFByEmail(email).then(r=>{ if(m) setPifSelfCents(Number(r.total_cents)||0); }).catch(()=>{ if(m) setPifSelfCents(0); }); return ()=>{ m=false }; },[user,summary]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -59,7 +59,7 @@ const [stats, setStats] = useState({ freebiesLeft:0, dividendsPending:0, discoun
             </View>
             <View style={styles.gridRow}>
               <Stat label="Discount uses" value={stats.discountUses} />
-              <Stat label="Pay-it-forward" value={stats.payItForwardContrib} suffix="£" />
+              <Stat label="Pay-it-forward" value={(pifSelfCents/100).toFixed(2)} suffix="£" />
             </View>
             <View style={styles.gridRow}>
               <Stat label="Community fund" value={stats.communityContrib} suffix="£" />
