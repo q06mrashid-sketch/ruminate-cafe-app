@@ -9,7 +9,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import HomeScreen from '../screens/HomeScreen';
 import MenuScreen from '../screens/MenuScreen';
 import MembershipScreen from '../screens/MembershipScreen';
-import ReceiptScreen from '../screens/ReceiptScreen';
+import CommunityScreen from '../screens/CommunityScreen';
 import AdminScreen from '../screens/AdminScreen';
 
 const Tab = createMaterialTopTabNavigator();
@@ -69,9 +69,9 @@ export default function SwipeTabs() {
         options={{ title: 'You', tabBarIcon: ({ color }) => <Ionicons name="qr-code-outline" size={22} color={color} /> }}
       />
       <Tab.Screen
-        name="Receipts"
-        component={ReceiptScreen}
-        options={{ title: 'Receipts', tabBarIcon: ({ color }) => <Ionicons name="receipt-outline" size={22} color={color} /> }}
+        name="Community"
+        component={CommunityScreen}
+        options={{ title: 'Community', tabBarIcon: ({ color }) => <Ionicons name="people-outline" size={22} color={color} /> }}
       />
       <Tab.Screen
         name="Admin"
