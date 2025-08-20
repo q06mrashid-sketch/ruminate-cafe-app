@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { BlurView } from 'expo-blur';
@@ -10,8 +10,9 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import HomeScreen from '../screens/HomeScreen';
 import MenuScreen from '../screens/MenuScreen';
 import MembershipScreen from '../screens/MembershipScreen';
-import ReceiptScreen from '../screens/ReceiptScreen';
+import CommunityScreen from '../screens/CommunityScreen';
 import AdminScreen from '../screens/AdminScreen';
+import { supabase } from '../lib/supabase';
 
 const Tab = createMaterialTopTabNavigator();
 
@@ -48,6 +49,25 @@ function GlassTabBar({ state, descriptors, navigation }) {
 }
 
 export default function SwipeTabs() {
+  const [signedIn, setSignedIn] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (active) setSignedIn(!!data?.session?.user);
+      } catch {}
+    })();
+    const sub = supabase.auth.onAuthStateChange((_event, session) => {
+      setSignedIn(!!session?.user);
+    });
+    return () => {
+      try { sub?.data?.subscription?.unsubscribe?.(); } catch {}
+      active = false;
+    };
+  }, []);
+
   return (
     <Tab.Navigator
       tabBarPosition="bottom"
@@ -76,15 +96,17 @@ export default function SwipeTabs() {
         options={{ title: 'You', tabBarIcon: ({ color }) => <Ionicons name="qr-code-outline" size={22} color={color} /> }}
       />
       <Tab.Screen
-        name="Receipts"
-        component={ReceiptScreen}
-        options={{ title: 'Receipts', tabBarIcon: ({ color }) => <Ionicons name="receipt-outline" size={22} color={color} /> }}
+        name="Community"
+        component={CommunityScreen}
+        options={{ title: 'Community', tabBarIcon: ({ color }) => <Ionicons name="people-outline" size={22} color={color} /> }}
       />
-      <Tab.Screen
-        name="Admin"
-        component={AdminScreen}
-        options={{ title: 'Admin', tabBarIcon: ({ color }) => <Ionicons name="settings-outline" size={22} color={color} /> }}
-      />
+      {signedIn && (
+        <Tab.Screen
+          name="Admin"
+          component={AdminScreen}
+          options={{ title: 'Admin', tabBarIcon: ({ color }) => <Ionicons name="settings-outline" size={22} color={color} /> }}
+        />
+      )}
     </Tab.Navigator>
   );
 }

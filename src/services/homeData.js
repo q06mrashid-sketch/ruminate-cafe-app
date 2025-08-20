@@ -1,5 +1,6 @@
 import { Linking } from 'react-native';
 import { getCMS } from './cms';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 function parseHHMM(s){ if(!s||typeof s!=='string') return null; const m=s.trim().match(/^(\d{1,2}):(\d{2})$/); if(!m) return null; const h=+m[1], mm=+m[2]; if(isNaN(h)||isNaN(mm)) return null; return h*60+mm; }
 function hhmm(mins){ if(mins==null) return '--:--'; const h=String(Math.floor(mins/60)).padStart(2,'0'); const m=String(mins%60).padStart(2,'0'); return `${h}:${m}`; }
@@ -11,25 +12,24 @@ export async function getToday(){ try{ const cms=await getCMS(); const s=todaySt
 export async function getWeeklyHours(){ try{ const cms=await getCMS(); const days=[{k:'mon',label:'Mon'},{k:'tue',label:'Tue'},{k:'wed',label:'Wed'},{k:'thu',label:'Thu'},{k:'fri',label:'Fri'},{k:'sat',label:'Sat'},{k:'sun',label:'Sun'}]; const out=[]; for(const d of days){ if(d.k==='fri'){ const o1=parseHHMM(cms?.['hours.fri.open1']), c1=parseHHMM(cms?.['hours.fri.close1']); const o2=parseHHMM(cms?.['hours.fri.open2']), c2=parseHHMM(cms?.['hours.fri.close2']); const seg1=(o1!=null&&c1!=null&&c1>o1)?`${hhmm(o1)}–${hhmm(c1)}`:null; const seg2=(o2!=null&&c2!=null&&c2>o2)?`${hhmm(o2)}–${hhmm(c2)}`:null; const text=seg1&&seg2?`${seg1} / ${seg2}`:(seg1||seg2||'Closed'); out.push({ key:d.k, label:d.label, text }); } else { const o=parseHHMM(cms?.[`hours.${d.k}.open`]), c=parseHHMM(cms?.[`hours.${d.k}.close`]); const text=(o!=null&&c!=null&&c>o)?`${hhmm(o)}–${hhmm(c)}`:'Closed'; out.push({ key:d.k, label:d.label, text }); } } return out; } catch { return [{key:'mon',label:'Mon',text:'--:--'},{key:'tue',label:'Tue',text:'--:--'},{key:'wed',label:'Wed',text:'--:--'},{key:'thu',label:'Thu',text:'--:--'},{key:'fri',label:'Fri',text:'--:--'},{key:'sat',label:'Sat',text:'--:--'},{key:'sun',label:'Sun',text:'--:--'}]; } }
 
 export async function getPayItForward(){ return { available:7, contributed:124 }; }
-// Returns loyalty stamp progress toward the next free drink.
-// The target is 8 stamps to earn a free drink.
 export async function getFreeDrinkProgress(){ return { current:3, target:8 }; }
 
 export async function openInstagramProfile(){ const app='instagram://user?username=ruminatecafe'; const web='https://www.instagram.com/ruminatecafe/'; try{ const can=await Linking.canOpenURL(app); await Linking.openURL(can?app:web); } catch { Linking.openURL(web); } }
 
 export async function getLatestInstagramPost(){
+  const cacheKey='latestIgPost';
   try{
-    // Use a simple proxy to fetch the public page since the old endpoint
-    // now requires authentication. The r.jina.ai domain fetches the page
-    // and returns raw HTML which we parse for the first post.
     const res=await fetch('https://r.jina.ai/https://www.instagram.com/ruminatecafe/');
     const html=await res.text();
     const imgMatch=html.match(/"display_url":"([^\"]+)"/);
     const capMatch=html.match(/"edge_media_to_caption"[^]*?"text":"([^\"]*)"/);
     const image=imgMatch?imgMatch[1].replace(/\\u0026/g,'&'):null;
     const caption=capMatch?capMatch[1].replace(/\\u0026/g,'&'):'';
-    return { image, caption };
+    const post={ image, caption };
+    try{ await AsyncStorage.setItem(cacheKey, JSON.stringify(post)); }catch{}
+    return post;
   }catch{
+    try{ const cached=await AsyncStorage.getItem(cacheKey); if(cached) return JSON.parse(cached); }catch{}
     return { image:null, caption:'' };
   }
 }

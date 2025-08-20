@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -83,7 +82,22 @@ export default function MembershipStartScreen() {
       password,
       options: { data: profile },
     });
-    if (error) { Alert.alert('Sign up failed', error.message); return null; }
+
+    if (error) {
+      if (/already\s+registered/i.test(error.message)) {
+        Alert.alert(
+          'Account exists',
+          'An account with this email already exists. Reset password?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Reset password', onPress: handleForgot },
+          ]
+        );
+      } else {
+        Alert.alert('Sign up failed', error.message);
+      }
+      return null;
+    }
     if (data?.user && referral) {
       try { await redeemReferral(referral, data.user.id); } catch {}
     }
@@ -93,12 +107,15 @@ export default function MembershipStartScreen() {
   async function handleCreateFree() {
     const data = await signUpCommon({ name, phone, tier: 'free' });
     if (!data) return;
-    Alert.alert('Loyalty card created', 'You can start collecting stamps immediately.'); navigation.navigate('Home'); }
+    Alert.alert('Loyalty card created', 'You can start collecting stamps immediately.');
+    navigation.navigate('Home');
+  }
 
   async function handleCreatePaid() {
     const data = await signUpCommon({ name, phone, tier: 'paid' });
     if (!data) return;
-    Alert.alert('Membership', 'Apple Pay / Stripe PaymentSheet would open here in the dev build.'); navigation.navigate('Home');
+    Alert.alert('Membership', 'Apple Pay / Stripe PaymentSheet would open here in the dev build.');
+    navigation.navigate('Home');
   }
 
   return (
@@ -225,10 +242,3 @@ const styles = StyleSheet.create({
 
   link:{ color:palette.clay, fontFamily:'Fraunces_600SemiBold' },
 });
-
-
-async function handleEmailSignIn(email, password, navigation) {
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) throw error;
-  navigation.navigate('Home');
-}

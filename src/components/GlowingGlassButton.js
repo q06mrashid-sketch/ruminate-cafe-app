@@ -89,5 +89,5 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.6)',
   },
   label: { fontFamily: 'Fraunces_700Bold', fontSize: 16 },
-  sheen: { position: 'absolute', top: 0, bottom: 0, width: 100 },
+  sheen: { position: 'absolute', top: 0, bottom: 0, width: 120 },
 });
