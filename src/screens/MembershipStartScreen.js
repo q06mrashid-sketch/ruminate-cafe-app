@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -108,12 +107,15 @@ export default function MembershipStartScreen() {
   async function handleCreateFree() {
     const data = await signUpCommon({ name, phone, tier: 'free' });
     if (!data) return;
-    Alert.alert('Loyalty card created', 'You can start collecting stamps immediately.'); navigation.navigate('Home'); }
+    Alert.alert('Loyalty card created', 'You can start collecting stamps immediately.');
+    navigation.navigate('Home');
+  }
 
   async function handleCreatePaid() {
     const data = await signUpCommon({ name, phone, tier: 'paid' });
     if (!data) return;
-    Alert.alert('Membership', 'Apple Pay / Stripe PaymentSheet would open here in the dev build.'); navigation.navigate('Home');
+    Alert.alert('Membership', 'Apple Pay / Stripe PaymentSheet would open here in the dev build.');
+    navigation.navigate('Home');
   }
 
   return (
@@ -240,10 +242,3 @@ const styles = StyleSheet.create({
 
   link:{ color:palette.clay, fontFamily:'Fraunces_600SemiBold' },
 });
-
-
-async function handleEmailSignIn(email, password, navigation) {
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) throw error;
-  navigation.navigate('Home');
-}
