@@ -77,6 +77,11 @@ let mounted = true;
 
   // Keep signed-in flag in sync with Supabase auth
   useEffect(() => {
+    if (!supabase?.auth) {
+      // If Supabase isn't configured, ensure we show as signed out
+      setMember(prev => ({ ...prev, signedIn: false }));
+      return;
+    }
     let active = true;
     (async () => {
       try {
@@ -87,7 +92,10 @@ let mounted = true;
     const sub = supabase.auth.onAuthStateChange((_event, session) => {
       setMember(prev => ({ ...prev, signedIn: !!session?.user }));
     });
-    return () => { try { sub.data.subscription.unsubscribe(); } catch {} active = false; };
+    return () => {
+      try { sub?.data?.subscription?.unsubscribe?.(); } catch {}
+      active = false;
+    };
   }, []);
 
   const nextBill = member?.next_billing_at ? new Date(member.next_billing_at).toLocaleDateString() : null;
