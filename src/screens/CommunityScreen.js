@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { palette } from '../design/theme';
 import { getFundProgress, getFundHistory } from '../services/community';
 
 export default function CommunityScreen() {
@@ -14,7 +16,8 @@ export default function CommunityScreen() {
   const pct = Math.round((progress.progress || 0) * 100);
 
   return (
-    <ScrollView style={{ flex:1, backgroundColor:'transparent' }} contentContainerStyle={styles.container}>
+    <SafeAreaView style={{ flex:1 }} edges={['top']}>
+      <ScrollView style={{ flex:1, backgroundColor:'transparent' }} contentContainerStyle={styles.container}>
       <View style={styles.card}>
         <Text style={styles.title}>What is the Community Fund?</Text>
         <Text style={styles.body}>
@@ -69,20 +72,21 @@ export default function CommunityScreen() {
           );
         })}
       </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { padding: 16 },
-  card: { backgroundColor: '#fff', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#e5d9cf', marginBottom: 12 },
+  card: { backgroundColor: palette.paper, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: palette.border, marginBottom: 12 },
   title: { fontSize: 18, marginBottom: 6, color: '#3e2f2b', fontFamily: 'Fraunces_700Bold' },
   body: { fontSize: 15, lineHeight: 22, color: '#6b5a54', fontFamily: 'Fraunces_600SemiBold' },
   bullets: { marginTop: 4 },
   bullet: { fontSize: 15, lineHeight: 22, color: '#6b5a54', marginBottom: 2, fontFamily: 'Fraunces_600SemiBold' },
   note: { marginTop: 6, fontSize: 13, color: '#7c6c66', fontStyle: 'italic', fontFamily: 'Fraunces_600SemiBold' },
   progressWrap: { marginTop: 4 },
-  progressBarOuter: { height: 12, borderRadius: 10, overflow: 'hidden', backgroundColor: '#f1e7de', borderWidth: 1, borderColor: '#e5d9cf' },
+  progressBarOuter: { height: 12, borderRadius: 10, overflow: 'hidden', backgroundColor: '#f1e7de', borderWidth: 1, borderColor: palette.border },
   progressBarInner: { height: 12, borderRadius: 10, backgroundColor: '#b96f48' },
   progressLabel: { marginTop: 6, fontSize: 14, color: '#6b5a54', fontFamily: 'Fraunces_600SemiBold' },
   tableHead: { flexDirection: 'row', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: '#e5d9cf' },
@@ -91,6 +95,6 @@ const styles = StyleSheet.create({
   cellMonth: { flex: 1.4 },
   cellAmt: { flex: 1 },
   cellBar: { flex: 1.6, justifyContent: 'center' },
-  miniBarOuter: { height: 10, borderRadius: 10, overflow: 'hidden', backgroundColor: '#f1e7de', borderWidth: 1, borderColor: '#e5d9cf' },
+  miniBarOuter: { height: 10, borderRadius: 10, overflow: 'hidden', backgroundColor: '#f1e7de', borderWidth: 1, borderColor: palette.border },
   miniBarInner: { height: 10, borderRadius: 10, backgroundColor: '#b96f48' }
 });
