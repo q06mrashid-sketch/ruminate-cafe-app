@@ -1,19 +1,33 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import Svg, { Circle } from 'react-native-svg';
 import { palette } from '../design/theme';
 
 export default function FreeDrinksCounter({ count = 0 }) {
   const ratio = Math.max(0, Math.min(1, count / 3));
   const size = 64;
+  const radius = 28;
+  const circumference = 2 * Math.PI * radius;
   return (
     <View style={styles.tile}>
       <Text style={styles.title}>Free Drinks</Text>
-      <View style={{ width: size, height: size }}>
-        <MaterialCommunityIcons name="coffee-to-go-outline" size={size} color={palette.coffee} style={styles.cup} />
-        <View style={[styles.fillWrap, { height: size * ratio }]}>
-          <MaterialCommunityIcons name="coffee-to-go" size={size} color={palette.coffee} />
-        </View>
+      <View style={styles.row}>
+        <MaterialCommunityIcons name="coffee" size={size} color={palette.coffee} />
+        <Svg width={size} height={size} style={{ marginLeft: 12 }}>
+          <Circle cx={size / 2} cy={size / 2} r={radius} stroke={palette.border} strokeWidth={4} fill="none" />
+          <Circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke={palette.coffee}
+            strokeWidth={4}
+            fill="none"
+            strokeDasharray={circumference}
+            strokeDashoffset={circumference * (1 - ratio)}
+            strokeLinecap="round"
+          />
+        </Svg>
       </View>
       <Text style={styles.label}>{count} / 3 remaining</Text>
     </View>
@@ -28,14 +42,14 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 16,
     alignItems: 'center',
-    alignSelf: 'center',
+    alignSelf: 'stretch',
+    width: '100%',
   },
   title: {
     fontFamily: 'Fraunces_700Bold',
     color: palette.coffee,
     marginBottom: 8,
   },
-  cup: { position: 'absolute', top: 0, left: 0 },
-  fillWrap: { position: 'absolute', bottom: 0, overflow: 'hidden', width: '100%' },
+  row: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
   label: { marginTop: 6, color: palette.coffee, fontFamily: 'Fraunces_600SemiBold' },
 });

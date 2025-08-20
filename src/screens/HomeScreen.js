@@ -3,7 +3,6 @@ import { getPIFStats } from '../services/pif';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, Animated, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import placeholderImg from '../../assets/icon.png';
 import { useIsFocused } from '@react-navigation/native';
 import { palette } from '../design/theme';
 import GlowingGlassButton from '../components/GlowingGlassButton';
@@ -110,7 +109,7 @@ export default function HomeScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Image source={placeholderImg} style={styles.headerLogo} />
+        <Text style={styles.headerText}>Ruminate Café</Text>
       </View>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
@@ -279,6 +278,20 @@ const styles = StyleSheet.create({
   hoursRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
   hoursDay: { fontFamily: 'Fraunces_700Bold', color: palette.coffee, fontSize: 14 },
   hoursTime: { fontFamily: 'Fraunces_600SemiBold', color: '#6b5a54', fontSize: 14 },
-  header: { backgroundColor: palette.coffee, alignItems: 'center', justifyContent: 'center', height: 56 },
-  headerLogo: { width: 32, height: 32, resizeMode: 'contain' },
+  header: {
+    backgroundColor: palette.coffee,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 100,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  headerText: {
+    color: '#fff',
+    fontFamily: 'Fraunces_700Bold',
+    fontSize: 24,
+  },
 });
