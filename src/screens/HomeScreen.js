@@ -39,7 +39,6 @@ export default function HomeScreen({ navigation }) {
   const [member, setMember] = useState({ status: 'none', next_billing_at: null, signedIn: false });
   const [fund, setFund] = useState({ total_cents: 0, goal_cents: 0 });
   const [today, setToday] = useState({ openNow: false, until: '--:--', specials: [] });
-  const communityProgress=Math.max(0,Math.min(1,fund?.progress||0));
   const [pif, setPif] = useState({ available: 0, contributed: 0 });
   const [loyalty, setLoyalty] = useState({ current: 0, target: 8 });
   const [freebiesLeft, setFreebiesLeft] = useState(0);
@@ -122,7 +121,7 @@ let mounted = true;
         <View style={styles.hero}>
           <Text style={styles.title}>Welcome to Ruminate Café</Text>
           <Text style={styles.subcopy}>
-            Track perks, collect stamps, view receipts, and support the community fund.
+            Track perks, collect stamps, and support the community fund.
           </Text>
 
           <View style={{ height: 18 }} />
@@ -136,16 +135,7 @@ let mounted = true;
 
           {signedIn ? (
             <View>
-              <Pressable onPress={() => navigation.navigate('Community')} style={{ marginTop: 16 }}>
-                <Text style={styles.sectionLabel}>Community fund (this month)</Text>
-                <ProgressBar value={fund?.total_cents || 0} max={(fund?.goal_cents || 0) || 1} />
-                <Text style={styles.muted}>
-                  £{((fund?.total_cents || 0) / 100).toFixed(2)}
-                  {(fund?.goal_cents || 0) ? ` / £${((fund?.goal_cents || 0) / 100).toFixed(2)}` : ''}
-                </Text>
-              </Pressable>
-
-              <View style={{ marginTop: 20 }}>
+              <View style={{ marginTop: 16 }}>
                 <Text style={styles.sectionLabel}>Loyalty stamps progress</Text>
                 <ProgressBar value={loyalty.current} max={loyalty.target} tint={palette.coffee} track="#F1E3D3" />
                 <Text style={styles.muted}>{loyalty.current} / {loyalty.target} stamps</Text>
@@ -172,15 +162,6 @@ let mounted = true;
               <GlowingGlassButton text="Join today" variant="dark" ring onPress={() => navigation.navigate('MembershipStart')} />
               <View style={{ height: 10 }} />
               <GlowingGlassButton text="Learn about Membership & Profit Sharing" variant="light" onPress={() => navigation.navigate('MembershipInfo')} />
-
-              <Pressable onPress={() => navigation.navigate('Community')} style={{ marginTop: 16 }}>
-                <Text style={styles.sectionLabel}>Community fund (this month)</Text>
-                <ProgressBar value={fund?.total_cents || 0} max={(fund?.goal_cents || 0) || 1} />
-                <Text style={styles.muted}>
-                  £{((fund?.total_cents || 0) / 100).toFixed(2)}
-                  {(fund?.goal_cents || 0) ? ` / £${((fund?.goal_cents || 0) / 100).toFixed(2)}` : ''}
-                </Text>
-              </Pressable>
             </View>
           )}
         </View>
@@ -239,9 +220,13 @@ let mounted = true;
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Recent receipts</Text>
-          <Pressable onPress={() => navigation.navigate('Receipt')}>
-            <Text style={styles.link}>View all receipts →</Text>
+          <Pressable onPress={() => navigation.navigate('Community')}>
+            <Text style={styles.cardTitle}>Community fund (this month)</Text>
+            <ProgressBar value={fund?.total_cents || 0} max={(fund?.goal_cents || 0) || 1} />
+            <Text style={styles.muted}>
+              £{((fund?.total_cents || 0) / 100).toFixed(2)}
+              {(fund?.goal_cents || 0) ? ` / £${((fund?.goal_cents || 0) / 100).toFixed(2)}` : ''}
+            </Text>
           </Pressable>
         </View>
 
@@ -277,7 +262,6 @@ const styles = StyleSheet.create({
   sectionValue: { fontSize: 16, fontFamily: 'Fraunces_700Bold' },
   cardTitle: { fontSize: 18, color: palette.coffee, fontFamily: 'Fraunces_700Bold', marginBottom: 8 },
   muted: { marginTop: 6, color: palette.coffee },
-  link: { marginTop: 6, color: palette.clay, fontFamily: 'Fraunces_600SemiBold' },
 
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     pifTile: { flex: 1, justifyContent: 'space-between', alignItems: 'center' },
