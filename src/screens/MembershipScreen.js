@@ -68,10 +68,12 @@ const [stats, setStats] = useState({ freebiesLeft:3, dividendsPending:0, loyalty
               <Text style={styles.mutedSmall}>Show at the counter to redeem perks and stamps.</Text>
             </View>
 
-            <View style={styles.gridRow}>
-              <Stat label="Free drinks left" value={stats.freebiesLeft} />
-              <Stat label="Dividends pending" value={Number(stats.dividendsPending).toFixed(2)} prefix="£" />
-            </View>
+            {summary.tier === 'paid' && (
+              <View style={styles.gridRow}>
+                <Stat label="Free drinks left" value={stats.freebiesLeft} />
+                <Stat label="Dividends pending" value={Number(stats.dividendsPending).toFixed(2)} prefix="£" />
+              </View>
+            )}
             <View style={styles.gridRow}>
               <Stat label="Loyalty stamps" value={`${stats.loyaltyStamps}/8`} />
               <Stat label="Pay-it-forward" value={(pifSelfCents/100).toFixed(2)} prefix="£" />

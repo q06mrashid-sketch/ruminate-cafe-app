@@ -12,7 +12,12 @@ export async function getMembershipSummary() {
     }
 
     const meta = session.user.user_metadata || {};
-    const tier = meta.tier === 'paid' ? 'paid' : 'free';
+    // For testing, force specific user email to be treated as paid tier
+    // regardless of metadata.
+    const email = session.user.email;
+    const tier = email === 'q06mrashid@gmail.com'
+      ? 'paid'
+      : (meta.tier === 'paid' ? 'paid' : 'free');
     const status = tier === 'paid' ? 'active' : 'none';
 
     // If you later store billing info in user metadata or a profile table,

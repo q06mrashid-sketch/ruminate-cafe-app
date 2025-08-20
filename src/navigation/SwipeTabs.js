@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import HomeScreen from '../screens/HomeScreen';
+import MenuScreen from '../screens/MenuScreen';
 import MembershipScreen from '../screens/MembershipScreen';
 import ReceiptScreen from '../screens/ReceiptScreen';
 import AdminScreen from '../screens/AdminScreen';
@@ -56,6 +57,11 @@ export default function SwipeTabs() {
         name="Home"
         component={HomeScreen}
         options={{ title: 'Home', tabBarIcon: ({ color }) => <Ionicons name="home" size={22} color={color} /> }}
+      />
+      <Tab.Screen
+        name="Menu"
+        component={MenuScreen}
+        options={{ title: 'Menu', tabBarIcon: ({ color }) => <Ionicons name="restaurant-outline" size={22} color={color} /> }}
       />
       <Tab.Screen
         name="Membership"
