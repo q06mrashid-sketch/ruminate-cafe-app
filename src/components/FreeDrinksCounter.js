@@ -3,11 +3,6 @@ import { View, Text, StyleSheet } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { palette } from '../design/theme';
 
-/**
- * Displays remaining free drinks as a coffee cup that empties by thirds.
- * @param {Object} props
- * @param {number} props.count - Number of free drinks remaining (0-3)
- */
 export default function FreeDrinksCounter({ count = 0 }) {
   const ratio = Math.max(0, Math.min(1, count / 3));
   const size = 64;

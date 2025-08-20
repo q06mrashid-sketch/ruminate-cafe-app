@@ -3,12 +3,6 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { palette } from '../design/theme';
 
-/**
- * Displays loyalty stamp progress as 8 coffee beans (two rows of four).
- * @param {Object} props
- * @param {number} props.count - Number of stamps collected.
- * @param {function} [props.onRedeem] - Called when user taps the redeem button.
- */
 export default function LoyaltyStampTile({ count = 0, onRedeem }) {
   const beans = Array.from({ length: 8 }, (_, i) => i < count);
   const canRedeem = count >= 8;

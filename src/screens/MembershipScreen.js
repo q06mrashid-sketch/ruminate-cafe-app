@@ -47,7 +47,19 @@ export default function MembershipScreen({ navigation }) {
 
   const payload = user ? `ruminate:${user.id}` : 'ruminate:member';
 
-  useEffect(()=>{ let m=true; const email=(typeof user!=='undefined'&&user&&user.email)?user.email:(summary&&summary.user&&summary.user.email)?summary.user.email:(globalThis&&globalThis.auth&&globalThis.auth.user&&globalThis.auth.user.email)?globalThis.auth.user.email:null; if(!email){ setPifSelfCents(0); return; } getPIFByEmail(email).then(r=>{ if(m) setPifSelfCents(Number(r.total_cents)||0); }).catch(()=>{ if(m) setPifSelfCents(0); }); return ()=>{ m=false }; },[user,summary]);
+  useEffect(()=>{ 
+    let m=true; 
+    const email=(typeof user!=='undefined'&&user&&user.email)
+      ? user.email
+      : (summary&&summary.user&&summary.user.email)
+      ? summary.user.email
+      : (globalThis&&globalThis.auth&&globalThis.auth.user&&globalThis.auth.user.email)
+      ? globalThis.auth.user.email
+      : null; 
+    if(!email){ setPifSelfCents(0); return; } 
+    getPIFByEmail(email).then(r=>{ if(m) setPifSelfCents(Number(r.total_cents)||0); }).catch(()=>{ if(m) setPifSelfCents(0); }); 
+    return ()=>{ m=false }; 
+  },[user,summary]);
 
   const [notice, setNotice] = useState('');
   useEffect(() => {
