@@ -56,15 +56,16 @@ export default function GlowingGlassButton({
           style={[
             styles.sheen,
             {
-              transform: [{
-                translateX: sweepX.interpolate({ inputRange: [-1,1], outputRange: [-240, 240] })
-              }]
+              transform: [
+                { translateX: sweepX.interpolate({ inputRange: [-1,1], outputRange: [-240, 240] }) },
+                { translateY: sweepX.interpolate({ inputRange: [-1,1], outputRange: [-40, 40] }) },
+              ]
             }
           ]}
         >
           <LinearGradient
-            colors={['transparent','rgba(255,255,255,0.06)','transparent']}
-            start={{x:0,y:0.5}} end={{x:1,y:0.5}}
+            colors={['transparent','rgba(255,255,255,0.04)','transparent']}
+            start={{x:0,y:0}} end={{x:1,y:1}}
             style={{ flex: 1 }}
           />
         </Animated.View>
