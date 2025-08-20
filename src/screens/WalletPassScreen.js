@@ -13,6 +13,6 @@ export default function WalletPassScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background, padding: 16 },
+  container: { flex: 1, padding: 16 },
   heading: { fontSize: 20, fontWeight: 'bold', color: theme.colors.primary, marginBottom: 10 }
 });

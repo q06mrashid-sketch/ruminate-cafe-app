@@ -63,7 +63,7 @@ export default function GlowingGlassButton({
           ]}
         >
           <LinearGradient
-            colors={['transparent','rgba(255,255,255,0.12)','transparent']}
+            colors={['transparent','rgba(255,255,255,0.06)','transparent']}
             start={{x:0,y:0.5}} end={{x:1,y:0.5}}
             style={{ flex: 1 }}
           />

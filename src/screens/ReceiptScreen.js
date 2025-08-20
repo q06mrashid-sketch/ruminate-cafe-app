@@ -21,7 +21,7 @@ export default function ReceiptScreen({ route }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8EBDD' },
+  container: { flex: 1 },
   content: { flex: 1, padding: 20 },
   title: { color: palette.coffee, fontSize: 22, marginBottom: 12, fontFamily: 'Fraunces_700Bold' },
   card: { backgroundColor: '#FFF5EA', borderColor: '#E7D6C3', borderWidth: 1, borderRadius: 14, padding: 14 },

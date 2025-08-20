@@ -191,7 +191,7 @@ export default function MembershipStartScreen() {
 }
 
 const styles = StyleSheet.create({
-  container:{ flex:1, backgroundColor: palette.cream },
+  container:{ flex:1 },
   content:{ padding:16, paddingBottom:28 },
   title:{ fontSize:22, color:palette.coffee, fontFamily:'Fraunces_700Bold', marginBottom:12 },
 
