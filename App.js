@@ -10,7 +10,7 @@ export default function App() {
   const [loaded] = useFonts({ Fraunces_600SemiBold, Fraunces_700Bold });
   if (!loaded) return <View style={{ flex:1, backgroundColor:'#F8EBDD' }} />;
   return (
-    <LinearGradient colors={['#F8EBDD', '#E7D6C3']} style={{ flex: 1 }}>
+    <LinearGradient colors={['#F9E7E3', '#EED9D0']} style={{ flex: 1 }}>
       <SafeAreaProvider>
         <StatusBar barStyle="dark-content" />
         <Router />

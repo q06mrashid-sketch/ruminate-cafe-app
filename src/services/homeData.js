@@ -18,24 +18,14 @@ export async function openInstagramProfile(){ const app='instagram://user?userna
 
 export async function getLatestInstagramPost(){
   const cacheKey='latestIgPost';
-  const endpoint=process.env.EXPO_PUBLIC_INSTAGRAM_FEED_URL;
   try{
-    if(!endpoint) throw new Error('no endpoint');
-    const res=await fetch(endpoint);
-    if(!res.ok) throw new Error('bad status');
-    const data=await res.json();
-
-    const pickPost=payload=>{
-      const item=Array.isArray(payload)?payload[0]:Array.isArray(payload?.data)?payload.data[0]:payload?.latest||payload;
-      if(!item) return null;
-      const image=item.image||item.image_url||item.imageUrl||item.media_url||item.url;
-      const caption=item.caption||item.text||'';
-      return typeof image==='string'?{image,caption}:null;
-    };
-
-    const post=pickPost(data);
-    if(!post) throw new Error('bad payload');
-
+    const res=await fetch('https://r.jina.ai/https://www.instagram.com/ruminatecafe/');
+    const html=await res.text();
+    const imgMatch=html.match(/"display_url":"([^\"]+)"/);
+    const capMatch=html.match(/"edge_media_to_caption"[^]*?"text":"([^\"]*)"/);
+    const image=imgMatch?imgMatch[1].replace(/\\u0026/g,'&'):null;
+    const caption=capMatch?capMatch[1].replace(/\\u0026/g,'&'):'';
+    const post={ image, caption };
     try{ await AsyncStorage.setItem(cacheKey, JSON.stringify(post)); }catch{}
     return post;
   }catch{

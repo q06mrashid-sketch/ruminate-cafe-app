@@ -27,7 +27,7 @@ function Stat({ label, value, prefix = '', suffix = '' }) {
 export default function MembershipScreen({ navigation }) {
   const [summary, setSummary] = useState({ signedIn:false, tier:'free', status:'none', next_billing_at:null });
   const [pifSelfCents,setPifSelfCents]=useState(0);
-const [stats, setStats] = useState({ freebiesLeft:3, dividendsPending:0, loyaltyStamps:0, payItForwardContrib:0, communityContrib:0 });
+  const [stats, setStats] = useState({ freebiesLeft:3, dividendsPending:0, loyaltyStamps:0, payItForwardContrib:0, communityContrib:0 });
   const [user, setUser] = useState(null);
 
   const refresh = useCallback(async () => {
@@ -43,7 +43,6 @@ const [stats, setStats] = useState({ freebiesLeft:3, dividendsPending:0, loyalty
   useEffect(() => { refresh(); }, [refresh]);
   useFocusEffect(useCallback(() => { let on = true; (async()=>{ if(on) await refresh(); })(); return () => { on = false; }; }, [refresh]));
 
-  // Stable opaque member identifier for QR payload
   const payload = user ? `ruminate:${user.id}` : 'ruminate:member';
 
   useEffect(()=>{ let m=true; const email=(typeof user!=='undefined'&&user&&user.email)?user.email:(summary&&summary.user&&summary.user.email)?summary.user.email:(globalThis&&globalThis.auth&&globalThis.auth.user&&globalThis.auth.user.email)?globalThis.auth.user.email:null; if(!email){ setPifSelfCents(0); return; } getPIFByEmail(email).then(r=>{ if(m) setPifSelfCents(Number(r.total_cents)||0); }).catch(()=>{ if(m) setPifSelfCents(0); }); return ()=>{ m=false }; },[user,summary]);
@@ -178,23 +177,17 @@ const styles = StyleSheet.create({
   content:{ padding:16, paddingBottom:28 },
   title:{ fontSize:24, color:palette.coffee, fontFamily:'Fraunces_700Bold' },
   mutedSmall:{ fontSize:13, color:palette.coffee, opacity:0.8 },
-  referralText:{ fontSize:18, color:palette.clay, fontFamily:'Fraunces_700Bold', textAlign:'center' },
-
+  referralText:{ fontSize:20, color:palette.clay, fontFamily:'Fraunces_700Bold', textAlign:'center', marginVertical:4 },
   card:{ backgroundColor:palette.paper, borderColor:palette.border, borderWidth:1, borderRadius:14, padding:16, marginTop:14 },
   cardTitle:{ fontSize:18, color:palette.coffee, fontFamily:'Fraunces_700Bold', marginBottom:10 },
   perk:{ color:palette.coffee, lineHeight:22, marginTop:6, fontFamily:'Fraunces_600SemiBold' },
-
   infoCard:{ backgroundColor:palette.paper, borderColor:palette.border, borderWidth:1, borderRadius:14, padding:16, marginTop:14 },
-
   gridRow:{ flexDirection:'row', marginTop:14 },
   statBox:{ flex:1, backgroundColor:palette.paper, borderColor:palette.border, borderWidth:1, borderRadius:14, paddingVertical:16, paddingHorizontal:12, marginRight:12 },
   statValue:{ fontSize:28, color:palette.clay, fontFamily:'Fraunces_700Bold' },
   statLabel:{ marginTop:6, color:palette.coffee, fontFamily:'Fraunces_600SemiBold' },
-
   notice:{ backgroundColor:palette.paper, borderColor:palette.border, borderWidth:1, borderRadius:10, padding:10, marginTop:12, textAlign:'center', color:palette.clay, fontFamily:'Fraunces_700Bold' },
-
   qrWrap:{ alignItems:'center', justifyContent:'center', paddingVertical:12 },
-
   cta:{ borderRadius:14, paddingVertical:14, alignItems:'center', justifyContent:'center' },
   ctaPrimary:{ backgroundColor: palette.clay, borderColor: palette.border, borderWidth: 1 },
   ctaPrimaryText:{ color:'#fff', fontFamily:'Fraunces_700Bold', fontSize:16 },
