@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const archiver = require('archiver');
 const QRCode = require('qrcode');
+const logoSrc = path.join(__dirname, 'assets', 'icon.png');
 
 const members = [
   { id: 'M001', name: 'Aisha Khan', drinks: 3 },
@@ -32,6 +33,11 @@ async function generate() {
     if (!fs.existsSync(memberPassFolder)) fs.mkdirSync(memberPassFolder, { recursive: true });
 
     fs.writeFileSync(path.join(memberPassFolder, 'pass.json'), passData, 'utf8');
+
+    if (fs.existsSync(logoSrc)) {
+      fs.copyFileSync(logoSrc, path.join(memberPassFolder, 'logo.png'));
+      fs.copyFileSync(logoSrc, path.join(memberPassFolder, 'icon.png'));
+    }
 
     await QRCode.toFile(path.join(qrDir, `${m.id}.png`), m.id);
 

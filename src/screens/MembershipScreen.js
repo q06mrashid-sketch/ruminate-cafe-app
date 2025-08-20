@@ -1,6 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScrollView, View, Text, StyleSheet, Pressable } from 'react-native';
+import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system';
+import membershipPassBase64 from '../../assets/membershipPassBase64';
 import { useFocusEffect } from '@react-navigation/native';
 import QRCode from 'react-native-qrcode-svg';
 import { palette } from '../design/theme';
@@ -53,6 +56,16 @@ const [stats, setStats] = useState({ freebiesLeft:3, dividendsPending:0, loyalty
     }
   }, [stats.loyaltyStamps]);
 
+  const handleAddToWallet = useCallback(async () => {
+    try {
+      const fileUri = FileSystem.cacheDirectory + 'membership.pkpass';
+      await FileSystem.writeAsStringAsync(fileUri, membershipPassBase64, { encoding: FileSystem.EncodingType.Base64 });
+      await Sharing.shareAsync(fileUri, { mimeType: 'application/vnd.apple.pkpass' });
+    } catch (e) {
+      console.error('Failed to add to wallet', e);
+    }
+  }, []);
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -67,6 +80,9 @@ const [stats, setStats] = useState({ freebiesLeft:3, dividendsPending:0, loyalty
                 <QRCode value={payload} size={180} />
               </View>
               <Text style={styles.mutedSmall}>Show at the counter to redeem perks and stamps.</Text>
+              <View style={{ marginTop: 12 }}>
+                <GlowingGlassButton text="Add to Wallet" variant="dark" onPress={handleAddToWallet} />
+              </View>
             </View>
 
             {summary.tier === 'paid' && (
