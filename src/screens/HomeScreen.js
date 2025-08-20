@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { getPIFStats } from '../services/pif';
-
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, Animated, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -17,7 +16,7 @@ import { getCMS } from '../services/cms';
 
 function ProgressBar({ value, max, tint = palette.clay, track = '#EED8C4' }) {
   const pct = Math.max(0, Math.min(1, max > 0 ? value / max : 0));
-return (
+  return (
     <View style={[styles.barOuter, { backgroundColor: track }]}>
       <View style={[styles.barInner, { width: `${pct * 100}%`, backgroundColor: tint }]} />
     </View>
@@ -33,11 +32,9 @@ function Chip({ children }) {
 }
 
 export default function HomeScreen({ navigation }) {
-  const [hoursExpanded,setHoursExpanded]=useState(false);
-  const [weekHours,setWeekHours]=useState([]);
-
+  const [hoursExpanded, setHoursExpanded] = useState(false);
+  const [weekHours, setWeekHours] = useState([]);
   const isFocused = useIsFocused();
-
   const [member, setMember] = useState({ status: 'none', next_billing_at: null, signedIn: false });
   const [fund, setFund] = useState({ total_cents: 0, goal_cents: 0 });
   const [today, setToday] = useState({ openNow: false, until: '--:--', specials: [] });
@@ -47,18 +44,14 @@ export default function HomeScreen({ navigation }) {
   const [rumiQuote, setRumiQuote] = useState(null);
   const [igPost, setIgPost] = useState({ image: null, caption: '' });
 
-  // Load data whenever screen focuses
   useEffect(() => {
-            getFundProgress().then(setFund).catch(()=>setFund({progress:0,total_cents:0,goal_cents:0}));
-getWeeklyHours().then(setWeekHours).catch(()=>setWeekHours([]));
-let mounted = true;
+    getFundProgress().then(setFund).catch(() => setFund({ progress: 0, total_cents: 0, goal_cents: 0 }));
+    getWeeklyHours().then(setWeekHours).catch(() => setWeekHours([]));
+    let mounted = true;
     (async () => {
       try {
         const m = await getMembershipSummary();
-        if (mounted && m) {
-          // Preserve your original “Active/Not a member” logic; signedIn derives from summary or session (see auth effect below)
-          setMember(prev => ({ ...prev, ...m }));
-        }
+        if (mounted && m) setMember(prev => ({ ...prev, ...m }));
       } catch {}
       try { const f = await getFundCurrent(); if (mounted && f) setFund(f); } catch {}
       try { const t = await getToday(); if (mounted) setToday(t); } catch {}
@@ -66,25 +59,20 @@ let mounted = true;
       try { const d = await getFreeDrinkProgress(); if (mounted) setLoyalty(d); } catch {}
       try { const stats = await getMyStats(); if (mounted) setFreebiesLeft(stats.freebiesLeft || 0); } catch {}
       try { const ig = await getLatestInstagramPost(); if (mounted) setIgPost(ig); } catch {}
-
       try {
         const cms = await getCMS();
-        if (!mounted || !cms) return;
+        if (!cms) return;
         const s1 = cms['special 1'] || null;
         const s2 = cms['special 2'] || null;
-        if (s1 || s2) {
-          setToday(prev => ({ ...prev, specials: [s1, s2].filter(Boolean) }));
-        }
+        if (s1 || s2) setToday(prev => ({ ...prev, specials: [s1, s2].filter(Boolean) }));
         if (cms['rumi quote']) setRumiQuote(cms['rumi quote']);
       } catch {}
     })();
     return () => { mounted = false; };
   }, [isFocused]);
 
-  // Keep signed-in flag in sync with Supabase auth
   useEffect(() => {
     if (!supabase?.auth) {
-      // If Supabase isn't configured, ensure we show as signed out
       setMember(prev => ({ ...prev, signedIn: false }));
       return;
     }
@@ -122,18 +110,14 @@ let mounted = true;
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
           <Text style={styles.title}>Welcome to Ruminate Café</Text>
-          <Text style={styles.subcopy}>
-            Track perks, collect stamps, and support the community fund.
-          </Text>
-
+          <Text style={styles.subcopy}>Track perks, collect stamps, and support the community fund.</Text>
           <View style={{ height: 18 }} />
-
           <View style={styles.rowBetween}>
-  <Text style={styles.sectionLabel}>Membership</Text>
-  <Text style={[styles.sectionValue, { color: membershipColor }]}>
-    {membershipLabel}{nextBill ? ` · renews ${nextBill}` : ''}
-  </Text>
-</View>
+            <Text style={styles.sectionLabel}>Membership</Text>
+            <Text style={[styles.sectionValue, { color: membershipColor }]}>
+              {membershipLabel}{nextBill ? ` · renews ${nextBill}` : ''}
+            </Text>
+          </View>
 
           {signedIn ? (
             <View>
@@ -176,70 +160,70 @@ let mounted = true;
             <View style={styles.chipsRow}>
               {today.specials.map((s) => <Chip key={s}>{s}</Chip>)}
             </View>
-          
-<View style={styles.hoursToggleWrap}>
-  <TouchableOpacity onPress={()=>setHoursExpanded(!hoursExpanded)}>
-    <Text style={styles.hoursToggle}>{hoursExpanded ? 'Hide opening times' : 'Show all opening times'}</Text>
-  </TouchableOpacity>
-</View>
-{hoursExpanded ? (
-  <View style={styles.hoursTable}>
-    {weekHours.map(row=>(
-      <View key={row.key} style={styles.hoursRow}>
-        <Text style={styles.hoursDay}>{row.label}</Text>
-        <Text style={styles.hoursTime}>{row.text}</Text>
-      </View>
-    ))}
-  </View>
-) : null}
-</View>
+
+            <View style={styles.hoursToggleWrap}>
+              <TouchableOpacity onPress={() => setHoursExpanded(!hoursExpanded)}>
+                <Text style={styles.hoursToggle}>{hoursExpanded ? 'Hide opening times' : 'Show all opening times'}</Text>
+              </TouchableOpacity>
+            </View>
+            {hoursExpanded ? (
+              <View style={styles.hoursTable}>
+                {weekHours.map(row => (
+                  <View key={row.key} style={styles.hoursRow}>
+                    <Text style={styles.hoursDay}>{row.label}</Text>
+                    <Text style={styles.hoursTime}>{row.text}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+          </View>
 
           <View style={[styles.card, styles.gridItem, styles.gridItemRight]}>
             <Text style={styles.cardTitle}>Pay-it-Forward</Text>
             <View style={styles.pifTile}>
-    <View style={styles.pifNumberWrap}><Text style={styles.pifBig}>{pif.available}</Text></View>
-    <View style={styles.pifMeta}>
-      <Text style={styles.muted}>drinks available</Text>
-      <Text style={styles.muted}>Total contributed: {pif.contributed}</Text>
-    </View>
-  </View>
+              <View style={styles.pifNumberWrap}><Text style={styles.pifBig}>{pif.available}</Text></View>
+              <View style={styles.pifMeta}>
+                <Text style={styles.muted}>drinks available</Text>
+                <Text style={styles.muted}>Total contributed: {pif.contributed}</Text>
+              </View>
+            </View>
           </View>
         </View>
 
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Latest on Instagram</Text>
-            {igPost?.image ? (
-              <View style={styles.igPolaroid}>
-                <Image
-                  source={{ uri: igPost.image }}
-                  style={styles.igImage}
-                  resizeMode="cover"
-                  onError={async () => {
-                    try {
-                      const cached = await AsyncStorage.getItem('latestIgPost');
-                      if (cached) {
-                        const parsed = JSON.parse(cached);
-                        if (parsed?.image && parsed.image !== igPost.image) {
-                          setIgPost(parsed);
-                          return;
-                        }
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Latest on Instagram</Text>
+          {igPost?.image ? (
+            <View style={styles.igPolaroid}>
+              <Image
+                source={{ uri: igPost.image }}
+                style={styles.igImage}
+                resizeMode="cover"
+                onError={async () => {
+                  try {
+                    const cached = await AsyncStorage.getItem('latestIgPost');
+                    if (cached) {
+                      const parsed = JSON.parse(cached);
+                      if (parsed?.image && parsed.image !== igPost.image) {
+                        setIgPost(parsed);
+                        return;
                       }
-                    } catch {}
-                    setIgPost({ image: null, caption: '' });
-                  }}
-                />
-                {igPost?.caption ? <Text style={styles.igCaption}>{igPost.caption}</Text> : null}
-              </View>
-            ) : (
-              <View style={styles.igPolaroid}>
-                <Image source={placeholderImg} style={styles.igImage} resizeMode="cover" />
-                <Text style={styles.muted}>Unable to load latest post.</Text>
-              </View>
-            )}
-            <Pressable onPress={openInstagramProfile} style={styles.igButton}>
-              <Text style={styles.igButtonText}>View on Instagram</Text>
-            </Pressable>
-          </View>
+                    }
+                  } catch {}
+                  setIgPost({ image: null, caption: '' });
+                }}
+              />
+              {igPost?.caption ? <Text style={styles.igCaption}>{igPost.caption}</Text> : null}
+            </View>
+          ) : (
+            <View style={styles.igPolaroid}>
+              <Image source={placeholderImg} style={styles.igImage} resizeMode="cover" />
+              <Text style={styles.muted}>Unable to load latest post.</Text>
+            </View>
+          )}
+          <Pressable onPress={openInstagramProfile} style={styles.igButton}>
+            <Text style={styles.igButtonText}>View on Instagram</Text>
+          </Pressable>
+        </View>
 
         <View style={styles.card}>
           <Pressable onPress={() => navigation.navigate('Community')}>
@@ -262,80 +246,38 @@ const styles = StyleSheet.create({
   gridItemAuto: { flex: 1, justifyContent: 'space-between', position: 'relative' },
   container: { flex: 1 },
   content: { padding: 16, paddingBottom: 100 },
-
   hero: { marginBottom: 18 },
   title: { fontSize: 28, color: palette.coffee, fontFamily: 'Fraunces_700Bold' },
   subcopy: { marginTop: 10, color: palette.coffee, lineHeight: 22, fontFamily: 'Fraunces_600SemiBold' },
-
-  card: {
-    backgroundColor: palette.paper,
-    borderColor: palette.border,
-    borderWidth: 1,
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 14,
-  },
-
+  card: { backgroundColor: palette.paper, borderColor: palette.border, borderWidth: 1, borderRadius: 14, padding: 16, marginBottom: 14 },
   gridRow: { flexDirection: 'row', marginBottom: 14 },
   gridItem: { position: 'relative', flex: 1, aspectRatio: 1, justifyContent: 'space-between' },
   gridItemRight: { marginLeft: 12 },
-
   sectionLabel: { fontSize: 15, color: palette.coffee, fontFamily: 'Fraunces_600SemiBold' },
   sectionValue: { fontSize: 16, fontFamily: 'Fraunces_700Bold' },
   cardTitle: { fontSize: 18, color: palette.coffee, fontFamily: 'Fraunces_700Bold', marginBottom: 8 },
   muted: { marginTop: 6, color: palette.coffee },
-
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    pifTile: { flex: 1, justifyContent: 'space-between', alignItems: 'center' },
-    pifNumberWrap: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', width: '100%' },
-    pifMeta: { alignItems: 'center', paddingBottom: 6 },
-
+  pifTile: { flex: 1, justifyContent: 'space-between', alignItems: 'center' },
+  pifNumberWrap: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', width: '100%' },
+  pifMeta: { alignItems: 'center', paddingBottom: 6 },
   barOuter: { height: 10, borderRadius: 10, overflow: 'hidden' },
   barInner: { height: 10, borderRadius: 10 },
-
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 6 },
   chip: { backgroundColor: '#F1E3D3', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, marginRight: 6, marginBottom: 6 },
   chipText: { color: palette.coffee, fontFamily: 'Fraunces_600SemiBold', fontSize: 12 },
-
-  pifBig: { textAlign: 'center',  fontSize: 40, lineHeight: 40, color: palette.clay, fontFamily: 'Fraunces_700Bold' },
-
-  igPolaroid: {
-    backgroundColor: '#fff',
-    padding: 12,
-    borderRadius: 12,
-    borderColor: palette.border,
-    borderWidth: 1,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    transform: [{ rotate: '-2deg' }],
-    marginBottom: 12,
-  },
+  pifBig: { textAlign: 'center', fontSize: 40, lineHeight: 40, color: palette.clay, fontFamily: 'Fraunces_700Bold' },
+  igPolaroid: { backgroundColor: '#fff', padding: 12, borderRadius: 12, borderColor: palette.border, borderWidth: 1, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, transform: [{ rotate: '-2deg' }], marginBottom: 12 },
   igImage: { width: '100%', height: 180, borderRadius: 4 },
   igCaption: { marginTop: 8, color: palette.coffee, fontFamily: 'Fraunces_600SemiBold', textAlign: 'center' },
   igButton: { alignSelf: 'center', backgroundColor: palette.coffee, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
   igButtonText: { color: palette.cream, fontFamily: 'Fraunces_600SemiBold', fontSize: 14 },
-
-  rumiQuoteStandalone: {
-    fontSize: 18,
-    lineHeight: 26,
-    textAlign: 'center',
-    fontStyle: 'italic',
-    color: palette.clay,
-    fontFamily: 'Fraunces_600SemiBold',
-  },
-  rumiAttributionStandalone: {
-    marginTop: 4,
-    fontSize: 14,
-    textAlign: 'center',
-    color: '#6b5a54',
-    fontFamily: 'Fraunces_600SemiBold',
-  },
-hoursToggleWrap: { position: 'absolute', bottom: 8, left: 0, right: 0, alignItems: 'center' },
-    hoursToggle: { fontFamily: 'Fraunces_700Bold', color: palette.coffee, fontSize: 14 },
-    hoursTable: {marginTop: 8 , paddingBottom: 28 },
-    hoursRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
-    hoursDay: { fontFamily: 'Fraunces_700Bold', color: palette.coffee, fontSize: 14 },
-    hoursTime: { fontFamily: 'Fraunces_600SemiBold', color: '#6b5a54', fontSize: 14 }});
+  rumiQuoteStandalone: { fontSize: 18, lineHeight: 26, textAlign: 'center', fontStyle: 'italic', color: palette.clay, fontFamily: 'Fraunces_600SemiBold' },
+  rumiAttributionStandalone: { marginTop: 4, fontSize: 14, textAlign: 'center', color: '#6b5a54', fontFamily: 'Fraunces_600SemiBold' },
+  hoursToggleWrap: { position: 'absolute', bottom: 8, left: 0, right: 0, alignItems: 'center' },
+  hoursToggle: { fontFamily: 'Fraunces_700Bold', color: palette.coffee, fontSize: 14 },
+  hoursTable: { marginTop: 8, paddingBottom: 28 },
+  hoursRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
+  hoursDay: { fontFamily: 'Fraunces_700Bold', color: palette.coffee, fontSize: 14 },
+  hoursTime: { fontFamily: 'Fraunces_600SemiBold', color: '#6b5a54', fontSize: 14 },
+});
