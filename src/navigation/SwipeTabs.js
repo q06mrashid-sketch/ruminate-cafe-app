@@ -3,6 +3,7 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
@@ -18,7 +19,13 @@ function GlassTabBar({ state, descriptors, navigation }) {
   const insets = useSafeAreaInsets();
   return (
     <View pointerEvents="box-none" style={[styles.tabWrap, { paddingBottom: (insets.bottom || 8) + 4 }]}>
-      <BlurView intensity={60} tint="light" style={styles.glass}>
+      <BlurView intensity={80} tint="light" style={styles.glass}>
+        <LinearGradient
+          colors={['rgba(255,255,255,0.35)', 'rgba(255,255,255,0.15)']}
+          start={{x:0,y:0}}
+          end={{x:1,y:1}}
+          style={StyleSheet.absoluteFill}
+        />
         {state.routes.map((route, i) => {
           const { options } = descriptors[route.key];
           const label = options.tabBarLabel ?? options.title ?? route.name;
@@ -98,7 +105,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.07,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
-    backgroundColor: Platform.OS === 'ios' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.6)',
+    backgroundColor: Platform.OS === 'ios' ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.45)',
     width: '92%',
   },
   tabBtn: { flex: 1, borderRadius: 16, paddingVertical: 6, alignItems: 'center', justifyContent: 'center', gap: 4 },

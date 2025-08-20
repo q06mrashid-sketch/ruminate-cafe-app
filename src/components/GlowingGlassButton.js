@@ -56,15 +56,17 @@ export default function GlowingGlassButton({
           style={[
             styles.sheen,
             {
-              transform: [{
-                translateX: sweepX.interpolate({ inputRange: [-1,1], outputRange: [-240, 240] })
-              }]
+              transform: [
+                { translateX: sweepX.interpolate({ inputRange: [-1,1], outputRange: [-240, 240] }) },
+                { translateY: -40 },
+                { rotate: '15deg' }
+              ]
             }
           ]}
         >
           <LinearGradient
-            colors={['transparent','rgba(255,255,255,0.12)','transparent']}
-            start={{x:0,y:0.5}} end={{x:1,y:0.5}}
+            colors={['transparent','rgba(255,255,255,0.08)','transparent']}
+            start={{x:0,y:0}} end={{x:1,y:1}}
             style={{ flex: 1 }}
           />
         </Animated.View>
@@ -87,5 +89,5 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.6)',
   },
   label: { fontFamily: 'Fraunces_700Bold', fontSize: 16 },
-  sheen: { position: 'absolute', top: 0, bottom: 0, width: 100 },
+  sheen: { position: 'absolute', top: 0, bottom: 0, width: 120 },
 });

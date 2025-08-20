@@ -19,11 +19,15 @@ export async function openInstagramProfile(){ const app='instagram://user?userna
 
 export async function getLatestInstagramPost(){
   try{
-    const res=await fetch('https://www.instagram.com/ruminatecafe/?__a=1&__d=dis');
-    const json=await res.json();
-    const node=json?.graphql?.user?.edge_owner_to_timeline_media?.edges?.[0]?.node;
-    const image=node?.display_url||null;
-    const caption=node?.edge_media_to_caption?.edges?.[0]?.node?.text||'';
+    // Use a simple proxy to fetch the public page since the old endpoint
+    // now requires authentication. The r.jina.ai domain fetches the page
+    // and returns raw HTML which we parse for the first post.
+    const res=await fetch('https://r.jina.ai/https://www.instagram.com/ruminatecafe/');
+    const html=await res.text();
+    const imgMatch=html.match(/"display_url":"([^\"]+)"/);
+    const capMatch=html.match(/"edge_media_to_caption"[^]*?"text":"([^\"]*)"/);
+    const image=imgMatch?imgMatch[1].replace(/\\u0026/g,'&'):null;
+    const caption=capMatch?capMatch[1].replace(/\\u0026/g,'&'):'';
     return { image, caption };
   }catch{
     return { image:null, caption:'' };
