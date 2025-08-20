@@ -7,6 +7,8 @@ import placeholderImg from '../../assets/icon.png';
 import { useIsFocused } from '@react-navigation/native';
 import { palette } from '../design/theme';
 import GlowingGlassButton from '../components/GlowingGlassButton';
+import LoyaltyStampTile from '../components/LoyaltyStampTile';
+import FreeDrinksCounter from '../components/FreeDrinksCounter';
 import { supabase } from '../lib/supabase';
 import { getMembershipSummary } from '../services/membership';
 import { getFundCurrent, getFundProgress } from '../services/community';
@@ -122,16 +124,12 @@ export default function HomeScreen({ navigation }) {
           {signedIn ? (
             <View>
               <View style={{ marginTop: 16 }}>
-                <Text style={styles.sectionLabel}>Loyalty stamps progress</Text>
-                <ProgressBar value={loyalty.current} max={loyalty.target} tint={palette.coffee} track="#F1E3D3" />
-                <Text style={styles.muted}>{loyalty.current} / {loyalty.target} stamps</Text>
+                <LoyaltyStampTile count={loyalty.current} onRedeem={() => {}} />
               </View>
 
               {member?.tier === 'paid' && (
-                <View style={{ marginTop: 16 }}>
-                  <Text style={styles.sectionLabel}>Free drinks remaining</Text>
-                  <ProgressBar value={freebiesLeft} max={3} tint={palette.clay} track="#F1E3D3" />
-                  <Text style={styles.muted}>{freebiesLeft} / 3 drinks</Text>
+                <View style={{ marginTop: 16, alignItems:'center' }}>
+                  <FreeDrinksCounter count={freebiesLeft} />
                 </View>
               )}
 
