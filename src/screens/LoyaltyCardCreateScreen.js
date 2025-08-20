@@ -20,7 +20,7 @@ export default function LoyaltyCardCreateScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: palette.cream }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1 }} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Create your loyalty card</Text>
 

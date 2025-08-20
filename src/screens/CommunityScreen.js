@@ -14,7 +14,7 @@ export default function CommunityScreen() {
   const pct = Math.round((progress.progress || 0) * 100);
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView style={{ flex:1, backgroundColor:'transparent' }} contentContainerStyle={styles.container}>
       <View style={styles.card}>
         <Text style={styles.title}>What is the Community Fund?</Text>
         <Text style={styles.body}>

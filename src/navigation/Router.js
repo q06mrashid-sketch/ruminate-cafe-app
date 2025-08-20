@@ -1,7 +1,7 @@
 
 import React from 'react';
 import CommunityScreen from '../screens/CommunityScreen';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import SwipeTabs from './SwipeTabs';
 import MembershipInfoScreen from '../screens/MembershipInfoScreen';
@@ -10,9 +10,17 @@ import LoyaltyCardCreateScreen from '../screens/LoyaltyCardCreateScreen';
 
 const Stack = createNativeStackNavigator();
 
+const theme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    background: 'transparent',
+  },
+};
+
 export default function Router() {
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={theme}>
       <Stack.Navigator initialRouteName="MainTabs" screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Community" component={CommunityScreen} options={{ headerShown:false }} />
 

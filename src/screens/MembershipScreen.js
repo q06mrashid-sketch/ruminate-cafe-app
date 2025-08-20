@@ -99,7 +99,7 @@ const [stats, setStats] = useState({ freebiesLeft:3, dividendsPending:0, loyalty
             </View>
 
             <View style={{ marginTop: 16 }}>
-              <Text style={styles.mutedSmall}>
+              <Text style={styles.referralText}>
                 Refer a friend: they get 10% off their first drink and you get a free drink.
               </Text>
               <View style={{ marginTop: 8 }}>
@@ -174,10 +174,11 @@ const [stats, setStats] = useState({ freebiesLeft:3, dividendsPending:0, loyalty
 }
 
 const styles = StyleSheet.create({
-  container:{ flex:1, backgroundColor:palette.cream },
+  container:{ flex:1 },
   content:{ padding:16, paddingBottom:28 },
   title:{ fontSize:24, color:palette.coffee, fontFamily:'Fraunces_700Bold' },
   mutedSmall:{ fontSize:13, color:palette.coffee, opacity:0.8 },
+  referralText:{ fontSize:20, color:palette.clay, fontFamily:'Fraunces_700Bold', textAlign:'center', marginVertical:4 },
 
   card:{ backgroundColor:palette.paper, borderColor:palette.border, borderWidth:1, borderRadius:14, padding:16, marginTop:14 },
   cardTitle:{ fontSize:18, color:palette.coffee, fontFamily:'Fraunces_700Bold', marginBottom:10 },
