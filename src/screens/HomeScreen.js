@@ -215,7 +215,12 @@ export default function HomeScreen({ navigation }) {
             </View>
           ) : (
             <View style={styles.igPolaroid}>
-              <Image source={placeholderImg} style={styles.igImage} resizeMode="cover" />
+              {/* Fallback to app icon when no Instagram image is available */}
+              <Image
+                source={require('../../assets/icon.png')}
+                style={styles.igImage}
+                resizeMode="cover"
+              />
               <Text style={styles.muted}>Unable to load latest post.</Text>
             </View>
           )}
