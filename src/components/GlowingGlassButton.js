@@ -59,6 +59,7 @@ export default function GlowingGlassButton({
               transform: [
                 { translateX: sweepX.interpolate({ inputRange: [-1,1], outputRange: [-240, 240] }) },
                 { translateY: sweepX.interpolate({ inputRange: [-1,1], outputRange: [-40, 40] }) },
+                { rotate: '15deg' },
               ]
             }
           ]}
