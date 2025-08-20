@@ -9,7 +9,7 @@ import GlowingGlassButton from '../components/GlowingGlassButton';
 import { supabase } from '../lib/supabase';
 import { getMembershipSummary } from '../services/membership';
 import { getFundCurrent, getFundProgress } from '../services/community';
-import { getToday, getPayItForward, getFreeDrinkProgress, openInstagramProfile, getWeeklyHours } from '../services/homeData';
+import { getToday, getPayItForward, getFreeDrinkProgress, openInstagramProfile, getWeeklyHours, getLatestInstagramPost } from '../services/homeData';
 import { getMyStats } from '../services/stats';
 import { getCMS } from '../services/cms';
 
@@ -44,6 +44,7 @@ export default function HomeScreen({ navigation }) {
   const [loyalty, setLoyalty] = useState({ current: 0, target: 8 });
   const [freebiesLeft, setFreebiesLeft] = useState(0);
   const [rumiQuote, setRumiQuote] = useState(null);
+  const [igPost, setIgPost] = useState({ image: null, caption: '' });
 
   // Load data whenever screen focuses
   useEffect(() => {
@@ -63,6 +64,7 @@ let mounted = true;
       try { const s = await getPIFStats(); if (mounted) setPif(s); } catch {}
       try { const d = await getFreeDrinkProgress(); if (mounted) setLoyalty(d); } catch {}
       try { const stats = await getMyStats(); if (mounted) setFreebiesLeft(stats.freebiesLeft || 0); } catch {}
+      try { const ig = await getLatestInstagramPost(); if (mounted) setIgPost(ig); } catch {}
 
       try {
         const cms = await getCMS();
@@ -223,8 +225,16 @@ let mounted = true;
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Latest on Instagram</Text>
-          <Pressable onPress={openInstagramProfile} style={styles.igCard}>
-            <Image source={{ uri: 'https://picsum.photos/seed/ruminatecafe/1200/700' }} style={styles.igImage} resizeMode="cover" />
+          {igPost?.image ? (
+            <View style={styles.igPolaroid}>
+              <Image source={{ uri: igPost.image }} style={styles.igImage} resizeMode="cover" />
+              {igPost?.caption ? <Text style={styles.igCaption}>{igPost.caption}</Text> : null}
+            </View>
+          ) : (
+            <Text style={styles.muted}>Unable to load Instagram.</Text>
+          )}
+          <Pressable onPress={openInstagramProfile} style={styles.igButton}>
+            <Text style={styles.igButtonText}>View on Instagram</Text>
           </Pressable>
         </View>
 
@@ -283,8 +293,24 @@ container: { flex: 1, backgroundColor: palette.cream },
 
   pifBig: { textAlign: 'center',  fontSize: 40, lineHeight: 40, color: palette.clay, fontFamily: 'Fraunces_700Bold' },
 
-  igCard: { borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: palette.border },
-  igImage: { width: '100%', height: 180 },
+  igPolaroid: {
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 12,
+    borderColor: palette.border,
+    borderWidth: 1,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    transform: [{ rotate: '-2deg' }],
+    marginBottom: 12,
+  },
+  igImage: { width: '100%', height: 180, borderRadius: 4 },
+  igCaption: { marginTop: 8, color: palette.coffee, fontFamily: 'Fraunces_600SemiBold', textAlign: 'center' },
+  igButton: { alignSelf: 'center', backgroundColor: palette.coffee, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
+  igButtonText: { color: palette.cream, fontFamily: 'Fraunces_600SemiBold', fontSize: 14 },
 
   rumiQuoteStandalone: {
     fontSize: 18,
