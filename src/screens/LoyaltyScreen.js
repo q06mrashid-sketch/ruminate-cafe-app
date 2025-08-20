@@ -25,7 +25,7 @@ export default function LoyaltyScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background, padding: 16 },
+  container: { flex: 1, padding: 16 },
   card: { backgroundColor: '#fff', padding: 12, marginBottom: 10, borderRadius: 8 },
   name: { fontSize: 18, fontWeight: 'bold', color: theme.colors.primary }
 });

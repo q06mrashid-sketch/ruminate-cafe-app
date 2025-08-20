@@ -83,7 +83,22 @@ export default function MembershipStartScreen() {
       password,
       options: { data: profile },
     });
-    if (error) { Alert.alert('Sign up failed', error.message); return null; }
+
+    if (error) {
+      if (/already\s+registered/i.test(error.message)) {
+        Alert.alert(
+          'Account exists',
+          'An account with this email already exists. Reset password?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Reset password', onPress: handleForgot },
+          ]
+        );
+      } else {
+        Alert.alert('Sign up failed', error.message);
+      }
+      return null;
+    }
     if (data?.user && referral) {
       try { await redeemReferral(referral, data.user.id); } catch {}
     }
@@ -191,7 +206,7 @@ export default function MembershipStartScreen() {
 }
 
 const styles = StyleSheet.create({
-  container:{ flex:1, backgroundColor: palette.cream },
+  container:{ flex:1 },
   content:{ padding:16, paddingBottom:28 },
   title:{ fontSize:22, color:palette.coffee, fontFamily:'Fraunces_700Bold', marginBottom:12 },
 
