@@ -109,9 +109,11 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.header}>
+        <Image source={placeholderImg} style={styles.headerLogo} />
+      </View>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
-          <Text style={styles.title}>Welcome to Ruminate Café</Text>
           <Text style={styles.subcopy}>Track perks, collect stamps, and support the community fund.</Text>
           <View style={{ height: 18 }} />
           <View style={styles.rowBetween}>
@@ -123,22 +125,22 @@ export default function HomeScreen({ navigation }) {
 
           {signedIn ? (
             <View>
-              <View style={{ marginTop: 16 }}>
-                <LoyaltyStampTile count={loyalty.current} onRedeem={() => {}} />
-              </View>
-
-              {member?.tier === 'paid' && (
-                <View style={{ marginTop: 16, alignItems:'center' }}>
-                  <FreeDrinksCounter count={freebiesLeft} />
-                </View>
-              )}
-
               {rumiQuote ? (
                 <Animated.View style={[{ marginTop: 16, alignItems: 'center', paddingHorizontal: 12 }, { opacity: quoteOpacity }]}>
                   <Text style={styles.rumiQuoteStandalone}>“{rumiQuote}”</Text>
                   <Text style={styles.rumiAttributionStandalone}>— Rumi</Text>
                 </Animated.View>
               ) : null}
+
+              <View style={{ marginTop: 16 }}>
+                <LoyaltyStampTile count={loyalty.current} onRedeem={() => {}} />
+              </View>
+
+              {member?.tier === 'paid' && (
+                <View style={{ marginTop: 16 }}>
+                  <FreeDrinksCounter count={freebiesLeft} />
+                </View>
+              )}
             </View>
           ) : (
             <View>
@@ -245,8 +247,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: 16, paddingBottom: 100 },
   hero: { marginBottom: 18 },
-  title: { fontSize: 28, color: palette.coffee, fontFamily: 'Fraunces_700Bold' },
-  subcopy: { marginTop: 10, color: palette.coffee, lineHeight: 22, fontFamily: 'Fraunces_600SemiBold' },
+  subcopy: { marginTop: 10, color: palette.coffee, lineHeight: 22, fontFamily: 'Fraunces_600SemiBold', textAlign: 'center' },
   card: { backgroundColor: palette.paper, borderColor: palette.border, borderWidth: 1, borderRadius: 14, padding: 16, marginBottom: 14 },
   gridRow: { flexDirection: 'row', marginBottom: 14 },
   gridItem: { position: 'relative', flex: 1, aspectRatio: 1, justifyContent: 'space-between' },
@@ -278,4 +279,6 @@ const styles = StyleSheet.create({
   hoursRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
   hoursDay: { fontFamily: 'Fraunces_700Bold', color: palette.coffee, fontSize: 14 },
   hoursTime: { fontFamily: 'Fraunces_600SemiBold', color: '#6b5a54', fontSize: 14 },
+  header: { backgroundColor: palette.coffee, alignItems: 'center', justifyContent: 'center', height: 56 },
+  headerLogo: { width: 32, height: 32, resizeMode: 'contain' },
 });
