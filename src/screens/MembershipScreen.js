@@ -8,6 +8,7 @@ import { supabase } from '../lib/supabase';
 import { getMembershipSummary, signOut as signOutSvc } from '../services/membership';
 import { getMyStats } from '../services/stats';
 import GlowingGlassButton from '../components/GlowingGlassButton';
+import { getPIFByEmail } from '../services/pif';
 
 function Stat({ label, value, suffix = '' }) {
   return (
@@ -20,7 +21,8 @@ function Stat({ label, value, suffix = '' }) {
 
 export default function MembershipScreen({ navigation }) {
   const [summary, setSummary] = useState({ signedIn:false, tier:'free', status:'none', next_billing_at:null });
-  const [stats, setStats] = useState({ freebiesLeft:0, dividendsPending:0, discountUses:0, payItForwardContrib:0, communityContrib:0 });
+  const [pifSelfCents,setPifSelfCents]=useState(0);
+const [stats, setStats] = useState({ freebiesLeft:0, dividendsPending:0, discountUses:0, payItForwardContrib:0, communityContrib:0 });
   const [user, setUser] = useState(null);
 
   const refresh = useCallback(async () => {
@@ -33,6 +35,8 @@ export default function MembershipScreen({ navigation }) {
   useFocusEffect(useCallback(() => { let on = true; (async()=>{ if(on) await refresh(); })(); return () => { on = false; }; }, [refresh]));
 
   const payload = user ? JSON.stringify({ v:1, type:'member', uid:user.id, email:user.email, tier:summary.tier, ts:Date.now() }) : 'ruminate:member';
+
+  useEffect(()=>{ let m=true; const email=(typeof user!=='undefined'&&user&&user.email)?user.email:(summary&&summary.user&&summary.user.email)?summary.user.email:(globalThis&&globalThis.auth&&globalThis.auth.user&&globalThis.auth.user.email)?globalThis.auth.user.email:null; if(!email){return;} getPIFByEmail(email).then(r=>{ if(m) setPifSelfCents(Number(r.total_cents)||0); }).catch(()=>{}); return ()=>{ m=false }; },[user,summary]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>

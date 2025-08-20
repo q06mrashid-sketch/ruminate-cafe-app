@@ -29,7 +29,7 @@ function Chip({ children }) {
   );
 }
 
-export default function HomeScreen( { navigation } ) {
+export default function HomeScreen({ navigation }) {
   const [hoursExpanded,setHoursExpanded]=useState(false);
   const [weekHours,setWeekHours]=useState([]);
 
