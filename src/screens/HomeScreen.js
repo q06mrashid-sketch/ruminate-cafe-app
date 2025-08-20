@@ -242,7 +242,9 @@ let mounted = true;
 
 const styles = StyleSheet.create({
   gridItemAuto: { flex: 1, justifyContent: 'space-between', position: 'relative' },
+  
   container: { flex: 1 },
+  
   content: { padding: 16, paddingBottom: 100 },
 
   hero: { marginBottom: 18 },
