@@ -17,10 +17,7 @@ export async function redeemReferral(code, userId) {
       await supabase.rpc('redeem_referral', { p_code: code, p_referred: userId });
     } catch {
       try {
-        await supabase
-          .from('referrals')
-          .update({ referred: userId })
-          .eq('code', code);
+        await supabase.from('referrals').update({ referred: userId }).eq('code', code);
       } catch {}
     }
   }
