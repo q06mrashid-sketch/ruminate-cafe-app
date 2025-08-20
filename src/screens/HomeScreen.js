@@ -3,6 +3,7 @@ import { getPIFStats } from '../services/pif';
 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, Animated, TouchableOpacity} from 'react-native';
+import placeholderImg from '../../assets/icon.png';
 import { useIsFocused } from '@react-navigation/native';
 import { palette } from '../design/theme';
 import GlowingGlassButton from '../components/GlowingGlassButton';
@@ -204,20 +205,23 @@ let mounted = true;
           </View>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Latest on Instagram</Text>
-          {igPost?.image ? (
-            <View style={styles.igPolaroid}>
-              <Image source={{ uri: igPost.image }} style={styles.igImage} resizeMode="cover" />
-              {igPost?.caption ? <Text style={styles.igCaption}>{igPost.caption}</Text> : null}
-            </View>
-          ) : (
-            <Text style={styles.muted}>Unable to load Instagram.</Text>
-          )}
-          <Pressable onPress={openInstagramProfile} style={styles.igButton}>
-            <Text style={styles.igButtonText}>View on Instagram</Text>
-          </Pressable>
-        </View>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Latest on Instagram</Text>
+            {igPost?.image ? (
+              <View style={styles.igPolaroid}>
+                <Image source={{ uri: igPost.image }} style={styles.igImage} resizeMode="cover" />
+                {igPost?.caption ? <Text style={styles.igCaption}>{igPost.caption}</Text> : null}
+              </View>
+            ) : (
+              <View style={styles.igPolaroid}>
+                <Image source={placeholderImg} style={styles.igImage} resizeMode="cover" />
+                <Text style={styles.muted}>Unable to load latest post.</Text>
+              </View>
+            )}
+            <Pressable onPress={openInstagramProfile} style={styles.igButton}>
+              <Text style={styles.igButtonText}>View on Instagram</Text>
+            </Pressable>
+          </View>
 
         <View style={styles.card}>
           <Pressable onPress={() => navigation.navigate('Community')}>
