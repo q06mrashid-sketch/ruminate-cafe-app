@@ -1,5 +1,6 @@
 import { Linking } from 'react-native';
 import { getCMS } from './cms';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 function parseHHMM(s){ if(!s||typeof s!=='string') return null; const m=s.trim().match(/^(\d{1,2}):(\d{2})$/); if(!m) return null; const h=+m[1], mm=+m[2]; if(isNaN(h)||isNaN(mm)) return null; return h*60+mm; }
 function hhmm(mins){ if(mins==null) return '--:--'; const h=String(Math.floor(mins/60)).padStart(2,'0'); const m=String(mins%60).padStart(2,'0'); return `${h}:${m}`; }
@@ -18,18 +19,19 @@ export async function getFreeDrinkProgress(){ return { current:3, target:8 }; }
 export async function openInstagramProfile(){ const app='instagram://user?username=ruminatecafe'; const web='https://www.instagram.com/ruminatecafe/'; try{ const can=await Linking.canOpenURL(app); await Linking.openURL(can?app:web); } catch { Linking.openURL(web); } }
 
 export async function getLatestInstagramPost(){
+  const cacheKey='latestIgPost';
+  const endpoint=process.env.EXPO_PUBLIC_INSTAGRAM_FEED_URL;
   try{
-    // Use a simple proxy to fetch the public page since the old endpoint
-    // now requires authentication. The r.jina.ai domain fetches the page
-    // and returns raw HTML which we parse for the first post.
-    const res=await fetch('https://r.jina.ai/https://www.instagram.com/ruminatecafe/');
-    const html=await res.text();
-    const imgMatch=html.match(/"display_url":"([^\"]+)"/);
-    const capMatch=html.match(/"edge_media_to_caption"[^]*?"text":"([^\"]*)"/);
-    const image=imgMatch?imgMatch[1].replace(/\\u0026/g,'&'):null;
-    const caption=capMatch?capMatch[1].replace(/\\u0026/g,'&'):'';
-    return { image, caption };
+    if(!endpoint) throw new Error('no endpoint');
+    const res=await fetch(endpoint);
+    if(!res.ok) throw new Error('bad status');
+    const data=await res.json();
+    if(!data||typeof data.image!=='string') throw new Error('bad payload');
+    const post={ image:data.image, caption:data.caption||'' };
+    try{ await AsyncStorage.setItem(cacheKey, JSON.stringify(post)); }catch{}
+    return post;
   }catch{
+    try{ const cached=await AsyncStorage.getItem(cacheKey); if(cached) return JSON.parse(cached); }catch{}
     return { image:null, caption:'' };
   }
 }
