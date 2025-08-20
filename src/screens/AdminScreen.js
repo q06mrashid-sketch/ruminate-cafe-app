@@ -26,6 +26,10 @@ export default function AdminScreen({ navigation }){
         <Text style={styles.p}>Moderate activity and manage the café workflow.</Text>
 
         <View style={{ marginTop:20 }}>
+          <GlowingGlassButton text="Manage subscription" variant="light" onPress={() => navigation.navigate('ManageSubscription')} />
+        </View>
+
+        <View style={{ marginTop:12 }}>
           <GlowingGlassButton text="Sign out" variant="light" onPress={async()=>{
             try { await signOut(); } catch {}
             try { navigation.reset({ index:0, routes:[{ name:'Home' }] }); } catch {}
