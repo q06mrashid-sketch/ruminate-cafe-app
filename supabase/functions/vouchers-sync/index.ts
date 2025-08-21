@@ -1,9 +1,9 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const SB_URL = Deno.env.get("SB_URL")!;
-const SB_ANON_KEY = Deno.env.get("SB_ANON_KEY")!;
-const SB_SERVICE_ROLE_KEY = Deno.env.get("SB_SERVICE_ROLE_KEY")!;
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 function cors() {
   return {
@@ -22,11 +22,13 @@ serve(async (req: Request) => {
   const desired = Math.max(0, parseInt(body?.freebiesLeft) || 0);
 
   const authHeader = req.headers.get("Authorization") ?? "";
-  const auth = createClient(SB_URL, SB_ANON_KEY, { global: { headers: { Authorization: authHeader } } });
+  const auth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { global: { headers: { Authorization: authHeader } } });
   const { data: { user } } = await auth.auth.getUser();
   if (!user) return new Response("Unauthorized", { status: 401, headers: cors() });
 
-  const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
+
+  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
   const { data: existing } = await admin
     .from("drink_vouchers")
     .select("code")
