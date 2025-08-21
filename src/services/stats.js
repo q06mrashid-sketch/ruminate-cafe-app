@@ -22,41 +22,39 @@ export async function getMyStats() {
         communityContrib: 0,
       };
     }
-    const [{ data: profile }, { data, error }] = await Promise.all([
-      supabase.from('profiles').select('free_drinks, discount_credits').eq('user_id', session.user.id).maybeSingle(),
-      supabase.functions.invoke('me-stats', { body: {} })
+    const [
+      { data: profile },
+      { data: statsData, error: statsError },
+      { count: voucherCount },
+      { data: stampRows },
+    ] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('free_drinks, discount_credits')
+        .eq('user_id', session.user.id)
+        .maybeSingle(),
+      supabase.functions.invoke('me-stats', { body: {} }),
+        supabase
+          .from('drink_vouchers')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', session.user.id)
+          .or('redeemed.eq.false,redeemed.is.null'),
+      supabase
+        .from('loyalty_stamps')
+        .select('stamps')
+        .eq('user_id', session.user.id),
     ]);
 
-    let freebiesLeft = profile?.free_drinks ?? 0;
-    let dividendsPending = 0;
-    let loyaltyStamps = 0;
-    let payItForwardContrib = 0;
-    let communityContrib = 0;
-    const discountCredits = profile?.discount_credits ?? 0;
 
-    if (!error && data) {
-      freebiesLeft += data.freebiesLeft ?? 0;
-      dividendsPending = data.dividendsPending ?? 0;
-      loyaltyStamps = data.loyaltyStamps ?? data.discountUses ?? 0;
-      payItForwardContrib = data.payItForwardContrib ?? 0;
-      communityContrib = data.communityContrib ?? 0;
-    } else {
-      try {
-        const [{ count: voucherCount }, { data: stampRows }] = await Promise.all([
-          supabase
-            .from('drink_vouchers')
-            .select('id', { count: 'exact', head: true })
-            .eq('user_id', session.user.id)
-            .eq('redeemed', false),
-          supabase
-            .from('loyalty_stamps')
-            .select('stamps')
-            .eq('user_id', session.user.id)
-        ]);
-        freebiesLeft += voucherCount ?? 0;
-        loyaltyStamps = (stampRows ?? []).reduce((sum, r) => sum + (r.stamps || 0), 0);
-      } catch {}
-    }
+    const edgeStats = statsError ? {} : statsData || {};
+    const freebiesLeft = (profile?.free_drinks ?? 0) + (voucherCount ?? 0);
+    const dividendsPending = edgeStats.dividendsPending ?? 0;
+    const loyaltyStamps =
+      (edgeStats.loyaltyStamps ?? edgeStats.discountUses ?? 0) +
+      (stampRows ?? []).reduce((sum, r) => sum + (r.stamps || 0), 0);
+    const payItForwardContrib = edgeStats.payItForwardContrib ?? 0;
+    const communityContrib = edgeStats.communityContrib ?? 0;
+    const discountCredits = profile?.discount_credits ?? 0;
 
     const result = {
       freebiesLeft,

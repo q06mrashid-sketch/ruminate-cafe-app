@@ -141,7 +141,7 @@ export default function HomeScreen({ navigation }) {
                 <LoyaltyStampTile count={loyalty.current} onRedeem={() => {}} />
               </View>
 
-              {member?.tier === 'paid' && (
+              {(member?.tier === 'paid' || freebiesLeft > 0) && (
                 <View style={{ marginTop: 16 }}>
                   <FreeDrinksCounter count={freebiesLeft} />
                 </View>
