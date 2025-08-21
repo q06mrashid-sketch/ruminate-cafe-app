@@ -14,6 +14,7 @@ import { getMyStats } from '../services/stats';
 import GlowingGlassButton from '../components/GlowingGlassButton';
 import { getPIFByEmail } from '../services/pif';
 import { createReferral } from '../services/referral';
+import { syncVouchers } from '../services/vouchers';
 import 'react-native-get-random-values';
 import FreeDrinksCounter from '../components/FreeDrinksCounter';
 import LoyaltyStampTile from '../components/LoyaltyStampTile';
@@ -56,23 +57,24 @@ export default function MembershipScreen({ navigation }) {
 
   const payload = user ? `ruminate:${user.id}` : 'ruminate:member';
 
-  useEffect(() => {
-    setVouchers(v => {
-      if (v.length < stats.freebiesLeft) {
-        const needed = stats.freebiesLeft - v.length;
-        return [
-          ...v,
-          ...Array.from({ length: needed }, () =>
-            crypto?.randomUUID?.() || Math.random().toString(36).slice(2, 10)
-          ),
-        ];
-      }
-      if (v.length > stats.freebiesLeft) {
-        return v.slice(0, stats.freebiesLeft);
-      }
-      return v;
-    });
-  }, [stats.freebiesLeft]);
+    useEffect(() => {
+      (async () => {
+        const codes = await syncVouchers(stats.freebiesLeft);
+        if (codes.length) {
+          setVouchers(codes);
+        } else {
+          if (stats.freebiesLeft > 0) {
+            setVouchers(
+              Array.from({ length: stats.freebiesLeft }, () =>
+                crypto?.randomUUID?.() || Math.random().toString(36).slice(2, 10)
+              )
+            );
+          } else {
+            setVouchers([]);
+          }
+        }
+      })();
+    }, [stats.freebiesLeft]);
 
 
   useEffect(() => { 
