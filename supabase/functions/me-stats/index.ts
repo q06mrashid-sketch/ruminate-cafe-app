@@ -17,30 +17,33 @@ serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors() });
   if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405, headers: cors() });
 
-  let body: any = {};
-  try { body = await req.json(); } catch {}
-  const desired = Math.max(0, parseInt(body?.freebiesLeft) || 0);
-
   const authHeader = req.headers.get("Authorization") ?? "";
   const auth = createClient(SB_URL, SB_ANON_KEY, { global: { headers: { Authorization: authHeader } } });
   const { data: { user } } = await auth.auth.getUser();
   if (!user) return new Response("Unauthorized", { status: 401, headers: cors() });
 
   const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
-  const { data: existing } = await admin
+
+  const { count: vouchers } = await admin
     .from("drink_vouchers")
-    .select("code")
+    .select("id", { count: "exact", head: true })
     .eq("user_id", user.id)
     .eq("redeemed", false);
-  const codes = existing?.map(r => r.code) ?? [];
 
-  if (codes.length < desired) {
-    const toCreate = desired - codes.length;
-    const newCodes = Array.from({ length: toCreate }, () => crypto.randomUUID());
-    const inserts = newCodes.map(code => ({ code, user_id: user.id }));
-    await admin.from("drink_vouchers").insert(inserts);
-    codes.push(...newCodes);
-  }
+  const { data: stamps } = await admin
+    .from("loyalty_stamps")
+    .select("stamps")
+    .eq("user_id", user.id);
+  const loyaltyStamps = (stamps ?? []).reduce((sum, r) => sum + (r.stamps || 0), 0);
 
-  return new Response(JSON.stringify({ codes }), { headers: { ...cors(), "content-type": "application/json" } });
+  return new Response(
+    JSON.stringify({
+      freebiesLeft: vouchers ?? 0,
+      dividendsPending: 0,
+      loyaltyStamps,
+      payItForwardContrib: 0,
+      communityContrib: 0,
+    }),
+    { headers: { ...cors(), "content-type": "application/json" } }
+  );
 });

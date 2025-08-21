@@ -291,10 +291,10 @@ const styles = StyleSheet.create({
   hoursDay: { fontFamily: 'Fraunces_700Bold', color: palette.coffee, fontSize: 14 },
   hoursTime: { fontFamily: 'Fraunces_600SemiBold', color: '#6b5a54', fontSize: 14 },
   header: {
-    backgroundColor: 'transparent',
+    backgroundColor: palette.cream,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingBottom: 12,
+    paddingVertical: 12,
     shadowColor: '#000',
     shadowOpacity: 0.15,
     shadowOffset: { width: 0, height: 2 },
