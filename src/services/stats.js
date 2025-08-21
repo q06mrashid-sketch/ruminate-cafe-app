@@ -45,6 +45,7 @@ export async function getMyStats() {
         .eq('user_id', session.user.id),
     ]);
 
+
     const edgeStats = statsError ? {} : statsData || {};
     const freebiesLeft = (profile?.free_drinks ?? 0) + (voucherCount ?? 0);
     const dividendsPending = edgeStats.dividendsPending ?? 0;
