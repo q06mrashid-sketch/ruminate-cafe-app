@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { getPIFStats } from '../services/pif';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, Animated, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
@@ -14,6 +14,7 @@ import { getFundCurrent, getFundProgress } from '../services/community';
 import { getToday, getPayItForward, getFreeDrinkProgress, openInstagramProfile, getWeeklyHours, getLatestInstagramPost } from '../services/homeData';
 import { getMyStats } from '../services/stats';
 import { getCMS } from '../services/cms';
+import logoBase64 from '../../assets/logoBase64';
 
 function ProgressBar({ value, max, tint = palette.clay, track = '#EED8C4' }) {
   const pct = Math.max(0, Math.min(1, max > 0 ? value / max : 0));
@@ -36,6 +37,7 @@ export default function HomeScreen({ navigation }) {
   const [hoursExpanded, setHoursExpanded] = useState(false);
   const [weekHours, setWeekHours] = useState([]);
   const isFocused = useIsFocused();
+  const insets = useSafeAreaInsets();
   const [member, setMember] = useState({ status: 'none', next_billing_at: null, signedIn: false });
   const [fund, setFund] = useState({ total_cents: 0, goal_cents: 0 });
   const [today, setToday] = useState({ openNow: false, until: '--:--', specials: [] });
@@ -107,9 +109,9 @@ export default function HomeScreen({ navigation }) {
   }, [signedIn]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <Text style={styles.headerText}>Ruminate Café</Text>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
+        <Image source={{ uri: `data:image/png;base64,${logoBase64}` }} style={styles.headerLogo} />
       </View>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
@@ -284,19 +286,19 @@ const styles = StyleSheet.create({
   hoursDay: { fontFamily: 'Fraunces_700Bold', color: palette.coffee, fontSize: 14 },
   hoursTime: { fontFamily: 'Fraunces_600SemiBold', color: '#6b5a54', fontSize: 14 },
   header: {
-    backgroundColor: palette.coffee,
+    backgroundColor: palette.cream,
     alignItems: 'center',
     justifyContent: 'center',
-    height: 100,
+    paddingBottom: 12,
     shadowColor: '#000',
     shadowOpacity: 0.15,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
     elevation: 4,
   },
-  headerText: {
-    color: '#fff',
-    fontFamily: 'Fraunces_700Bold',
-    fontSize: 24,
+  headerLogo: {
+    width: 120,
+    height: 120,
+    resizeMode: 'contain',
   },
 });
