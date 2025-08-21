@@ -11,7 +11,7 @@ import FreeDrinksCounter from '../components/FreeDrinksCounter';
 import { supabase } from '../lib/supabase';
 import { getMembershipSummary } from '../services/membership';
 import { getFundCurrent, getFundProgress } from '../services/community';
-import { getToday, getPayItForward, openInstagramUrl, getWeeklyHours, getLatestInstagramPost } from '../services/homeData';
+import { getToday, getWeeklyHours, getLatestInstagramPost, openInstagramUrl } from '../services/homeData';
 import { getMyStats } from '../services/stats';
 import { getCMS } from '../services/cms';
 import logo from '../../assets/logo.png';
@@ -49,32 +49,34 @@ export default function HomeScreen({ navigation }) {
   useEffect(() => {
     getFundProgress().then(setFund).catch(() => setFund({ progress: 0, total_cents: 0, goal_cents: 0 }));
     getWeeklyHours().then(setWeekHours).catch(() => setWeekHours([]));
+    if (globalThis.freebiesLeft !== undefined) setFreebiesLeft(globalThis.freebiesLeft);
+    if (globalThis.loyaltyStamps !== undefined) setLoyalty({ current: globalThis.loyaltyStamps, target: 8 });
+
     let mounted = true;
     (async () => {
-      try {
-        const m = await getMembershipSummary();
-        if (mounted && m) setMember(prev => ({ ...prev, ...m }));
-      } catch {}
+      try { const m = await getMembershipSummary(); if (mounted && m) setMember(prev => ({ ...prev, ...m })); } catch {}
       try { const f = await getFundCurrent(); if (mounted && f) setFund(f); } catch {}
       try { const t = await getToday(); if (mounted) setToday(t); } catch {}
       try { const s = await getPIFStats(); if (mounted) setPif(s); } catch {}
-        try {
-          const stats = await getMyStats();
-          if (mounted) {
-            setFreebiesLeft(stats.freebiesLeft || 0);
-            setLoyalty({ current: stats.loyaltyStamps || 0, target: 8 });
-          }
-        } catch {}
-        try { const ig = await getLatestInstagramPost(); if (mounted) setIgPost(ig); } catch {}
+      try {
+        const stats = await getMyStats();
+        if (mounted) {
+          setFreebiesLeft(stats.freebiesLeft || 0);
+          setLoyalty({ current: stats.loyaltyStamps || 0, target: 8 });
+        }
+      } catch {}
+      try { const ig = await getLatestInstagramPost(); if (mounted) setIgPost(ig); } catch {}
       try {
         const cms = await getCMS();
-        if (!cms) return;
-        const s1 = cms['special 1'] || null;
-        const s2 = cms['special 2'] || null;
-        if (s1 || s2) setToday(prev => ({ ...prev, specials: [s1, s2].filter(Boolean) }));
-        if (cms['rumi quote']) setRumiQuote(cms['rumi quote']);
+        if (cms) {
+          const s1 = cms['special 1'] || null;
+          const s2 = cms['special 2'] || null;
+          if (s1 || s2) setToday(prev => ({ ...prev, specials: [s1, s2].filter(Boolean) }));
+          if (cms['rumi quote']) setRumiQuote(cms['rumi quote']);
+        }
       } catch {}
     })();
+
     return () => { mounted = false; };
   }, [isFocused]);
 
@@ -85,10 +87,7 @@ export default function HomeScreen({ navigation }) {
     }
     let active = true;
     (async () => {
-      try {
-        const { data } = await supabase.auth.getSession();
-        if (active) setMember(prev => ({ ...prev, signedIn: !!data?.session?.user }));
-      } catch {}
+      try { const { data } = await supabase.auth.getSession(); if (active) setMember(prev => ({ ...prev, signedIn: !!data?.session?.user })); } catch {}
     })();
     const sub = supabase.auth.onAuthStateChange((_event, session) => {
       setMember(prev => ({ ...prev, signedIn: !!session?.user }));
@@ -223,7 +222,6 @@ export default function HomeScreen({ navigation }) {
             </Pressable>
           ) : (
             <View style={styles.igPolaroid}>
-              {/* Fallback to app icon when no Instagram image is available */}
               <Image
                 source={require('../../assets/icon.png')}
                 style={styles.igImage}
@@ -292,10 +290,10 @@ const styles = StyleSheet.create({
   hoursDay: { fontFamily: 'Fraunces_700Bold', color: palette.coffee, fontSize: 14 },
   hoursTime: { fontFamily: 'Fraunces_600SemiBold', color: '#6b5a54', fontSize: 14 },
   header: {
-    backgroundColor: palette.coffee,
+    backgroundColor: palette.cream,
     alignItems: 'center',
     justifyContent: 'center',
-    height: 100,
+    paddingBottom: 12,
     shadowColor: '#000',
     shadowOpacity: 0.15,
     shadowOffset: { width: 0, height: 2 },

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ScrollView, View, Text, StyleSheet, Pressable, Share } from 'react-native';
+import { ScrollView, View, Text, StyleSheet, Share, Pressable } from 'react-native';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 import membershipPassBase64 from '../../assets/membershipPassBase64';
@@ -37,7 +37,12 @@ export default function MembershipScreen({ navigation }) {
 
   const refresh = useCallback(async () => {
     try { const m = await getMembershipSummary(); if (m) setSummary(m); } catch {}
-    try { const s = await getMyStats(); setStats(s); } catch {}
+    try {
+      const s = await getMyStats();
+      setStats(s);
+      globalThis.freebiesLeft = s.freebiesLeft;
+      globalThis.loyaltyStamps = s.loyaltyStamps;
+    } catch {}
     if (supabase) {
       try { const u = await supabase.auth.getUser(); setUser(u?.data?.user || null); } catch {}
     } else {
@@ -69,24 +74,29 @@ export default function MembershipScreen({ navigation }) {
   }, [stats.freebiesLeft]);
 
 
-  useEffect(() => {
-    let m = true;
+  useEffect(() => { 
+    let m = true; 
     const email = (typeof user !== 'undefined' && user && user.email)
       ? user.email
       : (summary && summary.user && summary.user.email)
       ? summary.user.email
       : (globalThis && globalThis.auth && globalThis.auth.user && globalThis.auth.user.email)
       ? globalThis.auth.user.email
-      : null;
-    if (!email) { setPifSelfCents(0); return; }
-    getPIFByEmail(email).then(r => { if (m) setPifSelfCents(Number(r.total_cents) || 0); }).catch(() => { if (m) setPifSelfCents(0); });
-    return () => { m = false };
+      : null; 
+    if (!email) { setPifSelfCents(0); return; } 
+    getPIFByEmail(email).then(r => { if (m) setPifSelfCents(Number(r.total_cents) || 0); }).catch(() => { if (m) setPifSelfCents(0); }); 
+    return () => { m = false }; 
   }, [user, summary]);
 
   const [notice, setNotice] = useState('');
   useEffect(() => {
     if (stats.loyaltyStamps >= 8) {
-      setStats(s => ({ ...s, loyaltyStamps: s.loyaltyStamps - 8, freebiesLeft: s.freebiesLeft + 1 }));
+      setStats(s => {
+        const updated = { ...s, loyaltyStamps: s.loyaltyStamps - 8, freebiesLeft: s.freebiesLeft + 1 };
+        globalThis.freebiesLeft = updated.freebiesLeft;
+        globalThis.loyaltyStamps = updated.loyaltyStamps;
+        return updated;
+      });
       setNotice("You've earned a free drink!");
       const t = setTimeout(() => setNotice(''), 4000);
       return () => clearTimeout(t);
@@ -145,10 +155,7 @@ export default function MembershipScreen({ navigation }) {
                   <Text style={styles.swipePrompt}>Swipe to see your drink vouchers</Text>
                   <View style={styles.dots}>
                     {Array.from({ length: totalPages }).map((_, i) => (
-                      <View
-                        key={i}
-                        style={[styles.dot, i === page && styles.dotActive]}
-                      />
+                      <View key={i} style={[styles.dot, i === page && styles.dotActive]} />
                     ))}
                   </View>
                 </>

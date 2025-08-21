@@ -28,7 +28,7 @@ export async function getMyStats() {
     ]);
 
     if (error) {
-      return {
+      const result = {
         freebiesLeft: (profile?.free_drinks ?? 0) + 3,
         dividendsPending: 0,
         loyaltyStamps: 0,
@@ -36,9 +36,12 @@ export async function getMyStats() {
         communityContrib: 0,
         discountCredits: profile?.discount_credits ?? 0,
       };
+      globalThis.freebiesLeft = result.freebiesLeft;
+      globalThis.loyaltyStamps = result.loyaltyStamps;
+      return result;
     }
 
-    return {
+    const result = {
       freebiesLeft: (data?.freebiesLeft ?? 3) + (profile?.free_drinks ?? 0),
       dividendsPending: data?.dividendsPending ?? 0,
       loyaltyStamps: data?.loyaltyStamps ?? data?.discountUses ?? 0,
@@ -46,8 +49,11 @@ export async function getMyStats() {
       communityContrib: data?.communityContrib ?? 0,
       discountCredits: profile?.discount_credits ?? 0,
     };
+    globalThis.freebiesLeft = result.freebiesLeft;
+    globalThis.loyaltyStamps = result.loyaltyStamps;
+    return result;
   } catch {
-    return {
+    const result = {
       freebiesLeft: 3,
       dividendsPending: 0,
       loyaltyStamps: 0,
@@ -55,5 +61,8 @@ export async function getMyStats() {
       communityContrib: 0,
       discountCredits: 0,
     };
+    globalThis.freebiesLeft = result.freebiesLeft;
+    globalThis.loyaltyStamps = result.loyaltyStamps;
+    return result;
   }
 }
