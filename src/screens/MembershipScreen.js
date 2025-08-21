@@ -261,9 +261,9 @@ export default function MembershipScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-container: { flex: 1, backgroundColor: 'transparent' },
-header: {
-    backgroundColor: 'transparent',
+  container: { flex: 1, backgroundColor: 'transparent' },
+  header: {
+    backgroundColor: palette.cream,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
