@@ -25,6 +25,7 @@ export default function LoyaltyStampTile({ count = 0 }) {
   return (
     <View style={styles.tile}>
       <Text style={styles.title}>Loyalty</Text>
+      <Text style={styles.desc}>Purchase 8 hot drinks and receive a free drink voucher!</Text>
       <View style={styles.beansSection}>
         <View style={styles.beansGrid}>
           <View style={styles.beansRow}>
@@ -70,6 +71,12 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: 'Fraunces_700Bold',
     color: palette.coffee,
+    marginBottom: 8,
+  },
+  desc: {
+    fontFamily: 'Fraunces_600SemiBold',
+    color: palette.coffee,
+    textAlign: 'center',
     marginBottom: 8,
   },
   beansSection: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
