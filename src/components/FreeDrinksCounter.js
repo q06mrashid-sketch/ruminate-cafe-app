@@ -31,7 +31,7 @@ export default function FreeDrinksCounter({ count = 0 }) {
           />
         </Svg>
       </View>
-      <Text style={styles.label}>{`${remaining} / ${limit} remaining this month`}</Text>
+      <Text style={styles.label}>{count === 1 ? '1 free drink' : `${count} free drinks`}</Text>
     </View>
   );
 }

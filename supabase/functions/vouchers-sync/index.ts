@@ -26,9 +26,7 @@ serve(async (req: Request) => {
   const { data: { user } } = await auth.auth.getUser();
   if (!user) return new Response("Unauthorized", { status: 401, headers: cors() });
 
-
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
   const { data: existing } = await admin
     .from("drink_vouchers")
     .select("code")

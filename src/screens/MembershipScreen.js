@@ -33,7 +33,7 @@ export default function MembershipScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const [summary, setSummary] = useState({ signedIn: false, tier: 'free', status: 'none', next_billing_at: null });
   const [pifSelfCents, setPifSelfCents] = useState(0);
-  const [stats, setStats] = useState({ freebiesLeft: 3, dividendsPending: 0, loyaltyStamps: 0, payItForwardContrib: 0, communityContrib: 0 });
+  const [stats, setStats] = useState({ freebiesLeft: 0, dividendsPending: 0, loyaltyStamps: 0, payItForwardContrib: 0, communityContrib: 0 });
   const [vouchers, setVouchers] = useState([]);
   const [page, setPage] = useState(0);
   const [user, setUser] = useState(null);
