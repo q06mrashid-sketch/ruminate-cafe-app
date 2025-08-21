@@ -18,9 +18,9 @@ export default function MenuScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: palette.cream },
+  container: { flex: 1, backgroundColor: 'transparent' },
   header: {
-    backgroundColor: palette.cream,
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,

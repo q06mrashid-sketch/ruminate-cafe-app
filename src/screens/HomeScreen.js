@@ -255,7 +255,7 @@ export default function HomeScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   gridItemAuto: { flex: 1, justifyContent: 'space-between', position: 'relative' },
-  container: { flex: 1, backgroundColor: palette.cream },
+  container: { flex: 1, backgroundColor: 'transparent' },
   content: { padding: 16, paddingBottom: 100 },
   hero: { marginBottom: 18 },
   subcopy: { marginTop: 10, color: palette.coffee, lineHeight: 22, fontFamily: 'Fraunces_600SemiBold', textAlign: 'center' },
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
   hoursDay: { fontFamily: 'Fraunces_700Bold', color: palette.coffee, fontSize: 14 },
   hoursTime: { fontFamily: 'Fraunces_600SemiBold', color: '#6b5a54', fontSize: 14 },
   header: {
-    backgroundColor: palette.cream,
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
     paddingBottom: 12,
