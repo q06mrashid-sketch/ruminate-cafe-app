@@ -79,7 +79,7 @@ export default function HomeScreen({ navigation }) {
     })();
 
     return () => { mounted = false; };
-  }, [isFocused]);
+  }, [isFocused, member.signedIn]);
 
   useEffect(() => {
     if (!supabase?.auth) {
