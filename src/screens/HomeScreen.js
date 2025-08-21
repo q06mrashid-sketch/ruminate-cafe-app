@@ -11,7 +11,7 @@ import FreeDrinksCounter from '../components/FreeDrinksCounter';
 import { supabase } from '../lib/supabase';
 import { getMembershipSummary } from '../services/membership';
 import { getFundCurrent, getFundProgress } from '../services/community';
-import { getToday, getPayItForward, getFreeDrinkProgress, openInstagramProfile, getWeeklyHours, getLatestInstagramPost } from '../services/homeData';
+import { getToday, getPayItForward, openInstagramProfile, getWeeklyHours, getLatestInstagramPost } from '../services/homeData';
 import { getMyStats } from '../services/stats';
 import { getCMS } from '../services/cms';
 
@@ -48,6 +48,8 @@ export default function HomeScreen({ navigation }) {
   useEffect(() => {
     getFundProgress().then(setFund).catch(() => setFund({ progress: 0, total_cents: 0, goal_cents: 0 }));
     getWeeklyHours().then(setWeekHours).catch(() => setWeekHours([]));
+    if (globalThis.freebiesLeft !== undefined) setFreebiesLeft(globalThis.freebiesLeft);
+    if (globalThis.loyaltyStamps !== undefined) setLoyalty({ current: globalThis.loyaltyStamps, target: 8 });
     let mounted = true;
     (async () => {
       try {
@@ -57,8 +59,13 @@ export default function HomeScreen({ navigation }) {
       try { const f = await getFundCurrent(); if (mounted && f) setFund(f); } catch {}
       try { const t = await getToday(); if (mounted) setToday(t); } catch {}
       try { const s = await getPIFStats(); if (mounted) setPif(s); } catch {}
-      try { const d = await getFreeDrinkProgress(); if (mounted) setLoyalty(d); } catch {}
-      try { const stats = await getMyStats(); if (mounted) setFreebiesLeft(stats.freebiesLeft || 0); } catch {}
+      try {
+        const stats = await getMyStats();
+        if (mounted) {
+          setFreebiesLeft(stats.freebiesLeft || 0);
+          setLoyalty({ current: stats.loyaltyStamps || 0, target: 8 });
+        }
+      } catch {}
       try { const ig = await getLatestInstagramPost(); if (mounted) setIgPost(ig); } catch {}
       try {
         const cms = await getCMS();
