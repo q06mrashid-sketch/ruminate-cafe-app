@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { getPIFStats } from '../services/pif';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, Animated, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
@@ -34,6 +34,7 @@ function Chip({ children }) {
 }
 
 export default function HomeScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const [hoursExpanded, setHoursExpanded] = useState(false);
   const [weekHours, setWeekHours] = useState([]);
   const isFocused = useIsFocused();
@@ -101,7 +102,7 @@ export default function HomeScreen({ navigation }) {
   const nextBill = member?.next_billing_at ? new Date(member.next_billing_at).toLocaleDateString() : null;
   const signedIn = !!member?.signedIn;
   const membershipLabel = !signedIn ? 'Not signed in' : (member?.tier === 'paid' ? 'Member' : 'Free');
-  const membershipColor = (signedIn && member?.tier === 'paid') ? palette.clay : palette.coffee;
+  const membershipColor = (signedIn && member?.tier === 'paid') ? '#8E4032' : '#3E2723';
 
   const quoteOpacity = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -112,8 +113,8 @@ export default function HomeScreen({ navigation }) {
   }, [signedIn]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
+    <SafeAreaView style={styles.container} edges={['left','right']}>
+      <View style={[styles.header, { paddingTop: insets.top }] }>
         <Image source={logo} style={styles.logo} />
       </View>
       <ScrollView contentContainerStyle={styles.content}>
@@ -254,7 +255,7 @@ export default function HomeScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   gridItemAuto: { flex: 1, justifyContent: 'space-between', position: 'relative' },
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: 'transparent' },
   content: { padding: 16, paddingBottom: 100 },
   hero: { marginBottom: 18 },
   subcopy: { marginTop: 10, color: palette.coffee, lineHeight: 22, fontFamily: 'Fraunces_600SemiBold', textAlign: 'center' },
@@ -281,8 +282,8 @@ const styles = StyleSheet.create({
   igCaption: { marginTop: 8, color: palette.coffee, fontFamily: 'Fraunces_600SemiBold', textAlign: 'center' },
   igButton: { alignSelf: 'center', backgroundColor: palette.coffee, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
   igButtonText: { color: palette.cream, fontFamily: 'Fraunces_600SemiBold', fontSize: 14 },
-  rumiQuoteStandalone: { fontSize: 18, lineHeight: 26, textAlign: 'center', fontStyle: 'italic', color: palette.clay, fontFamily: 'Fraunces_600SemiBold' },
-  rumiAttributionStandalone: { marginTop: 4, fontSize: 14, textAlign: 'center', color: '#6b5a54', fontFamily: 'Fraunces_600SemiBold' },
+  rumiQuoteStandalone: { fontSize: 22, lineHeight: 30, textAlign: 'center', fontStyle: 'italic', color: '#8E4032', fontFamily: 'Fraunces_600SemiBold' },
+  rumiAttributionStandalone: { marginTop: 4, fontSize: 16, textAlign: 'center', color: '#5A3D2E', fontFamily: 'Fraunces_600SemiBold' },
   hoursToggleWrap: { position: 'absolute', bottom: 8, left: 0, right: 0, alignItems: 'center' },
   hoursToggle: { fontFamily: 'Fraunces_700Bold', color: palette.coffee, fontSize: 14 },
   hoursTable: { marginTop: 8, paddingBottom: 28 },
@@ -290,7 +291,7 @@ const styles = StyleSheet.create({
   hoursDay: { fontFamily: 'Fraunces_700Bold', color: palette.coffee, fontSize: 14 },
   hoursTime: { fontFamily: 'Fraunces_600SemiBold', color: '#6b5a54', fontSize: 14 },
   header: {
-    backgroundColor: palette.cream,
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
     paddingBottom: 12,

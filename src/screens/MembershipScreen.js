@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScrollView, View, Text, StyleSheet, Share, Pressable } from 'react-native';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
@@ -28,6 +28,7 @@ function Stat({ label, value, prefix = '', suffix = '', style }) {
 }
 
 export default function MembershipScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const [summary, setSummary] = useState({ signedIn: false, tier: 'free', status: 'none', next_billing_at: null });
   const [pifSelfCents, setPifSelfCents] = useState(0);
   const [stats, setStats] = useState({ freebiesLeft: 3, dividendsPending: 0, loyaltyStamps: 0, payItForwardContrib: 0, communityContrib: 0 });
@@ -116,7 +117,8 @@ export default function MembershipScreen({ navigation }) {
   const totalPages = 1 + vouchers.length;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['left','right']}>
+      <View style={[styles.header, { paddingTop: insets.top }]}><Text style={styles.headerTitle}>Membership</Text></View>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Membership</Text>
         {notice ? <Text style={styles.notice}>{notice}</Text> : null}
@@ -130,11 +132,11 @@ export default function MembershipScreen({ navigation }) {
                 onPageSelected={(e) => setPage(e.nativeEvent.position)}
               >
                 <View key="member" style={[styles.card, styles.qrCard]}>
-                  <Text style={styles.cardTitle}>Your QR</Text>
+                  <Text style={styles.cardTitle}>Your Loyalty QR</Text>
                   <View style={styles.qrWrap}>
                     <QRCode value={payload} size={180} />
                   </View>
-                  <Text style={styles.mutedSmall}>Show at the counter to redeem perks and stamps.</Text>
+                  <Text style={styles.mutedSmall}>Scan your QR code at the counter to receive a stamp on your loyalty card!</Text>
                   <View style={{ marginTop: 12 }}>
                     <GlowingGlassButton text="Add to Wallet" variant="dark" onPress={handleAddToWallet} />
                   </View>
@@ -142,7 +144,7 @@ export default function MembershipScreen({ navigation }) {
 
                 {vouchers.map((code) => (
                   <View key={code} style={[styles.card, styles.qrCard, styles.voucherCard]}>
-                    <Text style={[styles.cardTitle, styles.voucherTitle]}>Drink voucher</Text>
+                    <Text style={[styles.cardTitle, styles.voucherTitle]}>Free Drink Voucher</Text>
                     <View style={styles.qrWrap}>
                       <QRCode value={code} size={180} />
                     </View>
@@ -259,8 +261,20 @@ export default function MembershipScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { padding: 16, paddingBottom: 28 },
+  container: { flex: 1, backgroundColor: 'transparent' },
+  header: {
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  headerTitle: { fontSize: 20, color: '#3E2723', fontFamily: 'Fraunces_700Bold' },
+  content: { padding: 16, paddingBottom: 120 },
   title: { fontSize: 24, color: palette.coffee, fontFamily: 'Fraunces_700Bold' },
   mutedSmall: { fontSize: 13, color: palette.coffee, opacity: 0.8 },
   referralText: { fontSize: 20, color: palette.clay, fontFamily: 'Fraunces_700Bold', textAlign: 'center', marginVertical: 4 },
