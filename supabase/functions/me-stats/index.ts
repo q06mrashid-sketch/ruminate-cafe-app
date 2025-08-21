@@ -22,21 +22,28 @@ serve(async (req: Request) => {
   const { data: { user } } = await auth.auth.getUser();
   if (!user) return new Response("Unauthorized", { status: 401, headers: cors() });
 
-  let body: any = {};
-  try { body = await req.json(); } catch {}
-  const code = body?.code as string | undefined;
-  if (!code) {
-    return new Response(JSON.stringify({ success: false, error: "code required" }), { status: 400, headers: { ...cors(), "content-type": "application/json" } });
-  }
-
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-  const { error } = await admin
+
+  const { count: vouchers } = await admin
     .from("drink_vouchers")
-    .update({ redeemed: true, redeemed_at: new Date().toISOString() })
-    .eq("code", code)
+    .select("id", { count: "exact", head: true })
     .eq("user_id", user.id)
     .eq("redeemed", false);
 
-  const success = !error;
-  return new Response(JSON.stringify({ success }), { status: success ? 200 : 400, headers: { ...cors(), "content-type": "application/json" } });
+  const { data: stamps } = await admin
+    .from("loyalty_stamps")
+    .select("stamps")
+    .eq("user_id", user.id);
+  const loyaltyStamps = (stamps ?? []).reduce((sum, r) => sum + (r.stamps || 0), 0);
+
+  return new Response(
+    JSON.stringify({
+      freebiesLeft: vouchers ?? 0,
+      dividendsPending: 0,
+      loyaltyStamps,
+      payItForwardContrib: 0,
+      communityContrib: 0,
+    }),
+    { headers: { ...cors(), "content-type": "application/json" } }
+  );
 });

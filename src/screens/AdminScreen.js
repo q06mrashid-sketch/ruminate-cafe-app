@@ -1,12 +1,13 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { palette } from '../design/theme';
 import GlowingGlassButton from '../components/GlowingGlassButton';
 import { signOut } from '../services/membership';
 import { supabase } from '../lib/supabase';
 
 export default function AdminScreen({ navigation }){
+  const insets = useSafeAreaInsets();
   const handleDelete = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -19,9 +20,9 @@ export default function AdminScreen({ navigation }){
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['left','right']}>
+      <View style={[styles.header, { paddingTop: insets.top }]}><Text style={styles.headerTitle}>Admin</Text></View>
       <View style={styles.content}>
-        <Text style={styles.title}>Admin</Text>
         <Text style={styles.p}>Moderate activity and manage the café workflow.</Text>
 
         <View style={{ marginTop:20 }}>
@@ -64,8 +65,19 @@ export default function AdminScreen({ navigation }){
 }
 
 const styles = StyleSheet.create({
-  container: { flex:1 },
+  container: { flex:1, backgroundColor: 'transparent' },
+  header: {
+    backgroundColor: palette.cream,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  headerTitle: { fontSize: 20, color: '#3E2723', fontFamily: 'Fraunces_700Bold' },
   content: { flex:1, padding:20 },
-  title: { fontFamily:'Fraunces_700Bold', fontSize:22, color:palette.coffee, marginBottom:8 },
   p: { color:palette.coffee, fontSize:16 }
 });

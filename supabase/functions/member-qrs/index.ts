@@ -1,8 +1,8 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const SB_URL = Deno.env.get("SB_URL")!;
-const SB_SERVICE_ROLE_KEY = Deno.env.get("SB_SERVICE_ROLE_KEY")!;
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 function cors() {
   return {
@@ -24,7 +24,7 @@ serve(async (req: Request) => {
     });
   }
 
-  const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
+  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   // fetch existing unredeemed vouchers
   const { data: vouchers } = await admin

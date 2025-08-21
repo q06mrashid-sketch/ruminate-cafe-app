@@ -46,6 +46,7 @@ export default function MembershipScreen({ navigation }) {
       setStats(s);
       globalThis.freebiesLeft = s.freebiesLeft;
       globalThis.loyaltyStamps = s.loyaltyStamps;
+      await syncVouchers(s.freebiesLeft);
     } catch {}
     if (supabase) {
       try {
