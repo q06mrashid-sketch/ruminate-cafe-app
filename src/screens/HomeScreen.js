@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
   hoursDay: { fontFamily: 'Fraunces_700Bold', color: palette.coffee, fontSize: 14 },
   hoursTime: { fontFamily: 'Fraunces_600SemiBold', color: '#6b5a54', fontSize: 14 },
   header: {
-    backgroundColor: palette.cream,
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
     paddingBottom: 12,
