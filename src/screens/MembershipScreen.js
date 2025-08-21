@@ -28,9 +28,9 @@ function Stat({ label, value, prefix = '', suffix = '', style }) {
 }
 
 export default function MembershipScreen({ navigation }) {
-  const [summary, setSummary] = useState({ signedIn:false, tier:'free', status:'none', next_billing_at:null });
-  const [pifSelfCents,setPifSelfCents]=useState(0);
-  const [stats, setStats] = useState({ freebiesLeft:3, dividendsPending:0, loyaltyStamps:0, payItForwardContrib:0, communityContrib:0 });
+  const [summary, setSummary] = useState({ signedIn: false, tier: 'free', status: 'none', next_billing_at: null });
+  const [pifSelfCents, setPifSelfCents] = useState(0);
+  const [stats, setStats] = useState({ freebiesLeft: 3, dividendsPending: 0, loyaltyStamps: 0, payItForwardContrib: 0, communityContrib: 0 });
   const [vouchers, setVouchers] = useState([]);
   const [page, setPage] = useState(0);
   const [user, setUser] = useState(null);
@@ -46,7 +46,7 @@ export default function MembershipScreen({ navigation }) {
   }, []);
 
   useEffect(() => { refresh(); }, [refresh]);
-  useFocusEffect(useCallback(() => { let on = true; (async()=>{ if(on) await refresh(); })(); return () => { on = false; }; }, [refresh]));
+  useFocusEffect(useCallback(() => { let on = true; (async () => { if (on) await refresh(); })(); return () => { on = false; }; }, [refresh]));
 
   const payload = user ? `ruminate:${user.id}` : 'ruminate:member';
 
@@ -73,19 +73,19 @@ export default function MembershipScreen({ navigation }) {
     setStats(s => ({ ...s, freebiesLeft: Math.max(0, s.freebiesLeft - 1) }));
   }, []);
 
-  useEffect(()=>{ 
-    let m=true; 
-    const email=(typeof user!=='undefined'&&user&&user.email)
+  useEffect(() => {
+    let m = true;
+    const email = (typeof user !== 'undefined' && user && user.email)
       ? user.email
-      : (summary&&summary.user&&summary.user.email)
+      : (summary && summary.user && summary.user.email)
       ? summary.user.email
-      : (globalThis&&globalThis.auth&&globalThis.auth.user&&globalThis.auth.user.email)
+      : (globalThis && globalThis.auth && globalThis.auth.user && globalThis.auth.user.email)
       ? globalThis.auth.user.email
-      : null; 
-    if(!email){ setPifSelfCents(0); return; } 
-    getPIFByEmail(email).then(r=>{ if(m) setPifSelfCents(Number(r.total_cents)||0); }).catch(()=>{ if(m) setPifSelfCents(0); }); 
-    return ()=>{ m=false }; 
-  },[user,summary]);
+      : null;
+    if (!email) { setPifSelfCents(0); return; }
+    getPIFByEmail(email).then(r => { if (m) setPifSelfCents(Number(r.total_cents) || 0); }).catch(() => { if (m) setPifSelfCents(0); });
+    return () => { m = false };
+  }, [user, summary]);
 
   const [notice, setNotice] = useState('');
   useEffect(() => {
@@ -178,11 +178,11 @@ export default function MembershipScreen({ navigation }) {
             {summary.tier === 'paid' ? (
               <View style={styles.gridRow}>
                 <Stat label="Dividends pending" value={Number(stats.dividendsPending).toFixed(2)} prefix="£" />
-                <Stat label="Pay-it-forward" value={(pifSelfCents/100).toFixed(2)} prefix="£" />
+                <Stat label="Pay-it-forward" value={(pifSelfCents / 100).toFixed(2)} prefix="£" />
               </View>
             ) : (
               <View style={{ marginTop: 14 }}>
-                <Stat label="Pay-it-forward" value={(pifSelfCents/100).toFixed(2)} prefix="£" style={{ marginRight: 0 }} />
+                <Stat label="Pay-it-forward" value={(pifSelfCents / 100).toFixed(2)} prefix="£" style={{ marginRight: 0 }} />
               </View>
             )}
 
@@ -262,32 +262,34 @@ export default function MembershipScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container:{ flex:1 },
-  content:{ padding:16, paddingBottom:28 },
-  title:{ fontSize:24, color:palette.coffee, fontFamily:'Fraunces_700Bold' },
-  mutedSmall:{ fontSize:13, color:palette.coffee, opacity:0.8 },
-  referralText:{ fontSize:20, color:palette.clay, fontFamily:'Fraunces_700Bold', textAlign:'center', marginVertical:4 },
-  card:{ backgroundColor:palette.paper, borderColor:palette.border, borderWidth:1, borderRadius:14, padding:16, marginTop:14 },
-  cardTitle:{ fontSize:18, color:palette.coffee, fontFamily:'Fraunces_700Bold', marginBottom:10 },
-  perk:{ color:palette.coffee, lineHeight:22, marginTop:6, fontFamily:'Fraunces_600SemiBold' },
-  infoCard:{ backgroundColor:palette.paper, borderColor:palette.border, borderWidth:1, borderRadius:14, padding:16, marginTop:14 },
-  gridRow:{ flexDirection:'row', marginTop:14 },
-  statBox:{ flex:1, backgroundColor:palette.paper, borderColor:palette.border, borderWidth:1, borderRadius:14, paddingVertical:16, paddingHorizontal:12, marginRight:12 },
-  statValue:{ fontSize:28, color:palette.clay, fontFamily:'Fraunces_700Bold' },
-  statLabel:{ marginTop:6, color:palette.coffee, fontFamily:'Fraunces_600SemiBold' },
-  notice:{ backgroundColor:palette.paper, borderColor:palette.border, borderWidth:1, borderRadius:10, padding:10, marginTop:12, textAlign:'center', color:palette.clay, fontFamily:'Fraunces_700Bold' },
-  qrWrap:{ alignItems:'center', justifyContent:'center', paddingVertical:12, height:260 },
-  carousel:{ height:360, width:'100%' },
-  qrCard:{ marginTop:0, flex:1 },
-  redeemBtn:{ backgroundColor:palette.clay, borderRadius:8, paddingVertical:6, paddingHorizontal:12 },
-  redeemText:{ color:'#fff', fontFamily:'Fraunces_700Bold' },
-  swipePrompt:{ textAlign:'center', color:palette.coffee, marginTop:8, fontFamily:'Fraunces_600SemiBold' },
-  dots:{ flexDirection:'row', justifyContent:'center', marginTop:4 },
-  dot:{ width:8, height:8, borderRadius:4, backgroundColor:palette.border, marginHorizontal:3 },
-  dotActive:{ backgroundColor:palette.coffee },
-  cta:{ borderRadius:14, paddingVertical:14, alignItems:'center', justifyContent:'center' },
-  ctaPrimary:{ backgroundColor: palette.clay, borderColor: palette.border, borderWidth: 1 },
-  ctaPrimaryText:{ color:'#fff', fontFamily:'Fraunces_700Bold', fontSize:16 },
-  ctaSecondary:{ backgroundColor: palette.paper, borderColor: palette.border, borderWidth: 1 },
-  ctaSecondaryText:{ color: palette.coffee, fontFamily:'Fraunces_700Bold', fontSize:16 },
+  container: { flex: 1 },
+  content: { padding: 16, paddingBottom: 28 },
+  title: { fontSize: 24, color: palette.coffee, fontFamily: 'Fraunces_700Bold' },
+  mutedSmall: { fontSize: 13, color: palette.coffee, opacity: 0.8 },
+  referralText: { fontSize: 20, color: palette.clay, fontFamily: 'Fraunces_700Bold', textAlign: 'center', marginVertical: 4 },
+  card: { backgroundColor: palette.paper, borderColor: palette.border, borderWidth: 1, borderRadius: 14, padding: 16, marginTop: 14 },
+  cardTitle: { fontSize: 18, color: palette.coffee, fontFamily: 'Fraunces_700Bold', marginBottom: 10 },
+  perk: { color: palette.coffee, lineHeight: 22, marginTop: 6, fontFamily: 'Fraunces_600SemiBold' },
+  infoCard: { backgroundColor: palette.paper, borderColor: palette.border, borderWidth: 1, borderRadius: 14, padding: 16, marginTop: 14 },
+  gridRow: { flexDirection: 'row', marginTop: 14 },
+  statBox: { flex: 1, backgroundColor: palette.paper, borderColor: palette.border, borderWidth: 1, borderRadius: 14, paddingVertical: 16, paddingHorizontal: 12, marginRight: 12 },
+  statValue: { fontSize: 28, color: palette.clay, fontFamily: 'Fraunces_700Bold' },
+  statLabel: { marginTop: 6, color: palette.coffee, fontFamily: 'Fraunces_600SemiBold' },
+  notice: { backgroundColor: palette.paper, borderColor: palette.border, borderWidth: 1, borderRadius: 10, padding: 10, marginTop: 12, textAlign: 'center', color: palette.clay, fontFamily: 'Fraunces_700Bold' },
+
+  qrWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: 12, height: 260 },
+  carousel: { height: 360, width: '100%' },
+  qrCard: { marginTop: 0, flex: 1 },
+  redeemBtn: { backgroundColor: palette.clay, borderRadius: 8, paddingVertical: 6, paddingHorizontal: 12 },
+  redeemText: { color: '#fff', fontFamily: 'Fraunces_700Bold' },
+  swipePrompt: { textAlign: 'center', color: palette.coffee, marginTop: 8, fontFamily: 'Fraunces_600SemiBold' },
+  dots: { flexDirection: 'row', justifyContent: 'center', marginTop: 4 },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: palette.border, marginHorizontal: 3 },
+  dotActive: { backgroundColor: palette.coffee },
+
+  cta: { borderRadius: 14, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
+  ctaPrimary: { backgroundColor: palette.clay, borderColor: palette.border, borderWidth: 1 },
+  ctaPrimaryText: { color: '#fff', fontFamily: 'Fraunces_700Bold', fontSize: 16 },
+  ctaSecondary: { backgroundColor: palette.paper, borderColor: palette.border, borderWidth: 1 },
+  ctaSecondaryText: { color: palette.coffee, fontFamily: 'Fraunces_700Bold', fontSize: 16 },
 });
