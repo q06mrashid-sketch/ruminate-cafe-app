@@ -5,7 +5,9 @@ import Svg, { Circle } from 'react-native-svg';
 import { palette } from '../design/theme';
 
 export default function FreeDrinksCounter({ count = 0 }) {
-  const ratio = Math.max(0, Math.min(1, count / 3));
+  const limit = 3;
+  const remaining = Math.max(0, Math.min(limit, count));
+  const ratio = remaining / limit;
   const size = 64;
   const radius = 28;
   const circumference = 2 * Math.PI * radius;
@@ -29,7 +31,7 @@ export default function FreeDrinksCounter({ count = 0 }) {
           />
         </Svg>
       </View>
-      <Text style={styles.label}>{count} / 3 remaining</Text>
+      <Text style={styles.label}>{`${remaining} / ${limit} remaining this month`}</Text>
     </View>
   );
 }
