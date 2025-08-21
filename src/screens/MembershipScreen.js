@@ -17,6 +17,7 @@ import { createReferral } from '../services/referral';
 import 'react-native-get-random-values';
 import FreeDrinksCounter from '../components/FreeDrinksCounter';
 import LoyaltyStampTile from '../components/LoyaltyStampTile';
+import { getMemberQRCodes } from '../services/qr';
 
 function Stat({ label, value, prefix = '', suffix = '', style }) {
   return (
@@ -35,6 +36,7 @@ export default function MembershipScreen({ navigation }) {
   const [vouchers, setVouchers] = useState([]);
   const [page, setPage] = useState(0);
   const [user, setUser] = useState(null);
+  const [payload, setPayload] = useState('ruminate:member');
 
   const refresh = useCallback(async () => {
     try { const m = await getMembershipSummary(); if (m) setSummary(m); } catch {}
@@ -45,35 +47,28 @@ export default function MembershipScreen({ navigation }) {
       globalThis.loyaltyStamps = s.loyaltyStamps;
     } catch {}
     if (supabase) {
-      try { const u = await supabase.auth.getUser(); setUser(u?.data?.user || null); } catch {}
+      try {
+        const u = await supabase.auth.getUser();
+        const usr = u?.data?.user || null;
+        setUser(usr);
+        if (usr) {
+          try {
+            const qrs = await getMemberQRCodes(usr.id);
+            setPayload(qrs.payload);
+            setVouchers(qrs.vouchers || []);
+          } catch {}
+        } else {
+          setPayload('ruminate:member');
+          setVouchers([]);
+        }
+      } catch {}
     } else {
-      try { setUser(null); } catch {}
+      try { setUser(null); setPayload('ruminate:member'); setVouchers([]); } catch {}
     }
   }, []);
 
   useEffect(() => { refresh(); }, [refresh]);
   useFocusEffect(useCallback(() => { let on = true; (async () => { if (on) await refresh(); })(); return () => { on = false; }; }, [refresh]));
-
-  const payload = user ? `ruminate:${user.id}` : 'ruminate:member';
-
-  useEffect(() => {
-    setVouchers(v => {
-      if (v.length < stats.freebiesLeft) {
-        const needed = stats.freebiesLeft - v.length;
-        return [
-          ...v,
-          ...Array.from({ length: needed }, () =>
-            crypto?.randomUUID?.() || Math.random().toString(36).slice(2, 10)
-          ),
-        ];
-      }
-      if (v.length > stats.freebiesLeft) {
-        return v.slice(0, stats.freebiesLeft);
-      }
-      return v;
-    });
-  }, [stats.freebiesLeft]);
-
 
   useEffect(() => { 
     let m = true; 

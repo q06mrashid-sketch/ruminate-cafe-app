@@ -1,10 +1,11 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { palette } from '../../design/theme';
 import { supabase } from '../../lib/supabase';
 import { useNavigation } from '@react-navigation/native';
+import { getMemberQRCodes } from '../../services/qr';
 
 function Stat({ label, value, prefix='', suffix='' }) {
   return (
@@ -17,9 +18,20 @@ function Stat({ label, value, prefix='', suffix='' }) {
 
 export default function MembershipSignedInPanel({ summary, stats, user }) {
   const navigation = useNavigation();
-  // Stable opaque member identifier for QR payload
-  const payload = user ? `ruminate:${user.id}` : 'ruminate:member';
+  const [payload, setPayload] = useState('ruminate:member');
   const isPaid = summary.tier === 'paid';
+
+  useEffect(() => {
+    let on = true;
+    if (user?.id) {
+      getMemberQRCodes(user.id).then((res) => {
+        if (on && res?.payload) setPayload(res.payload);
+      }).catch(() => {});
+    } else {
+      setPayload('ruminate:member');
+    }
+    return () => { on = false; };
+  }, [user?.id]);
 
   return (
     <>
