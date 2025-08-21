@@ -93,15 +93,24 @@ export async function getWeeklyHours(){
 export async function getPayItForward(){ return { available:7, contributed:124 }; }
 export async function getFreeDrinkProgress(){ return { current:3, target:8 }; }
 
-export async function openInstagramProfile(){ 
-  const app='instagram://user?username=ruminatecafe'; 
-  const web='https://www.instagram.com/ruminatecafe/'; 
-  try{ 
-    const can=await Linking.canOpenURL(app); 
-    await Linking.openURL(can?app:web); 
-  } catch { 
-    Linking.openURL(web); 
-  } 
+export async function openInstagramProfile(){
+  const app='instagram://user?username=ruminatecafe';
+  const web='https://www.instagram.com/ruminatecafe/';
+  try{
+    const can=await Linking.canOpenURL(app);
+    await Linking.openURL(can?app:web);
+  } catch {
+    Linking.openURL(web);
+  }
+}
+
+export async function openInstagramUrl(url){
+  if(!url) return openInstagramProfile();
+  try{
+    await Linking.openURL(url);
+  }catch{
+    openInstagramProfile();
+  }
 }
 
 export async function getLatestInstagramPost(){
@@ -109,7 +118,8 @@ export async function getLatestInstagramPost(){
   const endpoint=process.env.EXPO_PUBLIC_INSTAGRAM_FEED_URL;
   try{
     if(!endpoint) throw new Error('no endpoint');
-    const res=await fetch(endpoint);
+    const url=endpoint+(endpoint.includes('?')?'&':'?')+`t=${Date.now()}`;
+    const res=await fetch(url);
     if(!res.ok) throw new Error('bad status');
     const data=await res.json();
 
@@ -118,7 +128,8 @@ export async function getLatestInstagramPost(){
       if(!item) return null;
       const image=item.image||item.image_url||item.imageUrl||item.media_url||item.url;
       const caption=item.caption||item.text||'';
-      return typeof image==='string'?{image,caption}:null;
+      const link=item.permalink||item.url||item.link||null;
+      return typeof image==='string'?{image,caption,url:link}:null;
     };
 
     const post=pickPost(data);
@@ -128,6 +139,6 @@ export async function getLatestInstagramPost(){
     return post;
   }catch{
     try{ const cached=await AsyncStorage.getItem(cacheKey); if(cached) return JSON.parse(cached); }catch{}
-    return { image:null, caption:'' };
+    return { image:null, caption:'', url:null };
   }
 }
