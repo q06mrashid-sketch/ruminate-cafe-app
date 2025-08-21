@@ -32,3 +32,6 @@ metro.config.js.bak_*
 
 # Wallet pass artifacts
 *.pkpass
+
+# Local logo asset (tracked elsewhere)
+assets/logo.png

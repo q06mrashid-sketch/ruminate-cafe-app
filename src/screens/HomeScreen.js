@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { getPIFStats } from '../services/pif';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, Animated, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
@@ -11,10 +11,10 @@ import FreeDrinksCounter from '../components/FreeDrinksCounter';
 import { supabase } from '../lib/supabase';
 import { getMembershipSummary } from '../services/membership';
 import { getFundCurrent, getFundProgress } from '../services/community';
-import { getToday, getPayItForward, openInstagramUrl, getWeeklyHours, getLatestInstagramPost } from '../services/homeData';
+import { getToday, getWeeklyHours, getLatestInstagramPost, openInstagramUrl } from '../services/homeData';
 import { getMyStats } from '../services/stats';
 import { getCMS } from '../services/cms';
-import logoBase64 from '../../assets/logoBase64';
+import logo from '../../assets/logo.png';
 
 function ProgressBar({ value, max, tint = palette.clay, track = '#EED8C4' }) {
   const pct = Math.max(0, Math.min(1, max > 0 ? value / max : 0));
@@ -37,7 +37,6 @@ export default function HomeScreen({ navigation }) {
   const [hoursExpanded, setHoursExpanded] = useState(false);
   const [weekHours, setWeekHours] = useState([]);
   const isFocused = useIsFocused();
-  const insets = useSafeAreaInsets();
   const [member, setMember] = useState({ status: 'none', next_billing_at: null, signedIn: false });
   const [fund, setFund] = useState({ total_cents: 0, goal_cents: 0 });
   const [today, setToday] = useState({ openNow: false, until: '--:--', specials: [] });
@@ -52,12 +51,10 @@ export default function HomeScreen({ navigation }) {
     getWeeklyHours().then(setWeekHours).catch(() => setWeekHours([]));
     if (globalThis.freebiesLeft !== undefined) setFreebiesLeft(globalThis.freebiesLeft);
     if (globalThis.loyaltyStamps !== undefined) setLoyalty({ current: globalThis.loyaltyStamps, target: 8 });
+
     let mounted = true;
     (async () => {
-      try {
-        const m = await getMembershipSummary();
-        if (mounted && m) setMember(prev => ({ ...prev, ...m }));
-      } catch {}
+      try { const m = await getMembershipSummary(); if (mounted && m) setMember(prev => ({ ...prev, ...m })); } catch {}
       try { const f = await getFundCurrent(); if (mounted && f) setFund(f); } catch {}
       try { const t = await getToday(); if (mounted) setToday(t); } catch {}
       try { const s = await getPIFStats(); if (mounted) setPif(s); } catch {}
@@ -71,13 +68,15 @@ export default function HomeScreen({ navigation }) {
       try { const ig = await getLatestInstagramPost(); if (mounted) setIgPost(ig); } catch {}
       try {
         const cms = await getCMS();
-        if (!cms) return;
-        const s1 = cms['special 1'] || null;
-        const s2 = cms['special 2'] || null;
-        if (s1 || s2) setToday(prev => ({ ...prev, specials: [s1, s2].filter(Boolean) }));
-        if (cms['rumi quote']) setRumiQuote(cms['rumi quote']);
+        if (cms) {
+          const s1 = cms['special 1'] || null;
+          const s2 = cms['special 2'] || null;
+          if (s1 || s2) setToday(prev => ({ ...prev, specials: [s1, s2].filter(Boolean) }));
+          if (cms['rumi quote']) setRumiQuote(cms['rumi quote']);
+        }
       } catch {}
     })();
+
     return () => { mounted = false; };
   }, [isFocused]);
 
@@ -88,10 +87,7 @@ export default function HomeScreen({ navigation }) {
     }
     let active = true;
     (async () => {
-      try {
-        const { data } = await supabase.auth.getSession();
-        if (active) setMember(prev => ({ ...prev, signedIn: !!data?.session?.user }));
-      } catch {}
+      try { const { data } = await supabase.auth.getSession(); if (active) setMember(prev => ({ ...prev, signedIn: !!data?.session?.user })); } catch {}
     })();
     const sub = supabase.auth.onAuthStateChange((_event, session) => {
       setMember(prev => ({ ...prev, signedIn: !!session?.user }));
@@ -116,9 +112,9 @@ export default function HomeScreen({ navigation }) {
   }, [signedIn]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
-      <View style={[styles.header, { paddingTop: insets.top }]}>
-        <Image source={{ uri: `data:image/png;base64,${logoBase64}` }} style={styles.headerLogo} />
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.header}>
+        <Image source={logo} style={styles.logo} />
       </View>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
@@ -304,9 +300,5 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  headerLogo: {
-    width: 120,
-    height: 120,
-    resizeMode: 'contain',
-  },
+  logo: { width: 80, height: 80, resizeMode: 'contain' },
 });
