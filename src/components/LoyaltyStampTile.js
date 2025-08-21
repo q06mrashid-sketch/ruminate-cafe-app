@@ -4,7 +4,8 @@ import Svg, { Path } from 'react-native-svg';
 import { palette } from '../design/theme';
 
 export default function LoyaltyStampTile({ count = 0 }) {
-  const beans = Array.from({ length: 8 }, (_, i) => i < (count % 8));
+  const filled = Math.max(0, Math.floor(count % 8));
+  const beans = Array.from({ length: 8 }, (_, i) => i < filled);
   const canRedeem = count >= 8;
   const Bean = ({ filled }) => (
     <Svg width={24} height={24} viewBox="0 0 24 24" style={styles.bean}>

@@ -3,7 +3,7 @@ import { supabase, hasSupabase } from '../lib/supabase';
 export async function getMyStats() {
   if (!hasSupabase || !supabase) {
     return {
-      freebiesLeft: 3,
+      freebiesLeft: 0,
       dividendsPending: 0,
       loyaltyStamps: 0,
       payItForwardContrib: 0,
@@ -15,7 +15,7 @@ export async function getMyStats() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) {
       return {
-        freebiesLeft: 3,
+        freebiesLeft: 0,
         dividendsPending: 0,
         loyaltyStamps: 0,
         payItForwardContrib: 0,
@@ -29,7 +29,7 @@ export async function getMyStats() {
 
     if (error) {
       const result = {
-        freebiesLeft: (profile?.free_drinks ?? 0) + 3,
+        freebiesLeft: (profile?.free_drinks ?? 0),
         dividendsPending: 0,
         loyaltyStamps: 0,
         payItForwardContrib: 0,
@@ -42,7 +42,7 @@ export async function getMyStats() {
     }
 
     const result = {
-      freebiesLeft: (data?.freebiesLeft ?? 3) + (profile?.free_drinks ?? 0),
+      freebiesLeft: (data?.freebiesLeft ?? 0) + (profile?.free_drinks ?? 0),
       dividendsPending: data?.dividendsPending ?? 0,
       loyaltyStamps: data?.loyaltyStamps ?? data?.discountUses ?? 0,
       payItForwardContrib: data?.payItForwardContrib ?? 0,
@@ -54,7 +54,7 @@ export async function getMyStats() {
     return result;
   } catch {
     const result = {
-      freebiesLeft: 3,
+      freebiesLeft: 0,
       dividendsPending: 0,
       loyaltyStamps: 0,
       payItForwardContrib: 0,
