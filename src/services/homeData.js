@@ -93,41 +93,65 @@ export async function getWeeklyHours(){
 export async function getPayItForward(){ return { available:7, contributed:124 }; }
 export async function getFreeDrinkProgress(){ return { current:3, target:8 }; }
 
-export async function openInstagramProfile(){ 
-  const app='instagram://user?username=ruminatecafe'; 
-  const web='https://www.instagram.com/ruminatecafe/'; 
-  try{ 
-    const can=await Linking.canOpenURL(app); 
-    await Linking.openURL(can?app:web); 
-  } catch { 
-    Linking.openURL(web); 
-  } 
+export async function openInstagramProfile(){
+  const app='instagram://user?username=ruminatecafe';
+  const web='https://www.instagram.com/ruminatecafe/';
+  try{
+    const can=await Linking.canOpenURL(app);
+    await Linking.openURL(can?app:web);
+  } catch {
+    Linking.openURL(web);
+  }
+}
+
+export async function openInstagramUrl(url){
+  if(!url) return openInstagramProfile();
+  try{
+    await Linking.openURL(url);
+  }catch{
+    openInstagramProfile();
+  }
 }
 
 export async function getLatestInstagramPost(){
   const cacheKey='latestIgPost';
-  const endpoint=process.env.EXPO_PUBLIC_INSTAGRAM_FEED_URL;
+  const username='ruminatecafe';
   try{
-    if(!endpoint) throw new Error('no endpoint');
-    const res=await fetch(endpoint);
+    const res=await fetch(`https://www.instagram.com/api/v1/users/web_profile_info/?username=${username}`,{headers:{'User-Agent':'Mozilla/5.0'}});
     if(!res.ok) throw new Error('bad status');
     const data=await res.json();
-
-    const pickPost=payload=>{
-      const item=Array.isArray(payload)?payload[0]:Array.isArray(payload?.data)?payload.data[0]:payload?.latest||payload;
-      if(!item) return null;
-      const image=item.image||item.image_url||item.imageUrl||item.media_url||item.url;
-      const caption=item.caption||item.text||'';
-      return typeof image==='string'?{image,caption}:null;
-    };
-
-    const post=pickPost(data);
-    if(!post||!/^https?:/i.test(post.image)) throw new Error('bad payload');
-
-    try{ await AsyncStorage.setItem(cacheKey, JSON.stringify(post)); }catch{}
+    const node=data?.data?.user?.edge_owner_to_timeline_media?.edges?.[0]?.node;
+    if(!node) throw new Error('no node');
+    const image=node.display_url||node.thumbnail_src;
+    const caption=node.edge_media_to_caption?.edges?.[0]?.node?.text||'';
+    const url=`https://www.instagram.com/p/${node.shortcode}/`;
+    if(!image||!url) throw new Error('bad payload');
+    const post={image,caption,url};
+    try{await AsyncStorage.setItem(cacheKey,JSON.stringify(post));}catch{}
     return post;
   }catch{
-    try{ const cached=await AsyncStorage.getItem(cacheKey); if(cached) return JSON.parse(cached); }catch{}
-    return { image:null, caption:'' };
+    try{
+      const endpoint=process.env.EXPO_PUBLIC_INSTAGRAM_FEED_URL;
+      if(!endpoint) throw new Error('no endpoint');
+      const url=endpoint+(endpoint.includes('?')?'&':'?')+`t=${Date.now()}`;
+      const res=await fetch(url);
+      if(!res.ok) throw new Error('bad status');
+      const data=await res.json();
+      const pickPost=payload=>{
+        const item=Array.isArray(payload)?payload[0]:Array.isArray(payload?.data)?payload.data[0]:payload?.latest||payload;
+        if(!item) return null;
+        const image=item.image||item.image_url||item.imageUrl||item.media_url||item.url;
+        const caption=item.caption||item.text||'';
+        const link=item.permalink||item.url||item.link||null;
+        return typeof image==='string'?{image,caption,url:link}:null;
+      };
+      const post=pickPost(data);
+      if(!post||!/^https?:/i.test(post.image)) throw new Error('bad payload');
+      try{await AsyncStorage.setItem(cacheKey,JSON.stringify(post));}catch{}
+      return post;
+    }catch{
+      try{const cached=await AsyncStorage.getItem(cacheKey);if(cached) return JSON.parse(cached);}catch{}
+      return {image:null,caption:'',url:null};
+    }
   }
 }

@@ -68,10 +68,6 @@ export default function MembershipScreen({ navigation }) {
     });
   }, [stats.freebiesLeft]);
 
-  const handleRedeemVoucher = useCallback((idx) => {
-    setVouchers(v => v.filter((_, i) => i !== idx));
-    setStats(s => ({ ...s, freebiesLeft: Math.max(0, s.freebiesLeft - 1) }));
-  }, []);
 
   useEffect(() => {
     let m = true;
@@ -134,19 +130,13 @@ export default function MembershipScreen({ navigation }) {
                   </View>
                 </View>
 
-                {vouchers.map((code, idx) => (
-                  <View key={code} style={[styles.card, styles.qrCard]}>
-                    <Text style={styles.cardTitle}>Drink voucher</Text>
+                {vouchers.map((code) => (
+                  <View key={code} style={[styles.card, styles.qrCard, styles.voucherCard]}>
+                    <Text style={[styles.cardTitle, styles.voucherTitle]}>Drink voucher</Text>
                     <View style={styles.qrWrap}>
                       <QRCode value={code} size={180} />
                     </View>
-                    <Text style={styles.mutedSmall}>Show at the counter to redeem.</Text>
-                    <Pressable
-                      style={[styles.redeemBtn, { alignSelf: 'center', marginTop: 12 }]}
-                      onPress={() => handleRedeemVoucher(idx)}
-                    >
-                      <Text style={styles.redeemText}>Redeemed</Text>
-                    </Pressable>
+                    <Text style={[styles.mutedSmall, styles.voucherText]}>Show at the counter to redeem.</Text>
                   </View>
                 ))}
               </PagerView>
@@ -278,10 +268,11 @@ const styles = StyleSheet.create({
   notice: { backgroundColor: palette.paper, borderColor: palette.border, borderWidth: 1, borderRadius: 10, padding: 10, marginTop: 12, textAlign: 'center', color: palette.clay, fontFamily: 'Fraunces_700Bold' },
 
   qrWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: 12, height: 260 },
-  carousel: { height: 360, width: '100%' },
+  carousel: { height: 420, width: '100%' },
   qrCard: { marginTop: 0, flex: 1 },
-  redeemBtn: { backgroundColor: palette.clay, borderRadius: 8, paddingVertical: 6, paddingHorizontal: 12 },
-  redeemText: { color: '#fff', fontFamily: 'Fraunces_700Bold' },
+  voucherCard: { backgroundColor: palette.coffee, borderColor: palette.coffee },
+  voucherTitle: { color: palette.cream },
+  voucherText: { color: palette.cream, textAlign: 'center' },
   swipePrompt: { textAlign: 'center', color: palette.coffee, marginTop: 8, fontFamily: 'Fraunces_600SemiBold' },
   dots: { flexDirection: 'row', justifyContent: 'center', marginTop: 4 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: palette.border, marginHorizontal: 3 },

@@ -11,9 +11,10 @@ import FreeDrinksCounter from '../components/FreeDrinksCounter';
 import { supabase } from '../lib/supabase';
 import { getMembershipSummary } from '../services/membership';
 import { getFundCurrent, getFundProgress } from '../services/community';
-import { getToday, getPayItForward, openInstagramProfile, getWeeklyHours, getLatestInstagramPost } from '../services/homeData';
+import { getToday, getPayItForward, openInstagramUrl, getWeeklyHours, getLatestInstagramPost } from '../services/homeData';
 import { getMyStats } from '../services/stats';
 import { getCMS } from '../services/cms';
+import logo from '../../assets/logo.png';
 
 function ProgressBar({ value, max, tint = palette.clay, track = '#EED8C4' }) {
   const pct = Math.max(0, Math.min(1, max > 0 ? value / max : 0));
@@ -43,7 +44,7 @@ export default function HomeScreen({ navigation }) {
   const [loyalty, setLoyalty] = useState({ current: 0, target: 8 });
   const [freebiesLeft, setFreebiesLeft] = useState(0);
   const [rumiQuote, setRumiQuote] = useState(null);
-  const [igPost, setIgPost] = useState({ image: null, caption: '' });
+  const [igPost, setIgPost] = useState({ image: null, caption: '', url: null });
 
   useEffect(() => {
     getFundProgress().then(setFund).catch(() => setFund({ progress: 0, total_cents: 0, goal_cents: 0 }));
@@ -114,7 +115,7 @@ export default function HomeScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.headerText}>Ruminate Café</Text>
+        <Image source={logo} style={styles.logo} />
       </View>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
@@ -197,27 +198,29 @@ export default function HomeScreen({ navigation }) {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Latest on Instagram</Text>
           {igPost?.image ? (
-            <View style={styles.igPolaroid}>
-              <Image
-                source={{ uri: igPost.image }}
-                style={styles.igImage}
-                resizeMode="cover"
-                onError={async () => {
-                  try {
-                    const cached = await AsyncStorage.getItem('latestIgPost');
-                    if (cached) {
-                      const parsed = JSON.parse(cached);
-                      if (parsed?.image && parsed.image !== igPost.image) {
-                        setIgPost(parsed);
-                        return;
+            <Pressable onPress={() => openInstagramUrl(igPost.url)}>
+              <View style={styles.igPolaroid}>
+                <Image
+                  source={{ uri: igPost.image }}
+                  style={styles.igImage}
+                  resizeMode="cover"
+                  onError={async () => {
+                    try {
+                      const cached = await AsyncStorage.getItem('latestIgPost');
+                      if (cached) {
+                        const parsed = JSON.parse(cached);
+                        if (parsed?.image && parsed.image !== igPost.image) {
+                          setIgPost(parsed);
+                          return;
+                        }
                       }
-                    }
-                  } catch {}
-                  setIgPost({ image: null, caption: '' });
-                }}
-              />
-              {igPost?.caption ? <Text style={styles.igCaption}>{igPost.caption}</Text> : null}
-            </View>
+                    } catch {}
+                    setIgPost({ image: null, caption: '', url: null });
+                  }}
+                />
+                {igPost?.caption ? <Text style={styles.igCaption}>{igPost.caption}</Text> : null}
+              </View>
+            </Pressable>
           ) : (
             <View style={styles.igPolaroid}>
               {/* Fallback to app icon when no Instagram image is available */}
@@ -229,7 +232,7 @@ export default function HomeScreen({ navigation }) {
               <Text style={styles.muted}>Unable to load latest post.</Text>
             </View>
           )}
-          <Pressable onPress={openInstagramProfile} style={styles.igButton}>
+          <Pressable onPress={() => openInstagramUrl(igPost?.url)} style={styles.igButton}>
             <Text style={styles.igButtonText}>View on Instagram</Text>
           </Pressable>
         </View>
@@ -299,9 +302,5 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  headerText: {
-    color: '#fff',
-    fontFamily: 'Fraunces_700Bold',
-    fontSize: 24,
-  },
+  logo: { width: 80, height: 80, resizeMode: 'contain' },
 });
