@@ -104,7 +104,7 @@ export default function AccountDetailsScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: palette.cream },
+  container: { flex: 1 },
   content: { flex: 1, padding: 20 },
   title: { fontFamily: 'Fraunces_700Bold', fontSize: 22, color: palette.coffee, marginBottom: 8 },
   field: { marginTop: 12 },
