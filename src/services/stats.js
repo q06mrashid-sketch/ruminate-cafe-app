@@ -27,27 +27,44 @@ export async function getMyStats() {
       supabase.functions.invoke('me-stats', { body: {} })
     ]);
 
-    if (error) {
-      const result = {
-        freebiesLeft: (profile?.free_drinks ?? 0),
-        dividendsPending: 0,
-        loyaltyStamps: 0,
-        payItForwardContrib: 0,
-        communityContrib: 0,
-        discountCredits: profile?.discount_credits ?? 0,
-      };
-      globalThis.freebiesLeft = result.freebiesLeft;
-      globalThis.loyaltyStamps = result.loyaltyStamps;
-      return result;
+    let freebiesLeft = profile?.free_drinks ?? 0;
+    let dividendsPending = 0;
+    let loyaltyStamps = 0;
+    let payItForwardContrib = 0;
+    let communityContrib = 0;
+    const discountCredits = profile?.discount_credits ?? 0;
+
+    if (!error && data) {
+      freebiesLeft += data.freebiesLeft ?? 0;
+      dividendsPending = data.dividendsPending ?? 0;
+      loyaltyStamps = data.loyaltyStamps ?? data.discountUses ?? 0;
+      payItForwardContrib = data.payItForwardContrib ?? 0;
+      communityContrib = data.communityContrib ?? 0;
+    } else {
+      try {
+        const [{ count: voucherCount }, { data: stampRows }] = await Promise.all([
+          supabase
+            .from('drink_vouchers')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', session.user.id)
+            .eq('redeemed', false),
+          supabase
+            .from('loyalty_stamps')
+            .select('stamps')
+            .eq('user_id', session.user.id)
+        ]);
+        freebiesLeft += voucherCount ?? 0;
+        loyaltyStamps = (stampRows ?? []).reduce((sum, r) => sum + (r.stamps || 0), 0);
+      } catch {}
     }
 
     const result = {
-      freebiesLeft: (data?.freebiesLeft ?? 0) + (profile?.free_drinks ?? 0),
-      dividendsPending: data?.dividendsPending ?? 0,
-      loyaltyStamps: data?.loyaltyStamps ?? data?.discountUses ?? 0,
-      payItForwardContrib: data?.payItForwardContrib ?? 0,
-      communityContrib: data?.communityContrib ?? 0,
-      discountCredits: profile?.discount_credits ?? 0,
+      freebiesLeft,
+      dividendsPending,
+      loyaltyStamps,
+      payItForwardContrib,
+      communityContrib,
+      discountCredits,
     };
     globalThis.freebiesLeft = result.freebiesLeft;
     globalThis.loyaltyStamps = result.loyaltyStamps;
