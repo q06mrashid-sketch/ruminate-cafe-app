@@ -222,7 +222,6 @@ export default function HomeScreen({ navigation }) {
             </View>
           ) : (
             <View style={styles.igPolaroid}>
-              {/* Fallback to app icon when no Instagram image is available */}
               <Image
                 source={require('../../assets/icon.png')}
                 style={styles.igImage}

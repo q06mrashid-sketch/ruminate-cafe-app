@@ -64,7 +64,7 @@ export default function MembershipStartScreen() {
 }
 
 const styles = StyleSheet.create({
-  container:{ flex:1, backgroundColor:'#F8EBDD' },
+  container:{ flex:1 },
   content:{ padding:16, paddingBottom:28 },
   card:{ backgroundColor:'#FFF5EA', borderColor:'#E7D6C3', borderWidth:1, borderRadius:14, padding:16 },
   title:{ fontFamily:'Fraunces_700Bold', fontSize:20, color:palette.coffee },
