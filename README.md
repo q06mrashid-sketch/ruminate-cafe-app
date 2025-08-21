@@ -13,5 +13,3 @@ Other Supabase-related variables are also required; see `.env.example` for defau
 ## Reward utilities
 
 Run `node scripts/grant-rewards.js <email> <freeDrinks> <loyaltyStamps>` with `SUPABASE_SERVICE_ROLE_KEY` set to grant free drinks and loyalty stamps.
-
-Run `node scripts/reset-rewards.js <email>` with `SUPABASE_SERVICE_ROLE_KEY` to remove all free drinks and loyalty stamps for the given user.
