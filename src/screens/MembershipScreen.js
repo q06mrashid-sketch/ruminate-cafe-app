@@ -6,6 +6,7 @@ import * as FileSystem from 'expo-file-system';
 import membershipPassBase64 from '../../assets/membershipPassBase64';
 import { useFocusEffect } from '@react-navigation/native';
 import QRCode from 'react-native-qrcode-svg';
+import PagerView from 'react-native-pager-view';
 import { palette } from '../design/theme';
 import { supabase } from '../lib/supabase';
 import { getMembershipSummary } from '../services/membership';
@@ -30,6 +31,7 @@ export default function MembershipScreen({ navigation }) {
   const [summary, setSummary] = useState({ signedIn:false, tier:'free', status:'none', next_billing_at:null });
   const [pifSelfCents,setPifSelfCents]=useState(0);
   const [stats, setStats] = useState({ freebiesLeft:3, dividendsPending:0, loyaltyStamps:0, payItForwardContrib:0, communityContrib:0 });
+  const [vouchers, setVouchers] = useState([]);
   const [user, setUser] = useState(null);
 
   const refresh = useCallback(async () => {
@@ -46,6 +48,29 @@ export default function MembershipScreen({ navigation }) {
   useFocusEffect(useCallback(() => { let on = true; (async()=>{ if(on) await refresh(); })(); return () => { on = false; }; }, [refresh]));
 
   const payload = user ? `ruminate:${user.id}` : 'ruminate:member';
+
+  useEffect(() => {
+    setVouchers(v => {
+      if (v.length < stats.freebiesLeft) {
+        const needed = stats.freebiesLeft - v.length;
+        return [
+          ...v,
+          ...Array.from({ length: needed }, () =>
+            crypto?.randomUUID?.() || Math.random().toString(36).slice(2, 10)
+          ),
+        ];
+      }
+      if (v.length > stats.freebiesLeft) {
+        return v.slice(0, stats.freebiesLeft);
+      }
+      return v;
+    });
+  }, [stats.freebiesLeft]);
+
+  const handleRedeemVoucher = useCallback((idx) => {
+    setVouchers(v => v.filter((_, i) => i !== idx));
+    setStats(s => ({ ...s, freebiesLeft: Math.max(0, s.freebiesLeft - 1) }));
+  }, []);
 
   useEffect(()=>{ 
     let m=true; 
@@ -92,7 +117,18 @@ export default function MembershipScreen({ navigation }) {
             <View style={styles.card}>
               <Text style={styles.cardTitle}>Your QR</Text>
               <View style={styles.qrWrap}>
-                <QRCode value={payload} size={180} />
+                <PagerView style={styles.pager} initialPage={0}>
+                  {[payload, ...vouchers].map((code, idx) => (
+                    <View style={styles.qrPage} key={code}>
+                      <QRCode value={code} size={180} />
+                      {idx > 0 && (
+                        <Pressable style={styles.redeemBtn} onPress={() => handleRedeemVoucher(idx - 1)}>
+                          <Text style={styles.redeemText}>Redeemed</Text>
+                        </Pressable>
+                      )}
+                    </View>
+                  ))}
+                </PagerView>
               </View>
               <Text style={styles.mutedSmall}>Show at the counter to redeem perks and stamps.</Text>
               <View style={{ marginTop: 12 }}>
@@ -107,7 +143,7 @@ export default function MembershipScreen({ navigation }) {
             )}
 
             <View style={{ marginTop: 14 }}>
-              <LoyaltyStampTile count={stats.loyaltyStamps} onRedeem={() => {}} />
+              <LoyaltyStampTile count={stats.loyaltyStamps} />
             </View>
 
             {summary.tier === 'paid' ? (
@@ -211,7 +247,11 @@ const styles = StyleSheet.create({
   statValue:{ fontSize:28, color:palette.clay, fontFamily:'Fraunces_700Bold' },
   statLabel:{ marginTop:6, color:palette.coffee, fontFamily:'Fraunces_600SemiBold' },
   notice:{ backgroundColor:palette.paper, borderColor:palette.border, borderWidth:1, borderRadius:10, padding:10, marginTop:12, textAlign:'center', color:palette.clay, fontFamily:'Fraunces_700Bold' },
-  qrWrap:{ alignItems:'center', justifyContent:'center', paddingVertical:12 },
+  qrWrap:{ alignItems:'center', justifyContent:'center', paddingVertical:12, height:210 },
+  pager:{ flex:1, width:'100%' },
+  qrPage:{ alignItems:'center', justifyContent:'center' },
+  redeemBtn:{ marginTop:12, backgroundColor:palette.clay, borderRadius:8, paddingVertical:6, paddingHorizontal:12 },
+  redeemText:{ color:'#fff', fontFamily:'Fraunces_700Bold' },
   cta:{ borderRadius:14, paddingVertical:14, alignItems:'center', justifyContent:'center' },
   ctaPrimary:{ backgroundColor: palette.clay, borderColor: palette.border, borderWidth: 1 },
   ctaPrimaryText:{ color:'#fff', fontFamily:'Fraunces_700Bold', fontSize:16 },

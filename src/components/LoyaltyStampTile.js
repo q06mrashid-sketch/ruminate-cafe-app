@@ -1,10 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { palette } from '../design/theme';
 
-export default function LoyaltyStampTile({ count = 0, onRedeem }) {
-  const beans = Array.from({ length: 8 }, (_, i) => i < count);
+export default function LoyaltyStampTile({ count = 0 }) {
+  const beans = Array.from({ length: 8 }, (_, i) => i < (count % 8));
   const canRedeem = count >= 8;
   const Bean = ({ filled }) => (
     <Svg width={24} height={24} viewBox="0 0 24 24" style={styles.bean}>
@@ -52,11 +52,6 @@ export default function LoyaltyStampTile({ count = 0, onRedeem }) {
           />
         </Svg>
       </View>
-      {canRedeem && (
-        <Pressable style={styles.redeemBtn} onPress={onRedeem}>
-          <Text style={styles.redeemText}>Use free drink!</Text>
-        </Pressable>
-      )}
     </View>
   );
 }
@@ -82,15 +77,4 @@ const styles = StyleSheet.create({
   beansRow: { flexDirection: 'row' },
   bean: { width: 24, height: 24, margin: 4 },
   bigBean: { marginLeft: 12 },
-  redeemBtn: {
-    marginTop: 12,
-    backgroundColor: palette.clay,
-    borderRadius: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-  },
-  redeemText: {
-    color: '#fff',
-    fontFamily: 'Fraunces_700Bold',
-  },
 });
