@@ -14,6 +14,7 @@ import { getMyStats } from '../services/stats';
 import GlowingGlassButton from '../components/GlowingGlassButton';
 import { getPIFByEmail } from '../services/pif';
 import { createReferral } from '../services/referral';
+import { syncVouchers } from '../services/vouchers';
 import 'react-native-get-random-values';
 import FreeDrinksCounter from '../components/FreeDrinksCounter';
 import LoyaltyStampTile from '../components/LoyaltyStampTile';
@@ -256,9 +257,9 @@ export default function MembershipScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-container: { flex: 1, backgroundColor: 'transparent' },
-header: {
-    backgroundColor: 'transparent',
+  container: { flex: 1, backgroundColor: 'transparent' },
+  header: {
+    backgroundColor: palette.cream,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,

@@ -80,18 +80,19 @@ export default function CommunityScreen() {
 }
 
 const styles = StyleSheet.create({
-safe: { flex: 1, backgroundColor: 'transparent' },
-header: {
-  backgroundColor: 'transparent',
-  alignItems: 'center',
-  justifyContent: 'center',
-  paddingVertical: 12,
-  shadowColor: '#000',
-  shadowOpacity: 0.15,
-  shadowOffset: { width: 0, height: 2 },
-  shadowRadius: 4,
-  elevation: 4,
-},
+  safe: { flex:1, backgroundColor: 'transparent' },
+  header: {
+    backgroundColor: palette.cream,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 4,
+  },
+
   headerTitle: { fontSize: 20, color: '#3E2723', fontFamily: 'Fraunces_700Bold' },
   container: { padding: 16, paddingBottom: 120 },
   card: { backgroundColor: palette.paper, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: palette.border, marginBottom: 12 },
