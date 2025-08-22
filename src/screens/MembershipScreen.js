@@ -61,7 +61,7 @@ export default function MembershipScreen({ navigation }) {
             setVouchers(qrs.vouchers || []);
             setStats((st) => {
               const voucherCount = qrs.vouchers ? qrs.vouchers.length : 0;
-              const updated = { ...st, freebiesLeft: Math.max(st.freebiesLeft, voucherCount) };
+              const updated = { ...st, freebiesLeft: voucherCount };
               globalThis.freebiesLeft = updated.freebiesLeft;
               return updated;
             });
@@ -129,12 +129,12 @@ export default function MembershipScreen({ navigation }) {
       setRedeemedAlertShown(true);
       Alert.alert('Free drink earned', 'A free drink voucher has been added to your account.');
       setStats(st => {
-        const updated = { ...st, freebiesLeft: st.freebiesLeft + 1 };
+        const updated = { ...st, freebiesLeft: st.freebiesLeft + 1, loyaltyStamps: 0 };
         globalThis.freebiesLeft = updated.freebiesLeft;
+        globalThis.loyaltyStamps = updated.loyaltyStamps;
         return updated;
       });
       setNotice("You've earned a free drink!");
-
       timeoutId = setTimeout(() => setNotice(''), 4000);
       (async () => {
         try { await redeemLoyaltyReward(); } catch {}
@@ -145,6 +145,10 @@ export default function MembershipScreen({ navigation }) {
     }
     return () => clearTimeout(timeoutId);
   }, [stats.loyaltyStamps, redeemedAlertShown, refresh]);
+
+  useEffect(() => {
+    if (stats.freebiesLeft === 0) setNotice('');
+  }, [stats.freebiesLeft]);
 
   const handleAddToWallet = useCallback(async () => {
     try {
@@ -163,7 +167,7 @@ export default function MembershipScreen({ navigation }) {
       <View style={[styles.header, { paddingTop: insets.top }]}><Text style={styles.headerTitle}>Membership</Text></View>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Membership</Text>
-        {notice ? <Text style={styles.notice}>{notice}</Text> : null}
+        {notice && stats.freebiesLeft > 0 ? <Text style={styles.notice}>{notice}</Text> : null}
 
         {summary.signedIn ? (
           <>
