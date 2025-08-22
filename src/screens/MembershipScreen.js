@@ -134,6 +134,7 @@ export default function MembershipScreen({ navigation }) {
         return updated;
       });
       setNotice("You've earned a free drink!");
+
       timeoutId = setTimeout(() => setNotice(''), 4000);
       (async () => {
         try { await redeemLoyaltyReward(); } catch {}
