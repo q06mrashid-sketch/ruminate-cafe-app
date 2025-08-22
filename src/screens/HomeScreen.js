@@ -11,7 +11,7 @@ import FreeDrinksCounter from '../components/FreeDrinksCounter';
 import { supabase } from '../lib/supabase';
 import { getMembershipSummary } from '../services/membership';
 import { getFundCurrent, getFundProgress } from '../services/community';
-import { getToday, getWeeklyHours, getLatestInstagramPost, openInstagramUrl } from '../services/homeData';
+import { getToday, getPayItForward, openInstagramProfile, getWeeklyHours, getLatestInstagramPost } from '../services/homeData';
 import { getMyStats } from '../services/stats';
 import { getCMS } from '../services/cms';
 import logo from '../../assets/logo.png';
@@ -52,7 +52,6 @@ export default function HomeScreen({ navigation }) {
     getWeeklyHours().then(setWeekHours).catch(() => setWeekHours([]));
     if (globalThis.freebiesLeft !== undefined) setFreebiesLeft(globalThis.freebiesLeft);
     if (globalThis.loyaltyStamps !== undefined) setLoyalty({ current: globalThis.loyaltyStamps, target: 8 });
-
     let mounted = true;
     (async () => {
       try { const m = await getMembershipSummary(); if (mounted && m) setMember(prev => ({ ...prev, ...m })); } catch {}
