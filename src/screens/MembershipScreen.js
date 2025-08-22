@@ -123,7 +123,8 @@ export default function MembershipScreen({ navigation }) {
 
   const [notice, setNotice] = useState('');
   const [redeemedAlertShown, setRedeemedAlertShown] = useState(false);
-  useEffect(() => 
+  useEffect(() => {
+    let timeoutId;
     if (stats.loyaltyStamps >= 8 && !redeemedAlertShown) {
       setRedeemedAlertShown(true);
       Alert.alert('Free drink earned', 'A free drink voucher has been added to your account.');
@@ -133,16 +134,16 @@ export default function MembershipScreen({ navigation }) {
         return updated;
       });
       setNotice("You've earned a free drink!");
-      const t = setTimeout(() => setNotice(''), 4000);
+
+      timeoutId = setTimeout(() => setNotice(''), 4000);
       (async () => {
         try { await redeemLoyaltyReward(); } catch {}
         try { await refresh(); } catch {}
       })();
-      return () => clearTimeout(t);
     } else if (stats.loyaltyStamps < 8 && redeemedAlertShown) {
       setRedeemedAlertShown(false);
     }
-
+    return () => clearTimeout(timeoutId);
   }, [stats.loyaltyStamps, redeemedAlertShown, refresh]);
 
   const handleAddToWallet = useCallback(async () => {
