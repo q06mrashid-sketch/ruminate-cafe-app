@@ -62,8 +62,12 @@ export default function HomeScreen({ navigation }) {
       try {
         const stats = await getMyStats();
         if (mounted) {
-          setFreebiesLeft(stats.freebiesLeft || 0);
-          setLoyalty({ current: stats.loyaltyStamps || 0, target: 8 });
+          const freebies = stats.freebiesLeft || 0;
+          const stamps = stats.loyaltyStamps || 0;
+          setFreebiesLeft(freebies);
+          setLoyalty({ current: stamps, target: 8 });
+          globalThis.freebiesLeft = freebies;
+          globalThis.loyaltyStamps = stamps;
         }
       } catch {}
       try { const ig = await getLatestInstagramPost(); if (mounted) setIgPost(ig); } catch {}

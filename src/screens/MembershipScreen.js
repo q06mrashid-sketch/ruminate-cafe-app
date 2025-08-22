@@ -94,12 +94,6 @@ export default function MembershipScreen({ navigation }) {
   const [notice, setNotice] = useState('');
   useEffect(() => {
     if (stats.loyaltyStamps >= 8) {
-      setStats(s => {
-        const updated = { ...s, loyaltyStamps: s.loyaltyStamps - 8, freebiesLeft: s.freebiesLeft + 1 };
-        globalThis.freebiesLeft = updated.freebiesLeft;
-        globalThis.loyaltyStamps = updated.loyaltyStamps;
-        return updated;
-      });
       setNotice("You've earned a free drink!");
       const t = setTimeout(() => setNotice(''), 4000);
       return () => clearTimeout(t);
@@ -175,7 +169,7 @@ export default function MembershipScreen({ navigation }) {
               </View>
             )}
 
-            {summary.tier === 'paid' && (
+            {(summary.tier === 'paid' || stats.freebiesLeft > 0) && (
               <View style={{ marginTop: 14 }}>
                 <FreeDrinksCounter count={stats.freebiesLeft} />
               </View>
