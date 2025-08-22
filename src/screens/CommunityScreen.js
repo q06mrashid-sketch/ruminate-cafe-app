@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { palette } from '../design/theme';
 import { getFundProgress, getFundHistory } from '../services/community';
 
 export default function CommunityScreen() {
+  const insets = useSafeAreaInsets();
   const [progress, setProgress] = useState({ total_cents: 0, goal_cents: 0, progress: 0 });
   const [history, setHistory] = useState([]);
 
@@ -16,7 +17,8 @@ export default function CommunityScreen() {
   const pct = Math.round((progress.progress || 0) * 100);
 
   return (
-    <SafeAreaView style={{ flex:1 }} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={['left','right']}>
+      <View style={[styles.header, { paddingTop: insets.top }]}><Text style={styles.headerTitle}>Community</Text></View>
       <ScrollView style={{ flex:1, backgroundColor:'transparent' }} contentContainerStyle={styles.container}>
       <View style={styles.card}>
         <Text style={styles.title}>What is the Community Fund?</Text>
@@ -78,7 +80,21 @@ export default function CommunityScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16 },
+  safe: { flex:1, backgroundColor: 'transparent' },
+  header: {
+    backgroundColor: palette.cream,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 4,
+  },
+
+  headerTitle: { fontSize: 20, color: '#3E2723', fontFamily: 'Fraunces_700Bold' },
+  container: { padding: 16, paddingBottom: 120 },
   card: { backgroundColor: palette.paper, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: palette.border, marginBottom: 12 },
   title: { fontSize: 18, marginBottom: 6, color: '#3e2f2b', fontFamily: 'Fraunces_700Bold' },
   body: { fontSize: 15, lineHeight: 22, color: '#6b5a54', fontFamily: 'Fraunces_600SemiBold' },

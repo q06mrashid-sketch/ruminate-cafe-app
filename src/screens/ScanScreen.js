@@ -37,10 +37,17 @@ async function loadScanner() {
             onBarCodeScanned={async ({ type, data })=>{
               const prefix='ruminate:';
               if(!data.startsWith(prefix)) return;
-              const member_uuid=data.slice(prefix.length);
+              const content=data.slice(prefix.length);
               try {
-                const { data: res } = await supabase.functions.invoke('member-lookup',{ body:{ member_uuid } });
-                setInfo(res);
+                if(content.startsWith('member:')){
+                  const member_uuid=content.slice('member:'.length);
+                  const { data: res } = await supabase.functions.invoke('member-lookup',{ body:{ member_uuid } });
+                  setInfo(res);
+                } else if(content.startsWith('voucher:')){
+                  const voucher_code=content.slice('voucher:'.length);
+                  const { data: res } = await supabase.functions.invoke('member-lookup',{ body:{ voucher_code } });
+                  setInfo(res);
+                }
               } catch(err){ console.log('lookup failed', err); }
             }}
           />

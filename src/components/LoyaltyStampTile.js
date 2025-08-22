@@ -4,7 +4,8 @@ import Svg, { Path } from 'react-native-svg';
 import { palette } from '../design/theme';
 
 export default function LoyaltyStampTile({ count = 0 }) {
-  const beans = Array.from({ length: 8 }, (_, i) => i < (count % 8));
+  const filled = Math.max(0, Math.floor(count % 8));
+  const beans = Array.from({ length: 8 }, (_, i) => i < filled);
   const canRedeem = count >= 8;
   const Bean = ({ filled }) => (
     <Svg width={24} height={24} viewBox="0 0 24 24" style={styles.bean}>
@@ -25,6 +26,7 @@ export default function LoyaltyStampTile({ count = 0 }) {
   return (
     <View style={styles.tile}>
       <Text style={styles.title}>Loyalty</Text>
+      <Text style={styles.desc}>Purchase 8 hot drinks and receive a free drink voucher!</Text>
       <View style={styles.beansSection}>
         <View style={styles.beansGrid}>
           <View style={styles.beansRow}>
@@ -70,6 +72,12 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: 'Fraunces_700Bold',
     color: palette.coffee,
+    marginBottom: 8,
+  },
+  desc: {
+    fontFamily: 'Fraunces_600SemiBold',
+    color: palette.coffee,
+    textAlign: 'center',
     marginBottom: 8,
   },
   beansSection: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },

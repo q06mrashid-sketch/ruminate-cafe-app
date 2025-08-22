@@ -8,7 +8,9 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "mock": "node generatePasses.js && expo start"
+    "mock": "node generatePasses.js && expo start",
+    "grant-rewards": "node scripts/grant-rewards.js",
+    "reset-rewards": "node scripts/reset-rewards.js"
   },
   "dependencies": {
     "@expo-google-fonts/fraunces": "^0.4.0",

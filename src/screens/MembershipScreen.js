@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScrollView, View, Text, StyleSheet, Share, Pressable } from 'react-native';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 import membershipPassBase64 from '../../assets/membershipPassBase64';
 import { useFocusEffect } from '@react-navigation/native';
 import QRCode from 'react-native-qrcode-svg';
+import PagerView from 'react-native-pager-view';
 import { palette } from '../design/theme';
 import { supabase } from '../lib/supabase';
 import { getMembershipSummary } from '../services/membership';
@@ -13,9 +14,11 @@ import { getMyStats } from '../services/stats';
 import GlowingGlassButton from '../components/GlowingGlassButton';
 import { getPIFByEmail } from '../services/pif';
 import { createReferral } from '../services/referral';
+import { syncVouchers } from '../services/vouchers';
 import 'react-native-get-random-values';
 import FreeDrinksCounter from '../components/FreeDrinksCounter';
 import LoyaltyStampTile from '../components/LoyaltyStampTile';
+import { getMemberQRCodes } from '../services/qr';
 
 function Stat({ label, value, prefix = '', suffix = '', style }) {
   return (
@@ -27,13 +30,14 @@ function Stat({ label, value, prefix = '', suffix = '', style }) {
 }
 
 export default function MembershipScreen({ navigation }) {
-  const [summary, setSummary] = useState({ signedIn:false, tier:'free', status:'none', next_billing_at:null });
-  const [pifSelfCents,setPifSelfCents]=useState(0);
-  const [stats, setStats] = useState({ freebiesLeft:3, dividendsPending:0, loyaltyStamps:0, payItForwardContrib:0, communityContrib:0 });
+  const insets = useSafeAreaInsets();
+  const [summary, setSummary] = useState({ signedIn: false, tier: 'free', status: 'none', next_billing_at: null });
+  const [pifSelfCents, setPifSelfCents] = useState(0);
+  const [stats, setStats] = useState({ freebiesLeft: 0, dividendsPending: 0, loyaltyStamps: 0, payItForwardContrib: 0, communityContrib: 0 });
   const [vouchers, setVouchers] = useState([]);
   const [page, setPage] = useState(0);
-  const [carouselWidth, setCarouselWidth] = useState(0);
   const [user, setUser] = useState(null);
+  const [payload, setPayload] = useState('ruminate:member');
 
   const refresh = useCallback(async () => {
     try { const m = await getMembershipSummary(); if (m) setSummary(m); } catch {}
@@ -42,13 +46,34 @@ export default function MembershipScreen({ navigation }) {
       setStats(s);
       globalThis.freebiesLeft = s.freebiesLeft;
       globalThis.loyaltyStamps = s.loyaltyStamps;
+      await syncVouchers(s.freebiesLeft);
     } catch {}
     if (supabase) {
-      try { const u = await supabase.auth.getUser(); setUser(u?.data?.user || null); } catch {}
+      try {
+        const u = await supabase.auth.getUser();
+        const usr = u?.data?.user || null;
+        setUser(usr);
+        if (usr) {
+          try {
+            const qrs = await getMemberQRCodes(usr.id);
+            setPayload(qrs.payload);
+            setVouchers(qrs.vouchers || []);
+            setStats((st) => {
+              const updated = { ...st, freebiesLeft: qrs.vouchers ? qrs.vouchers.length : st.freebiesLeft };
+              globalThis.freebiesLeft = updated.freebiesLeft;
+              return updated;
+            });
+          } catch {}
+        } else {
+          setPayload('ruminate:member');
+          setVouchers([]);
+        }
+      } catch {}
     } else {
-      try { setUser(null); } catch {}
+      try { setUser(null); setPayload('ruminate:member'); setVouchers([]); } catch {}
     }
   }, []);
+
 
   useEffect(() => {
     setStats(prev => ({
@@ -85,15 +110,15 @@ export default function MembershipScreen({ navigation }) {
     let m=true; 
     const email=(typeof user!=='undefined'&&user&&user.email)
       ? user.email
-      : (summary&&summary.user&&summary.user.email)
+      : (summary && summary.user && summary.user.email)
       ? summary.user.email
-      : (globalThis&&globalThis.auth&&globalThis.auth.user&&globalThis.auth.user.email)
+      : (globalThis && globalThis.auth && globalThis.auth.user && globalThis.auth.user.email)
       ? globalThis.auth.user.email
       : null; 
-    if(!email){ setPifSelfCents(0); return; } 
-    getPIFByEmail(email).then(r=>{ if(m) setPifSelfCents(Number(r.total_cents)||0); }).catch(()=>{ if(m) setPifSelfCents(0); }); 
-    return ()=>{ m=false }; 
-  },[user,summary]);
+    if (!email) { setPifSelfCents(0); return; } 
+    getPIFByEmail(email).then(r => { if (m) setPifSelfCents(Number(r.total_cents) || 0); }).catch(() => { if (m) setPifSelfCents(0); }); 
+    return () => { m = false }; 
+  }, [user, summary]);
 
   const [notice, setNotice] = useState('');
   useEffect(() => {
@@ -120,16 +145,31 @@ export default function MembershipScreen({ navigation }) {
     }
   }, []);
 
+  const showCarousel = vouchers.length > 0;
   const totalPages = 1 + vouchers.length;
+  const memberCard = (
+    <View key="member" style={[styles.card, styles.qrCard]}>
+      <Text style={styles.cardTitle}>Your Loyalty QR</Text>
+      <View style={styles.qrWrap}>
+        <QRCode value={payload} size={180} />
+      </View>
+      <Text style={styles.mutedSmall}>Scan your QR code at the counter to receive a stamp on your loyalty card!</Text>
+      <View style={{ marginTop: 12 }}>
+        <GlowingGlassButton text="Add to Wallet" variant="dark" onPress={handleAddToWallet} />
+      </View>
+    </View>
+  );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['left','right']}>
+      <View style={[styles.header, { paddingTop: insets.top }]}><Text style={styles.headerTitle}>Membership</Text></View>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Membership</Text>
         {notice ? <Text style={styles.notice}>{notice}</Text> : null}
 
         {summary.signedIn ? (
           <>
+
             <View style={{ marginTop: 14 }} onLayout={(e) => setCarouselWidth(e.nativeEvent.layout.width)}>
               <ScrollView
                 horizontal
@@ -191,11 +231,11 @@ export default function MembershipScreen({ navigation }) {
             {summary.tier === 'paid' ? (
               <View style={styles.gridRow}>
                 <Stat label="Dividends pending" value={Number(stats.dividendsPending).toFixed(2)} prefix="£" />
-                <Stat label="Pay-it-forward" value={(pifSelfCents/100).toFixed(2)} prefix="£" />
+                <Stat label="Pay-it-forward" value={(pifSelfCents / 100).toFixed(2)} prefix="£" />
               </View>
             ) : (
               <View style={{ marginTop: 14 }}>
-                <Stat label="Pay-it-forward" value={(pifSelfCents/100).toFixed(2)} prefix="£" style={{ marginRight: 0 }} />
+                <Stat label="Pay-it-forward" value={(pifSelfCents / 100).toFixed(2)} prefix="£" style={{ marginRight: 0 }} />
               </View>
             )}
 
@@ -275,33 +315,47 @@ export default function MembershipScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container:{ flex:1 },
-  content:{ padding:16, paddingBottom:28 },
-  title:{ fontSize:24, color:palette.coffee, fontFamily:'Fraunces_700Bold' },
-  mutedSmall:{ fontSize:13, color:palette.coffee, opacity:0.8 },
-  referralText:{ fontSize:20, color:palette.clay, fontFamily:'Fraunces_700Bold', textAlign:'center', marginVertical:4 },
-  card:{ backgroundColor:palette.paper, borderColor:palette.border, borderWidth:1, borderRadius:14, padding:16, marginTop:14 },
-  cardTitle:{ fontSize:18, color:palette.coffee, fontFamily:'Fraunces_700Bold', marginBottom:10 },
-  perk:{ color:palette.coffee, lineHeight:22, marginTop:6, fontFamily:'Fraunces_600SemiBold' },
-  infoCard:{ backgroundColor:palette.paper, borderColor:palette.border, borderWidth:1, borderRadius:14, padding:16, marginTop:14 },
-  gridRow:{ flexDirection:'row', marginTop:14 },
-  statBox:{ flex:1, backgroundColor:palette.paper, borderColor:palette.border, borderWidth:1, borderRadius:14, paddingVertical:16, paddingHorizontal:12, marginRight:12 },
-  statValue:{ fontSize:28, color:palette.clay, fontFamily:'Fraunces_700Bold' },
-  statLabel:{ marginTop:6, color:palette.coffee, fontFamily:'Fraunces_600SemiBold' },
-  notice:{ backgroundColor:palette.paper, borderColor:palette.border, borderWidth:1, borderRadius:10, padding:10, marginTop:12, textAlign:'center', color:palette.clay, fontFamily:'Fraunces_700Bold' },
-  qrWrap:{ alignItems:'center', justifyContent:'center', paddingVertical:12, height:300 },
-  carousel:{ height:440, width:'100%' },
-  qrCard:{ marginTop:0, flex:1 },
-  voucherCard:{ backgroundColor:palette.coffee, borderColor:palette.coffee },
-  voucherTitle:{ color:palette.paper },
-  voucherText:{ color:palette.paper, textAlign:'center' },
-  swipePrompt:{ textAlign:'center', color:palette.coffee, marginTop:8, fontFamily:'Fraunces_600SemiBold' },
-  dots:{ flexDirection:'row', justifyContent:'center', marginTop:4 },
-  dot:{ width:8, height:8, borderRadius:4, backgroundColor:palette.border, marginHorizontal:3 },
-  dotActive:{ backgroundColor:palette.coffee },
-  cta:{ borderRadius:14, paddingVertical:14, alignItems:'center', justifyContent:'center' },
-  ctaPrimary:{ backgroundColor: palette.clay, borderColor: palette.border, borderWidth: 1 },
-  ctaPrimaryText:{ color:'#fff', fontFamily:'Fraunces_700Bold', fontSize:16 },
-  ctaSecondary:{ backgroundColor: palette.paper, borderColor: palette.border, borderWidth: 1 },
-  ctaSecondaryText:{ color: palette.coffee, fontFamily:'Fraunces_700Bold', fontSize:16 },
+  container: { flex: 1, backgroundColor: 'transparent' },
+  header: {
+    backgroundColor: palette.cream,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  headerTitle: { fontSize: 20, color: '#3E2723', fontFamily: 'Fraunces_700Bold' },
+  content: { padding: 16, paddingBottom: 120 },
+  title: { fontSize: 24, color: palette.coffee, fontFamily: 'Fraunces_700Bold' },
+  mutedSmall: { fontSize: 13, color: palette.coffee, opacity: 0.8 },
+  referralText: { fontSize: 20, color: palette.clay, fontFamily: 'Fraunces_700Bold', textAlign: 'center', marginVertical: 4 },
+  card: { backgroundColor: palette.paper, borderColor: palette.border, borderWidth: 1, borderRadius: 14, padding: 16, marginTop: 14 },
+  cardTitle: { fontSize: 18, color: palette.coffee, fontFamily: 'Fraunces_700Bold', marginBottom: 10 },
+  perk: { color: palette.coffee, lineHeight: 22, marginTop: 6, fontFamily: 'Fraunces_600SemiBold' },
+  infoCard: { backgroundColor: palette.paper, borderColor: palette.border, borderWidth: 1, borderRadius: 14, padding: 16, marginTop: 14 },
+  gridRow: { flexDirection: 'row', marginTop: 14 },
+  statBox: { flex: 1, backgroundColor: palette.paper, borderColor: palette.border, borderWidth: 1, borderRadius: 14, paddingVertical: 16, paddingHorizontal: 12, marginRight: 12 },
+  statValue: { fontSize: 28, color: palette.clay, fontFamily: 'Fraunces_700Bold' },
+  statLabel: { marginTop: 6, color: palette.coffee, fontFamily: 'Fraunces_600SemiBold' },
+  notice: { backgroundColor: palette.paper, borderColor: palette.border, borderWidth: 1, borderRadius: 10, padding: 10, marginTop: 12, textAlign: 'center', color: palette.clay, fontFamily: 'Fraunces_700Bold' },
+
+  qrWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: 12, height: 260 },
+  carousel: { height: 420, width: '100%' },
+  qrCard: { marginTop: 0, flex: 1 },
+  voucherCard: { backgroundColor: palette.coffee, borderColor: palette.coffee },
+  voucherTitle: { color: palette.cream },
+  voucherText: { color: palette.cream, textAlign: 'center' },
+  swipePrompt: { textAlign: 'center', color: palette.coffee, marginTop: 8, fontFamily: 'Fraunces_600SemiBold' },
+  dots: { flexDirection: 'row', justifyContent: 'center', marginTop: 4 },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: palette.border, marginHorizontal: 3 },
+  dotActive: { backgroundColor: palette.coffee },
+
+  cta: { borderRadius: 14, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
+  ctaPrimary: { backgroundColor: palette.clay, borderColor: palette.border, borderWidth: 1 },
+  ctaPrimaryText: { color: '#fff', fontFamily: 'Fraunces_700Bold', fontSize: 16 },
+  ctaSecondary: { backgroundColor: palette.paper, borderColor: palette.border, borderWidth: 1 },
+  ctaSecondaryText: { color: palette.coffee, fontFamily: 'Fraunces_700Bold', fontSize: 16 },
 });

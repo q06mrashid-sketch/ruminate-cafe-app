@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { getPIFStats } from '../services/pif';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, Animated, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
@@ -14,6 +14,7 @@ import { getFundCurrent, getFundProgress } from '../services/community';
 import { getToday, getPayItForward, openInstagramProfile, getWeeklyHours, getLatestInstagramPost } from '../services/homeData';
 import { getMyStats } from '../services/stats';
 import { getCMS } from '../services/cms';
+import logo from '../../assets/logo.png';
 
 function ProgressBar({ value, max, tint = palette.clay, track = '#EED8C4' }) {
   const pct = Math.max(0, Math.min(1, max > 0 ? value / max : 0));
@@ -33,6 +34,7 @@ function Chip({ children }) {
 }
 
 export default function HomeScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const [hoursExpanded, setHoursExpanded] = useState(false);
   const [weekHours, setWeekHours] = useState([]);
   const isFocused = useIsFocused();
@@ -43,7 +45,7 @@ export default function HomeScreen({ navigation }) {
   const [loyalty, setLoyalty] = useState({ current: 0, target: 8 });
   const [freebiesLeft, setFreebiesLeft] = useState(0);
   const [rumiQuote, setRumiQuote] = useState(null);
-  const [igPost, setIgPost] = useState({ image: null, caption: '' });
+  const [igPost, setIgPost] = useState({ image: null, caption: '', url: null });
 
   useEffect(() => {
     getFundProgress().then(setFund).catch(() => setFund({ progress: 0, total_cents: 0, goal_cents: 0 }));
@@ -52,10 +54,7 @@ export default function HomeScreen({ navigation }) {
     if (globalThis.loyaltyStamps !== undefined) setLoyalty({ current: globalThis.loyaltyStamps, target: 8 });
     let mounted = true;
     (async () => {
-      try {
-        const m = await getMembershipSummary();
-        if (mounted && m) setMember(prev => ({ ...prev, ...m }));
-      } catch {}
+      try { const m = await getMembershipSummary(); if (mounted && m) setMember(prev => ({ ...prev, ...m })); } catch {}
       try { const f = await getFundCurrent(); if (mounted && f) setFund(f); } catch {}
       try { const t = await getToday(); if (mounted) setToday(t); } catch {}
       try { const s = await getPIFStats(); if (mounted) setPif(s); } catch {}
@@ -69,15 +68,17 @@ export default function HomeScreen({ navigation }) {
       try { const ig = await getLatestInstagramPost(); if (mounted) setIgPost(ig); } catch {}
       try {
         const cms = await getCMS();
-        if (!cms) return;
-        const s1 = cms['special 1'] || null;
-        const s2 = cms['special 2'] || null;
-        if (s1 || s2) setToday(prev => ({ ...prev, specials: [s1, s2].filter(Boolean) }));
-        if (cms['rumi quote']) setRumiQuote(cms['rumi quote']);
+        if (cms) {
+          const s1 = cms['special 1'] || null;
+          const s2 = cms['special 2'] || null;
+          if (s1 || s2) setToday(prev => ({ ...prev, specials: [s1, s2].filter(Boolean) }));
+          if (cms['rumi quote']) setRumiQuote(cms['rumi quote']);
+        }
       } catch {}
     })();
+
     return () => { mounted = false; };
-  }, [isFocused]);
+  }, [isFocused, member.signedIn]);
 
   useEffect(() => {
     if (!supabase?.auth) {
@@ -86,10 +87,7 @@ export default function HomeScreen({ navigation }) {
     }
     let active = true;
     (async () => {
-      try {
-        const { data } = await supabase.auth.getSession();
-        if (active) setMember(prev => ({ ...prev, signedIn: !!data?.session?.user }));
-      } catch {}
+      try { const { data } = await supabase.auth.getSession(); if (active) setMember(prev => ({ ...prev, signedIn: !!data?.session?.user })); } catch {}
     })();
     const sub = supabase.auth.onAuthStateChange((_event, session) => {
       setMember(prev => ({ ...prev, signedIn: !!session?.user }));
@@ -103,7 +101,7 @@ export default function HomeScreen({ navigation }) {
   const nextBill = member?.next_billing_at ? new Date(member.next_billing_at).toLocaleDateString() : null;
   const signedIn = !!member?.signedIn;
   const membershipLabel = !signedIn ? 'Not signed in' : (member?.tier === 'paid' ? 'Member' : 'Free');
-  const membershipColor = (signedIn && member?.tier === 'paid') ? palette.clay : palette.coffee;
+  const membershipColor = (signedIn && member?.tier === 'paid') ? '#8E4032' : '#3E2723';
 
   const quoteOpacity = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -114,9 +112,9 @@ export default function HomeScreen({ navigation }) {
   }, [signedIn]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <Text style={styles.headerText}>Ruminate Café</Text>
+    <SafeAreaView style={styles.container} edges={['left','right']}>
+      <View style={[styles.header, { paddingTop: insets.top }] }>
+        <Image source={logo} style={styles.logo} />
       </View>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
@@ -142,7 +140,7 @@ export default function HomeScreen({ navigation }) {
                 <LoyaltyStampTile count={loyalty.current} onRedeem={() => {}} />
               </View>
 
-              {member?.tier === 'paid' && (
+              {(member?.tier === 'paid' || freebiesLeft > 0) && (
                 <View style={{ marginTop: 16 }}>
                   <FreeDrinksCounter count={freebiesLeft} />
                 </View>
@@ -199,30 +197,31 @@ export default function HomeScreen({ navigation }) {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Latest on Instagram</Text>
           {igPost?.image ? (
-            <View style={styles.igPolaroid}>
-              <Image
-                source={{ uri: igPost.image }}
-                style={styles.igImage}
-                resizeMode="cover"
-                onError={async () => {
-                  try {
-                    const cached = await AsyncStorage.getItem('latestIgPost');
-                    if (cached) {
-                      const parsed = JSON.parse(cached);
-                      if (parsed?.image && parsed.image !== igPost.image) {
-                        setIgPost(parsed);
-                        return;
+            <Pressable onPress={() => openInstagramUrl(igPost.url)}>
+              <View style={styles.igPolaroid}>
+                <Image
+                  source={{ uri: igPost.image }}
+                  style={styles.igImage}
+                  resizeMode="cover"
+                  onError={async () => {
+                    try {
+                      const cached = await AsyncStorage.getItem('latestIgPost');
+                      if (cached) {
+                        const parsed = JSON.parse(cached);
+                        if (parsed?.image && parsed.image !== igPost.image) {
+                          setIgPost(parsed);
+                          return;
+                        }
                       }
-                    }
-                  } catch {}
-                  setIgPost({ image: null, caption: '' });
-                }}
-              />
-              {igPost?.caption ? <Text style={styles.igCaption}>{igPost.caption}</Text> : null}
-            </View>
+                    } catch {}
+                    setIgPost({ image: null, caption: '', url: null });
+                  }}
+                />
+                {igPost?.caption ? <Text style={styles.igCaption}>{igPost.caption}</Text> : null}
+              </View>
+            </Pressable>
           ) : (
             <View style={styles.igPolaroid}>
-              {/* Fallback to app icon when no Instagram image is available */}
               <Image
                 source={require('../../assets/icon.png')}
                 style={styles.igImage}
@@ -231,7 +230,7 @@ export default function HomeScreen({ navigation }) {
               <Text style={styles.muted}>Unable to load latest post.</Text>
             </View>
           )}
-          <Pressable onPress={openInstagramProfile} style={styles.igButton}>
+          <Pressable onPress={() => openInstagramUrl(igPost?.url)} style={styles.igButton}>
             <Text style={styles.igButtonText}>View on Instagram</Text>
           </Pressable>
         </View>
@@ -255,7 +254,7 @@ export default function HomeScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   gridItemAuto: { flex: 1, justifyContent: 'space-between', position: 'relative' },
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: 'transparent' },
   content: { padding: 16, paddingBottom: 100 },
   hero: { marginBottom: 18 },
   subcopy: { marginTop: 10, color: palette.coffee, lineHeight: 22, fontFamily: 'Fraunces_600SemiBold', textAlign: 'center' },
@@ -282,8 +281,8 @@ const styles = StyleSheet.create({
   igCaption: { marginTop: 8, color: palette.coffee, fontFamily: 'Fraunces_600SemiBold', textAlign: 'center' },
   igButton: { alignSelf: 'center', backgroundColor: palette.coffee, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
   igButtonText: { color: palette.cream, fontFamily: 'Fraunces_600SemiBold', fontSize: 14 },
-  rumiQuoteStandalone: { fontSize: 18, lineHeight: 26, textAlign: 'center', fontStyle: 'italic', color: palette.clay, fontFamily: 'Fraunces_600SemiBold' },
-  rumiAttributionStandalone: { marginTop: 4, fontSize: 14, textAlign: 'center', color: '#6b5a54', fontFamily: 'Fraunces_600SemiBold' },
+  rumiQuoteStandalone: { fontSize: 22, lineHeight: 30, textAlign: 'center', fontStyle: 'italic', color: '#8E4032', fontFamily: 'Fraunces_600SemiBold' },
+  rumiAttributionStandalone: { marginTop: 4, fontSize: 16, textAlign: 'center', color: '#5A3D2E', fontFamily: 'Fraunces_600SemiBold' },
   hoursToggleWrap: { position: 'absolute', bottom: 8, left: 0, right: 0, alignItems: 'center' },
   hoursToggle: { fontFamily: 'Fraunces_700Bold', color: palette.coffee, fontSize: 14 },
   hoursTable: { marginTop: 8, paddingBottom: 28 },
@@ -291,19 +290,15 @@ const styles = StyleSheet.create({
   hoursDay: { fontFamily: 'Fraunces_700Bold', color: palette.coffee, fontSize: 14 },
   hoursTime: { fontFamily: 'Fraunces_600SemiBold', color: '#6b5a54', fontSize: 14 },
   header: {
-    backgroundColor: palette.coffee,
+    backgroundColor: palette.cream,
     alignItems: 'center',
     justifyContent: 'center',
-    height: 100,
+    paddingVertical: 12,
     shadowColor: '#000',
     shadowOpacity: 0.15,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
     elevation: 4,
   },
-  headerText: {
-    color: '#fff',
-    fontFamily: 'Fraunces_700Bold',
-    fontSize: 24,
-  },
+  logo: { width: 80, height: 80, resizeMode: 'contain' },
 });
