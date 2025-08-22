@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScrollView, View, Text, StyleSheet, Share, Pressable, Alert } from 'react-native';
 import * as Sharing from 'expo-sharing';
@@ -122,32 +122,31 @@ export default function MembershipScreen({ navigation }) {
   }, [user, summary]);
 
   const [notice, setNotice] = useState('');
-  const [redeemedAlertShown, setRedeemedAlertShown] = useState(false);
+  const prevFreebies = useRef(globalThis.lastFreebiesLeft ?? stats.freebiesLeft);
+
   useEffect(() => {
-    let timeoutId;
-    if (stats.loyaltyStamps >= 8 && !redeemedAlertShown) {
-      setRedeemedAlertShown(true);
-      Alert.alert('Free drink earned', 'A free drink voucher has been added to your account.');
-      setStats(st => {
-        const updated = { ...st, freebiesLeft: st.freebiesLeft + 1, loyaltyStamps: 0 };
-        globalThis.freebiesLeft = updated.freebiesLeft;
-        globalThis.loyaltyStamps = updated.loyaltyStamps;
-        return updated;
-      });
-      setNotice("You've earned a free drink!");
-      timeoutId = setTimeout(() => setNotice(''), 4000);
+    if (stats.loyaltyStamps >= 8) {
       (async () => {
         try { await redeemLoyaltyReward(); } catch {}
         try { await refresh(); } catch {}
       })();
-    } else if (stats.loyaltyStamps < 8 && redeemedAlertShown) {
-      setRedeemedAlertShown(false);
     }
-    return () => clearTimeout(timeoutId);
-  }, [stats.loyaltyStamps, redeemedAlertShown, refresh]);
+  }, [stats.loyaltyStamps, refresh]);
 
   useEffect(() => {
-    if (stats.freebiesLeft === 0) setNotice('');
+    const prev = prevFreebies.current;
+    const curr = stats.freebiesLeft;
+    if (curr - prev === 1) {
+      Alert.alert('Free drink earned', 'A free drink voucher has been added to your account.');
+      setNotice("You've earned a free drink!");
+      const timeoutId = setTimeout(() => setNotice(''), 4000);
+      prevFreebies.current = curr;
+      globalThis.lastFreebiesLeft = curr;
+      return () => clearTimeout(timeoutId);
+    }
+    prevFreebies.current = curr;
+    globalThis.lastFreebiesLeft = curr;
+    if (curr === 0) setNotice('');
   }, [stats.freebiesLeft]);
 
   const handleAddToWallet = useCallback(async () => {
