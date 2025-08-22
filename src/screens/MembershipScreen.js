@@ -40,6 +40,7 @@ export default function MembershipScreen({ navigation }) {
 
   const refresh = useCallback(async () => {
     try { const m = await getMembershipSummary(); if (m) setSummary(m); } catch {}
+    let codes = [];
     try {
       const s = await getMyStats();
       setStats(s);
@@ -55,7 +56,7 @@ export default function MembershipScreen({ navigation }) {
           try {
             const qrs = await getMemberQRCodes(usr.id);
             setPayload(qrs.payload);
-            setVouchers(qrs.vouchers || []);
+            if (!codes.length) setVouchers(qrs.vouchers || []);
           } catch {}
         } else {
           setPayload('ruminate:member');
