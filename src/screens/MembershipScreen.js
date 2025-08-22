@@ -14,6 +14,7 @@ import { getMyStats } from '../services/stats';
 import GlowingGlassButton from '../components/GlowingGlassButton';
 import { getPIFByEmail } from '../services/pif';
 import { createReferral } from '../services/referral';
+import { syncVouchers } from '../services/vouchers';
 import 'react-native-get-random-values';
 import FreeDrinksCounter from '../components/FreeDrinksCounter';
 import LoyaltyStampTile from '../components/LoyaltyStampTile';
@@ -40,12 +41,12 @@ export default function MembershipScreen({ navigation }) {
 
   const refresh = useCallback(async () => {
     try { const m = await getMembershipSummary(); if (m) setSummary(m); } catch {}
-    let codes = [];
     try {
       const s = await getMyStats();
       setStats(s);
       globalThis.freebiesLeft = s.freebiesLeft;
       globalThis.loyaltyStamps = s.loyaltyStamps;
+      await syncVouchers(s.freebiesLeft);
     } catch {}
     if (supabase) {
       try {
@@ -115,7 +116,20 @@ export default function MembershipScreen({ navigation }) {
     }
   }, []);
 
+  const showCarousel = vouchers.length > 0;
   const totalPages = 1 + vouchers.length;
+  const memberCard = (
+    <View key="member" style={[styles.card, styles.qrCard]}>
+      <Text style={styles.cardTitle}>Your Loyalty QR</Text>
+      <View style={styles.qrWrap}>
+        <QRCode value={payload} size={180} />
+      </View>
+      <Text style={styles.mutedSmall}>Scan your QR code at the counter to receive a stamp on your loyalty card!</Text>
+      <View style={{ marginTop: 12 }}>
+        <GlowingGlassButton text="Add to Wallet" variant="dark" onPress={handleAddToWallet} />
+      </View>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={['left','right']}>
@@ -126,44 +140,40 @@ export default function MembershipScreen({ navigation }) {
 
         {summary.signedIn ? (
           <>
-            <View style={{ marginTop: 14 }}>
-              <PagerView
-                style={styles.carousel}
-                initialPage={0}
-                onPageSelected={(e) => setPage(e.nativeEvent.position)}
-              >
-                <View key="member" style={[styles.card, styles.qrCard]}>
-                  <Text style={styles.cardTitle}>Your Loyalty QR</Text>
-                  <View style={styles.qrWrap}>
-                    <QRCode value={payload} size={180} />
-                  </View>
-                  <Text style={styles.mutedSmall}>Scan your QR code at the counter to receive a stamp on your loyalty card!</Text>
-                  <View style={{ marginTop: 12 }}>
-                    <GlowingGlassButton text="Add to Wallet" variant="dark" onPress={handleAddToWallet} />
-                  </View>
-                </View>
-
-                {vouchers.map((code) => (
-                  <View key={code} style={[styles.card, styles.qrCard, styles.voucherCard]}>
-                    <Text style={[styles.cardTitle, styles.voucherTitle]}>Free Drink Voucher</Text>
-                    <View style={styles.qrWrap}>
-                      <QRCode value={code} size={180} />
+            {showCarousel ? (
+              <View style={{ marginTop: 14 }}>
+                <PagerView
+                  style={styles.carousel}
+                  initialPage={0}
+                  onPageSelected={(e) => setPage(e.nativeEvent.position)}
+                >
+                  {memberCard}
+                  {vouchers.map((code) => (
+                    <View key={code} style={[styles.card, styles.qrCard, styles.voucherCard]}>
+                      <Text style={[styles.cardTitle, styles.voucherTitle]}>Free Drink Voucher</Text>
+                      <View style={styles.qrWrap}>
+                        <QRCode value={code} size={180} />
+                      </View>
+                      <Text style={[styles.mutedSmall, styles.voucherText]}>Show at the counter to redeem.</Text>
                     </View>
-                    <Text style={[styles.mutedSmall, styles.voucherText]}>Show at the counter to redeem.</Text>
-                  </View>
-                ))}
-              </PagerView>
-              {totalPages > 1 && (
-                <>
-                  <Text style={styles.swipePrompt}>Swipe to see your drink vouchers</Text>
-                  <View style={styles.dots}>
-                    {Array.from({ length: totalPages }).map((_, i) => (
-                      <View key={i} style={[styles.dot, i === page && styles.dotActive]} />
-                    ))}
-                  </View>
-                </>
-              )}
-            </View>
+                  ))}
+                </PagerView>
+                {totalPages > 1 && (
+                  <>
+                    <Text style={styles.swipePrompt}>Swipe to see your drink vouchers</Text>
+                    <View style={styles.dots}>
+                      {Array.from({ length: totalPages }).map((_, i) => (
+                        <View key={i} style={[styles.dot, i === page && styles.dotActive]} />
+                      ))}
+                    </View>
+                  </>
+                )}
+              </View>
+            ) : (
+              <View style={{ marginTop: 14 }}>
+                {memberCard}
+              </View>
+            )}
 
             {summary.tier === 'paid' && (
               <View style={{ marginTop: 14 }}>
