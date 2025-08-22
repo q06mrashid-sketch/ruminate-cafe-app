@@ -18,9 +18,10 @@ const admin = createClient(url, serviceKey);
 
 (async () => {
   const {
-    data: { user },
+    data: { users },
     error: userErr,
-  } = await admin.auth.admin.getUserByEmail(email);
+  } = await admin.auth.admin.listUsers({ email });
+  const user = users && users.length ? users[0] : null;
   if (userErr || !user) {
     console.error('User not found.');
     process.exit(1);
