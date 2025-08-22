@@ -58,6 +58,11 @@ export default function MembershipScreen({ navigation }) {
             const qrs = await getMemberQRCodes(usr.id);
             setPayload(qrs.payload);
             setVouchers(qrs.vouchers || []);
+            setStats((st) => {
+              const updated = { ...st, freebiesLeft: qrs.vouchers ? qrs.vouchers.length : st.freebiesLeft };
+              globalThis.freebiesLeft = updated.freebiesLeft;
+              return updated;
+            });
           } catch {}
         } else {
           setPayload('ruminate:member');
