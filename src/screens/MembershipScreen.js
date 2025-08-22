@@ -6,7 +6,6 @@ import * as FileSystem from 'expo-file-system';
 import membershipPassBase64 from '../../assets/membershipPassBase64';
 import { useFocusEffect } from '@react-navigation/native';
 import QRCode from 'react-native-qrcode-svg';
-import PagerView from 'react-native-pager-view';
 import { palette } from '../design/theme';
 import { supabase } from '../lib/supabase';
 import { getMembershipSummary } from '../services/membership';
@@ -36,6 +35,7 @@ export default function MembershipScreen({ navigation }) {
   const [stats, setStats] = useState({ freebiesLeft: 0, dividendsPending: 0, loyaltyStamps: 0, payItForwardContrib: 0, communityContrib: 0 });
   const [vouchers, setVouchers] = useState([]);
   const [page, setPage] = useState(0);
+  const [carouselWidth, setCarouselWidth] = useState(0); // track width of carousel for QR/voucher cards
   const [user, setUser] = useState(null);
   const [payload, setPayload] = useState('ruminate:member');
 
@@ -138,20 +138,7 @@ export default function MembershipScreen({ navigation }) {
     }
   }, []);
 
-  const showCarousel = vouchers.length > 0;
   const totalPages = 1 + vouchers.length;
-  const memberCard = (
-    <View key="member" style={[styles.card, styles.qrCard]}>
-      <Text style={styles.cardTitle}>Your Loyalty QR</Text>
-      <View style={styles.qrWrap}>
-        <QRCode value={payload} size={180} />
-      </View>
-      <Text style={styles.mutedSmall}>Scan your QR code at the counter to receive a stamp on your loyalty card!</Text>
-      <View style={{ marginTop: 12 }}>
-        <GlowingGlassButton text="Add to Wallet" variant="dark" onPress={handleAddToWallet} />
-      </View>
-    </View>
-  );
 
   return (
     <SafeAreaView style={styles.container} edges={['left','right']}>
