@@ -85,7 +85,6 @@ export default function MembershipScreen({ navigation }) {
   }, [refresh]);
   useFocusEffect(useCallback(() => { let on = true; (async()=>{ if(on) await refresh(); })(); return () => { on = false; }; }, [refresh]));
 
-  const payload = user ? `ruminate:${user.id}` : 'ruminate:member';
 
   useEffect(() => {
     setVouchers(v => {
