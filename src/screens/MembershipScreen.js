@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ScrollView, View, Text, StyleSheet, Share, Pressable } from 'react-native';
+import { ScrollView, View, Text, StyleSheet, Share, Pressable, Alert } from 'react-native';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 import membershipPassBase64 from '../../assets/membershipPassBase64';
@@ -18,6 +18,7 @@ import 'react-native-get-random-values';
 import FreeDrinksCounter from '../components/FreeDrinksCounter';
 import LoyaltyStampTile from '../components/LoyaltyStampTile';
 import { getMemberQRCodes } from '../services/qr';
+import { redeemLoyaltyReward } from '../services/loyalty';
 
 function Stat({ label, value, prefix = '', suffix = '', style }) {
   return (
@@ -59,7 +60,8 @@ export default function MembershipScreen({ navigation }) {
             setPayload(qrs.payload);
             setVouchers(qrs.vouchers || []);
             setStats((st) => {
-              const updated = { ...st, freebiesLeft: qrs.vouchers ? qrs.vouchers.length : st.freebiesLeft };
+              const voucherCount = qrs.vouchers ? qrs.vouchers.length : 0;
+              const updated = { ...st, freebiesLeft: Math.max(st.freebiesLeft, voucherCount) };
               globalThis.freebiesLeft = updated.freebiesLeft;
               return updated;
             });
@@ -120,13 +122,28 @@ export default function MembershipScreen({ navigation }) {
   }, [user, summary]);
 
   const [notice, setNotice] = useState('');
+  const [redeemedAlertShown, setRedeemedAlertShown] = useState(false);
   useEffect(() => {
-    if (stats.loyaltyStamps >= 8) {
+    let timeoutId;
+    if (stats.loyaltyStamps >= 8 && !redeemedAlertShown) {
+      setRedeemedAlertShown(true);
+      Alert.alert('Free drink earned', 'A free drink voucher has been added to your account.');
+      setStats(st => {
+        const updated = { ...st, freebiesLeft: st.freebiesLeft + 1 };
+        globalThis.freebiesLeft = updated.freebiesLeft;
+        return updated;
+      });
       setNotice("You've earned a free drink!");
-      const t = setTimeout(() => setNotice(''), 4000);
-      return () => clearTimeout(t);
+      timeoutId = setTimeout(() => setNotice(''), 4000);
+      (async () => {
+        try { await redeemLoyaltyReward(); } catch {}
+        try { await refresh(); } catch {}
+      })();
+    } else if (stats.loyaltyStamps < 8 && redeemedAlertShown) {
+      setRedeemedAlertShown(false);
     }
-  }, [stats.loyaltyStamps]);
+    return () => clearTimeout(timeoutId);
+  }, [stats.loyaltyStamps, redeemedAlertShown, refresh]);
 
   const handleAddToWallet = useCallback(async () => {
     try {
@@ -306,6 +323,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
     elevation: 4,
+    zIndex: 10,
   },
   headerTitle: { fontSize: 20, color: '#3E2723', fontFamily: 'Fraunces_700Bold' },
   content: { padding: 16, paddingBottom: 120 },
