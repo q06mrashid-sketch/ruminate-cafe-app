@@ -17,13 +17,11 @@ if (!serviceKey) {
 const admin = createClient(url, serviceKey);
 
 (async () => {
-  const { data: listRes, error: listErr } = await admin.auth.admin.listUsers();
-  if (listErr) {
-    console.error('Failed to list users.');
-    process.exit(1);
-  }
-  const user = listRes?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
-  if (!user) {
+  const {
+    data: { user },
+    error: userErr,
+  } = await admin.auth.admin.getUserByEmail(email);
+  if (userErr || !user) {
     console.error('User not found.');
     process.exit(1);
   }
@@ -31,6 +29,7 @@ const admin = createClient(url, serviceKey);
 
   await admin.from('drink_vouchers').delete().eq('user_id', userId);
   await admin.from('loyalty_stamps').delete().eq('user_id', userId);
+  await admin.from('profiles').update({ free_drinks: 0 }).eq('user_id', userId);
 
   console.log(`Reset free drinks and loyalty stamps for ${email}`);
 })();

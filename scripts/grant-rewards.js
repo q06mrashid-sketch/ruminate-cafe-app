@@ -18,13 +18,11 @@ if (!serviceKey) {
 const admin = createClient(url, serviceKey);
 
 (async () => {
-  const { data: listRes, error: listErr } = await admin.auth.admin.listUsers();
-  if (listErr) {
-    console.error('Failed to list users.');
-    process.exit(1);
-  }
-  const user = listRes?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
-  if (!user) {
+  const {
+    data: { user },
+    error: userErr,
+  } = await admin.auth.admin.getUserByEmail(email);
+  if (userErr || !user) {
     console.error('User not found.');
     process.exit(1);
   }
@@ -41,6 +39,15 @@ const admin = createClient(url, serviceKey);
   if (stampCount > 0) {
     await admin.from('loyalty_stamps').insert({ user_id: userId, stamps: stampCount });
   }
+
+  // Ensure the profile row exists and mirrors free drink rewards
+  const { data: profile } = await admin
+    .from('profiles')
+    .select('free_drinks')
+    .eq('user_id', userId)
+    .maybeSingle();
+  const freeDrinks = (profile?.free_drinks ?? 0) + freeCount;
+  await admin.from('profiles').upsert({ user_id: userId, free_drinks: freeDrinks });
 
   console.log(`Granted ${freeCount} free drinks and ${stampCount} loyalty stamps to ${email}`);
 })();
