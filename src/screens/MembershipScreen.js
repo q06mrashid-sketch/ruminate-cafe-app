@@ -60,10 +60,15 @@ export default function MembershipScreen({ navigation }) {
             setPayload(qrs.payload);
             setVouchers(qrs.vouchers || []);
             setStats((st) => {
-              const voucherCount = qrs.vouchers ? qrs.vouchers.length : 0;
-              const updated = { ...st, freebiesLeft: voucherCount };
-              globalThis.freebiesLeft = updated.freebiesLeft;
-              return updated;
+              const voucherCount = Array.isArray(qrs.vouchers)
+                ? qrs.vouchers.length
+                : null;
+              const freebiesLeft =
+                voucherCount !== null && voucherCount > 0
+                  ? voucherCount
+                  : st.freebiesLeft;
+              globalThis.freebiesLeft = freebiesLeft;
+              return { ...st, freebiesLeft };
             });
           } catch {}
         } else {
