@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScrollView, View, Text, StyleSheet, Share, Pressable, Alert } from 'react-native';
 import * as Sharing from 'expo-sharing';
@@ -16,7 +16,6 @@ import { createReferral } from '../services/referral';
 import 'react-native-get-random-values';
 import FreeDrinksCounter from '../components/FreeDrinksCounter';
 import LoyaltyStampTile from '../components/LoyaltyStampTile';
-import { getMemberQRCodes } from '../services/qr';
 
 function Stat({ label, value, prefix = '', suffix = '', style }) {
   return (
@@ -36,7 +35,12 @@ export default function MembershipScreen({ navigation }) {
   const [page, setPage] = useState(0);
   const [carouselWidth, setCarouselWidth] = useState(0); // track width of carousel for QR/voucher cards
   const [user, setUser] = useState(null);
-  const [payload, setPayload] = useState('ruminate:member');
+  const [session, setSession] = useState(null);
+
+  const memberPayload = user ? `ruminate:${user.id}` : 'ruminate:member';
+  const pages = useMemo(() => [memberPayload, ...vouchers], [memberPayload, vouchers]);
+  const totalPages = pages.length;
+  const FUNCTIONS_URL = process.env.EXPO_PUBLIC_FUNCTIONS_URL;
 
   const refresh = useCallback(async () => {
     try { const m = await getMembershipSummary(); if (m) setSummary(m); } catch {}
@@ -48,38 +52,16 @@ export default function MembershipScreen({ navigation }) {
     } catch {}
     if (supabase) {
       try {
-        const u = await supabase.auth.getUser();
-        const usr = u?.data?.user || null;
-        setUser(usr);
-        if (usr) {
-          try {
-            const qrs = await getMemberQRCodes(usr.id);
-            setPayload(qrs.payload);
-            setVouchers((prev) => (
-              Array.isArray(qrs.vouchers) && qrs.vouchers.length > 0
-                ? qrs.vouchers
-                : prev
-            ));
-            setStats((st) => {
-              const voucherCount =
-                Array.isArray(qrs.vouchers) && qrs.vouchers.length > 0
-                  ? qrs.vouchers.length
-                  : null;
-              const freebiesLeft =
-                voucherCount !== null
-                  ? voucherCount
-                  : st.freebiesLeft;
-              globalThis.freebiesLeft = freebiesLeft;
-              return { ...st, freebiesLeft };
-            });
-          } catch {}
-        } else {
-          setPayload('ruminate:member');
-          setVouchers([]);
-        }
-      } catch {}
+        const { data: { session: sess } } = await supabase.auth.getSession();
+        setSession(sess);
+        setUser(sess?.user || null);
+      } catch {
+        setSession(null);
+        setUser(null);
+      }
     } else {
-      try { setUser(null); setPayload('ruminate:member'); setVouchers([]); } catch {}
+      setSession(null);
+      setUser(null);
     }
   }, []);
 
@@ -92,6 +74,30 @@ export default function MembershipScreen({ navigation }) {
     }));
     refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    let on = true;
+    (async () => {
+      if (!session?.access_token || !FUNCTIONS_URL) {
+        if (on) setVouchers([]);
+        return;
+      }
+      try {
+        const res = await fetch(`${FUNCTIONS_URL}/vouchers-sync`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        const json = await res.json();
+        const codes = (json?.vouchers || [])
+          .filter(v => v && v.code && !v.redeemed)
+          .map(v => v.code);
+        if (on) setVouchers(codes);
+      } catch {
+        if (on) setVouchers([]);
+      }
+    })();
+    return () => { on = false; };
+  }, [session?.access_token, stats.freebiesLeft, FUNCTIONS_URL]);
   useFocusEffect(useCallback(() => { let on = true; (async()=>{ if(on) await refresh(); })(); return () => { on = false; }; }, [refresh]));
 
   useEffect(()=>{ 
@@ -137,7 +143,6 @@ export default function MembershipScreen({ navigation }) {
     }
   }, []);
 
-  const totalPages = 1 + vouchers.length;
 
   return (
     <SafeAreaView style={styles.container} edges={['left','right']}>
@@ -161,24 +166,46 @@ export default function MembershipScreen({ navigation }) {
                   setPage(index);
                 }}
               >
-                <View style={[styles.card, styles.qrCard, { width: carouselWidth }]}> 
-                  <Text style={styles.cardTitle}>Your QR</Text>
-                  <View style={styles.qrWrap}>
-                    <QRCode value={payload} size={180} />
-                  </View>
-                  <Text style={styles.mutedSmall}>Show at the counter to redeem perks and stamps.</Text>
-                  <View style={{ marginTop: 12 }}>
-                    <GlowingGlassButton text="Add to Wallet" variant="dark" onPress={handleAddToWallet} />
-                  </View>
-                </View>
-
-                {vouchers.map((code) => (
-                  <View key={code} style={[styles.card, styles.qrCard, styles.voucherCard, { width: carouselWidth }]}> 
-                    <Text style={[styles.cardTitle, styles.voucherTitle]}>Drink voucher</Text>
+                {pages.map((code, idx) => (
+                  <View
+                    key={idx === 0 ? 'member' : code}
+                    style={[
+                      styles.card,
+                      styles.qrCard,
+                      idx > 0 && styles.voucherCard,
+                      { width: carouselWidth },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.cardTitle,
+                        idx > 0 && styles.voucherTitle,
+                      ]}
+                    >
+                      {idx === 0 ? 'Your QR' : 'Drink voucher'}
+                    </Text>
                     <View style={styles.qrWrap}>
                       <QRCode value={code} size={180} />
                     </View>
-                    <Text style={[styles.mutedSmall, styles.voucherText]}>Show at the counter to redeem.</Text>
+                    <Text
+                      style={[
+                        styles.mutedSmall,
+                        idx > 0 && styles.voucherText,
+                      ]}
+                    >
+                      {idx === 0
+                        ? 'Show at the counter to redeem perks and stamps.'
+                        : 'Show at the counter to redeem.'}
+                    </Text>
+                    {idx === 0 && (
+                      <View style={{ marginTop: 12 }}>
+                        <GlowingGlassButton
+                          text="Add to Wallet"
+                          variant="dark"
+                          onPress={handleAddToWallet}
+                        />
+                      </View>
+                    )}
                   </View>
                 ))}
               </ScrollView>

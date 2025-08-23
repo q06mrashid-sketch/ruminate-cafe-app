@@ -1,68 +1,48 @@
 #!/usr/bin/env node
-import { createClient } from '@supabase/supabase-js';
-import { randomUUID } from 'crypto';
+import crypto from 'node:crypto';
+import { createAdminClient, findUserIdByEmail } from './_supabase.js';
 
-const [email, freebies = '0', stamps = '0'] = process.argv.slice(2);
+const [,, email, freeDrinksArg, stampsArg] = process.argv;
 if (!email) {
-  console.error('Usage: node grant-rewards.js <email> <freeDrinks> <loyaltyStamps>');
+  console.error('Usage: node scripts/grant-rewards.js <email> <freeDrinks=0> <loyaltyStamps=0>');
   process.exit(1);
 }
 
-const url = process.env.SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
-if (!url || !serviceKey) {
-  console.error('Missing Supabase environment variables.');
-  process.exit(1);
+const freeDrinks = Number(freeDrinksArg || 0);
+const addStamps = Number(stampsArg || 0);
+
+const supabase = createAdminClient();
+const uid = await findUserIdByEmail(supabase, email);
+
+if (addStamps > 0) {
+  const rows = Array.from({ length: addStamps }, () => ({ user_id: uid }));
+  const { error } = await supabase.from('loyalty_stamps').insert(rows);
+  if (error) throw error;
 }
 
-const supabase = createClient(url, serviceKey);
-
-async function normalize(userId) {
-  const { count: totalStamps = 0 } = await supabase
-    .from('loyalty_stamps')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', userId);
-  const { count: vouchersTotal = 0 } = await supabase
+if (freeDrinks > 0) {
+  const rows = Array.from({ length: freeDrinks }, () => ({
+    user_id: uid,
+    code: crypto.randomUUID()
+  }));
+  const { error } = await supabase
     .from('drink_vouchers')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', userId);
-  const { count: vouchersUnredeemed = 0 } = await supabase
-    .from('drink_vouchers')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .eq('redeemed', false);
-
-  const shouldExist = Math.floor(totalStamps / 8);
-  const toMint = Math.max(0, shouldExist - vouchersTotal);
-  if (toMint > 0) {
-    const inserts = Array.from({ length: toMint }, () => ({ user_id: userId, code: randomUUID() }));
-    await supabase.from('drink_vouchers').upsert(inserts, { onConflict: 'code' });
-  }
-  const remainder = totalStamps - shouldExist * 8;
-  return { loyaltyStamps: remainder, freebiesLeft: (vouchersUnredeemed ?? 0) + toMint };
+    .insert(rows, { count: 'exact' });
+  if (error) throw error;
 }
 
-try {
-  const { data: { user } } = await supabase.auth.admin.getUserByEmail(email);
-  if (!user) throw new Error('User not found');
-  const userId = user.id;
+const functionsUrl = process.env.FUNCTIONS_URL || process.env.EXPO_PUBLIC_FUNCTIONS_URL;
+const svcKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  const freeCount = parseInt(freebies, 10) || 0;
-  const stampCount = parseInt(stamps, 10) || 0;
-
-  if (stampCount > 0) {
-    const rows = Array.from({ length: stampCount }, () => ({ user_id: userId }));
-    await supabase.from('loyalty_stamps').insert(rows);
-  }
-
-  if (freeCount > 0) {
-    const vouchers = Array.from({ length: freeCount }, () => ({ user_id: userId, code: randomUUID() }));
-    await supabase.from('drink_vouchers').upsert(vouchers, { onConflict: 'code' });
-  }
-
-  const finalStats = await normalize(userId);
-  console.log(JSON.stringify(finalStats, null, 2));
-} catch (err) {
-  console.error(err.message);
-  process.exit(1);
+if (functionsUrl) {
+  await fetch(`${functionsUrl}/me-stats`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${svcKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ userId: uid, normalize: true })
+  }).catch(() => {});
 }
+
+console.log(`Granted ${freeDrinks} free drinks and ${addStamps} loyalty stamps to ${email}`);
