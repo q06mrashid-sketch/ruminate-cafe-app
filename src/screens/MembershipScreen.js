@@ -13,12 +13,10 @@ import { getMyStats } from '../services/stats';
 import GlowingGlassButton from '../components/GlowingGlassButton';
 import { getPIFByEmail } from '../services/pif';
 import { createReferral } from '../services/referral';
-import { syncVouchers } from '../services/vouchers';
 import 'react-native-get-random-values';
 import FreeDrinksCounter from '../components/FreeDrinksCounter';
 import LoyaltyStampTile from '../components/LoyaltyStampTile';
 import { getMemberQRCodes } from '../services/qr';
-import { redeemLoyaltyReward } from '../services/loyalty';
 
 function Stat({ label, value, prefix = '', suffix = '', style }) {
   return (
@@ -47,7 +45,6 @@ export default function MembershipScreen({ navigation }) {
       setStats(s);
       globalThis.freebiesLeft = s.freebiesLeft;
       globalThis.loyaltyStamps = s.loyaltyStamps;
-      await syncVouchers(s.freebiesLeft);
     } catch {}
     if (supabase) {
       try {
@@ -97,26 +94,6 @@ export default function MembershipScreen({ navigation }) {
   }, [refresh]);
   useFocusEffect(useCallback(() => { let on = true; (async()=>{ if(on) await refresh(); })(); return () => { on = false; }; }, [refresh]));
 
-
-  useEffect(() => {
-    setVouchers(v => {
-      if (v.length < stats.freebiesLeft) {
-        const needed = stats.freebiesLeft - v.length;
-        return [
-          ...v,
-          ...Array.from({ length: needed }, () =>
-            crypto?.randomUUID?.() || Math.random().toString(36).slice(2, 10)
-          ),
-        ];
-      }
-      if (v.length > stats.freebiesLeft) {
-        return v.slice(0, stats.freebiesLeft);
-      }
-      return v;
-    });
-  }, [stats.freebiesLeft]);
-
-
   useEffect(()=>{ 
     let m=true; 
     const email=(typeof user!=='undefined'&&user&&user.email)
@@ -133,15 +110,6 @@ export default function MembershipScreen({ navigation }) {
 
   const [notice, setNotice] = useState('');
   const prevFreebies = useRef(globalThis.lastFreebiesLeft ?? stats.freebiesLeft);
-
-  useEffect(() => {
-    if (stats.loyaltyStamps >= 8) {
-      (async () => {
-        try { await redeemLoyaltyReward(); } catch {}
-        try { await refresh(); } catch {}
-      })();
-    }
-  }, [stats.loyaltyStamps, refresh]);
 
   useEffect(() => {
     const prev = prevFreebies.current;

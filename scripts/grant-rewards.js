@@ -8,47 +8,61 @@ if (!email) {
   process.exit(1);
 }
 
-const url = process.env.SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://eamewialuovzguldcdcf.supabase.co';
+const url = process.env.SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
-if (!serviceKey) {
-  console.error('Missing SUPABASE_SERVICE_ROLE_KEY.');
+if (!url || !serviceKey) {
+  console.error('Missing Supabase environment variables.');
   process.exit(1);
 }
 
-const admin = createClient(url, serviceKey);
+const supabase = createClient(url, serviceKey);
 
-(async () => {
-  const {
-    data: { users },
-    error: userErr,
-  } = await admin.auth.admin.listUsers({ email });
-  const user = users && users.length ? users[0] : null;
-  if (userErr || !user) {
-    console.error('User not found.');
-    process.exit(1);
+async function normalize(userId) {
+  const { count: totalStamps = 0 } = await supabase
+    .from('loyalty_stamps')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId);
+  const { count: vouchersTotal = 0 } = await supabase
+    .from('drink_vouchers')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId);
+  const { count: vouchersUnredeemed = 0 } = await supabase
+    .from('drink_vouchers')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('redeemed', false);
+
+  const shouldExist = Math.floor(totalStamps / 8);
+  const toMint = Math.max(0, shouldExist - vouchersTotal);
+  if (toMint > 0) {
+    const inserts = Array.from({ length: toMint }, () => ({ user_id: userId, code: randomUUID() }));
+    await supabase.from('drink_vouchers').upsert(inserts, { onConflict: 'code' });
   }
+  const remainder = totalStamps - shouldExist * 8;
+  return { loyaltyStamps: remainder, freebiesLeft: (vouchersUnredeemed ?? 0) + toMint };
+}
+
+try {
+  const { data: { user } } = await supabase.auth.admin.getUserByEmail(email);
+  if (!user) throw new Error('User not found');
   const userId = user.id;
 
-  const freeCount = parseInt(freebies, 10);
-  const stampCount = parseInt(stamps, 10);
+  const freeCount = parseInt(freebies, 10) || 0;
+  const stampCount = parseInt(stamps, 10) || 0;
+
+  if (stampCount > 0) {
+    const rows = Array.from({ length: stampCount }, () => ({ user_id: userId }));
+    await supabase.from('loyalty_stamps').insert(rows);
+  }
 
   if (freeCount > 0) {
     const vouchers = Array.from({ length: freeCount }, () => ({ user_id: userId, code: randomUUID() }));
-    await admin.from('drink_vouchers').insert(vouchers);
+    await supabase.from('drink_vouchers').upsert(vouchers, { onConflict: 'code' });
   }
 
-  if (stampCount > 0) {
-    await admin.from('loyalty_stamps').insert({ user_id: userId, stamps: stampCount });
-  }
-
-  // Ensure the profile row exists and mirrors free drink rewards
-  const { data: profile } = await admin
-    .from('profiles')
-    .select('free_drinks')
-    .eq('user_id', userId)
-    .maybeSingle();
-  const freeDrinks = (profile?.free_drinks ?? 0) + freeCount;
-  await admin.from('profiles').upsert({ user_id: userId, free_drinks: freeDrinks });
-
-  console.log(`Granted ${freeCount} free drinks and ${stampCount} loyalty stamps to ${email}`);
-})();
+  const finalStats = await normalize(userId);
+  console.log(JSON.stringify(finalStats, null, 2));
+} catch (err) {
+  console.error(err.message);
+  process.exit(1);
+}

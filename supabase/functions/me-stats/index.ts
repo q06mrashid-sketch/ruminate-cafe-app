@@ -24,23 +24,39 @@ serve(async (req: Request) => {
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-  const { count: vouchers } = await admin
+  const { count: totalStamps = 0 } = await admin
+    .from("loyalty_stamps")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id);
+
+  const { count: vouchersTotal = 0 } = await admin
+    .from("drink_vouchers")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id);
+
+  const { count: vouchersUnredeemed = 0 } = await admin
     .from("drink_vouchers")
     .select("id", { count: "exact", head: true })
     .eq("user_id", user.id)
     .eq("redeemed", false);
 
-  const { data: stamps } = await admin
-    .from("loyalty_stamps")
-    .select("stamps")
-    .eq("user_id", user.id);
-  const loyaltyStamps = (stamps ?? []).reduce((sum, r) => sum + (r.stamps || 0), 0);
+  const shouldExist = Math.floor(totalStamps / 8);
+  const toMint = Math.max(0, shouldExist - vouchersTotal);
+  if (toMint > 0) {
+    const inserts = Array.from({ length: toMint }, () => ({
+      user_id: user.id,
+      code: crypto.randomUUID(),
+    }));
+    await admin.from("drink_vouchers").upsert(inserts, { onConflict: "code" });
+  }
+
+  const remainder = totalStamps - shouldExist * 8;
 
   return new Response(
     JSON.stringify({
-      freebiesLeft: vouchers ?? 0,
+      freebiesLeft: (vouchersUnredeemed ?? 0) + toMint,
       dividendsPending: 0,
-      loyaltyStamps,
+      loyaltyStamps: remainder,
       payItForwardContrib: 0,
       communityContrib: 0,
     }),

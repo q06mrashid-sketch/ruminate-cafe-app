@@ -28,14 +28,14 @@ export async function getMyStats() {
     ] = await Promise.all([
       supabase
         .from('profiles')
-        .select('free_drinks, discount_credits')
+        .select('discount_credits')
         .eq('user_id', session.user.id)
         .maybeSingle(),
       supabase.functions.invoke('me-stats', { body: {} }),
     ]);
 
     const edgeStats = statsError ? {} : statsData || {};
-    const freebiesLeft = (profile?.free_drinks ?? 0) + (edgeStats.freebiesLeft ?? 0);
+    const freebiesLeft = edgeStats.freebiesLeft ?? 0;
     const dividendsPending = edgeStats.dividendsPending ?? 0;
     const loyaltyStamps = edgeStats.loyaltyStamps ?? edgeStats.discountUses ?? 0;
     const payItForwardContrib = edgeStats.payItForwardContrib ?? 0;
