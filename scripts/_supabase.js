@@ -8,16 +8,20 @@ export function createAdminClient() {
 }
 
 export async function findUserIdByEmail(supabase, email) {
-  const { data, error } = await supabase
-    .from('users', { schema: 'auth' })
-    .select('id,email')
-    .ilike('email', email)
-    .limit(1)
-    .maybeSingle();
-  if (error) throw error;
-  if (!data?.id) throw new Error('User not found');
-  return data.id;
-}
+  try {
+    const { data, error } = await supabase
+      .from('users', { schema: 'auth' })
+      .select('id,email')
+      .ilike('email', email)
+      .limit(1)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data?.id) throw new Error('User not found');
+    return data.id;
+  } catch (err) {
+    // Fallback for environments where auth.users isn't exposed
+    return findUserIdByEmailFallback(supabase, email);
+  }
 
 export async function findUserIdByEmailFallback(supabase, email) {
   let page = 1;
