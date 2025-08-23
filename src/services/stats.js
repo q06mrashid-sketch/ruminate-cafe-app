@@ -34,3 +34,4 @@ export async function getMyStats(token) {
   }
   return { loyaltyStamps, freebiesLeft, vouchers };
 }
+

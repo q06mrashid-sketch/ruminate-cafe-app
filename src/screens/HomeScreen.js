@@ -62,8 +62,7 @@ export default function HomeScreen({ navigation }) {
       if (supabase) {
         try { const { data: { session } } = await supabase.auth.getSession(); token = session?.access_token || ''; } catch {}
       }
-      try {
-        const stats = await getMyStats(token);
+      try {        const stats = await getMyStats(token);
         if (mounted) {
           const freebies = stats.freebiesLeft || 0;
           const stamps = stats.loyaltyStamps || 0;

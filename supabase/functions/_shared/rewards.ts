@@ -29,6 +29,7 @@ export async function normalizeRewards(admin: SupabaseClient, userId: string) {
       user_id: userId,
       code: crypto.randomUUID(),
     }));
+    
     const { error: insErr } = await admin.from("drink_vouchers").insert(inserts);
     if (insErr) throw insErr;
     const { data: refreshed, error: refErr } = await admin
@@ -48,11 +49,13 @@ export async function normalizeRewards(admin: SupabaseClient, userId: string) {
     toMint,
     remainder,
     vouchers: unredeemed?.length ?? 0,
+
   });
 
   return {
     loyaltyStamps: remainder,
     freebiesLeft: unredeemed?.length ?? 0,
+
     vouchers: (unredeemed || []).map(v => v.code),
   };
 }

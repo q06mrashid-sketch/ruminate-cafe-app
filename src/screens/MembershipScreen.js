@@ -66,11 +66,10 @@ export default function MembershipScreen({ navigation }) {
 
 
   useEffect(() => {
-    setStats(prev => ({
-      ...prev,
-      freebiesLeft: globalThis.freebiesLeft ?? prev.freebiesLeft,
-      loyaltyStamps: globalThis.loyaltyStamps ?? prev.loyaltyStamps,
-    }));
+    setStats({
+      freebiesLeft: globalThis.freebiesLeft ?? 0,
+      loyaltyStamps: globalThis.loyaltyStamps ?? 0,
+    });
     refresh();
   }, [refresh]);
 
@@ -91,11 +90,11 @@ export default function MembershipScreen({ navigation }) {
   }, [user, summary]);
 
   const [notice, setNotice] = useState('');
-  const prevFreebies = useRef(globalThis.lastFreebiesLeft ?? stats.freebiesLeft);
+  const prevFreebies = useRef(globalThis.lastFreebiesLeft ?? 0);
 
   useEffect(() => {
     const prev = prevFreebies.current;
-    const curr = stats.freebiesLeft;
+    const curr = stats?.freebiesLeft ?? 0;
     if (curr - prev === 1) {
       Alert.alert('Free drink earned', 'A free drink voucher has been added to your account.');
       setNotice("You've earned a free drink!");
@@ -107,7 +106,7 @@ export default function MembershipScreen({ navigation }) {
     prevFreebies.current = curr;
     globalThis.lastFreebiesLeft = curr;
     if (curr === 0) setNotice('');
-  }, [stats.freebiesLeft]);
+  }, [stats?.freebiesLeft]);
 
   const handleAddToWallet = useCallback(async () => {
     try {
@@ -125,7 +124,7 @@ export default function MembershipScreen({ navigation }) {
       <View style={[styles.header, { paddingTop: insets.top }]}><Text style={styles.headerTitle}>Membership</Text></View>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Membership</Text>
-        {notice && stats.freebiesLeft > 0 ? <Text style={styles.notice}>{notice}</Text> : null}
+        {notice && (stats?.freebiesLeft ?? 0) > 0 ? <Text style={styles.notice}>{notice}</Text> : null}
 
         {summary.signedIn ? (
           <>
@@ -152,7 +151,7 @@ export default function MembershipScreen({ navigation }) {
                         idx > 0 && styles.voucherTitle,
                       ]}
                     >
-                      {idx === 0 ? 'Your QR' : 'Drink voucher'}
+                      {idx === 0 ? 'Your QR' : 'Free Drink Voucher'}
                     </Text>
                     <View style={styles.qrWrap}>
                       <QRCode value={code} size={180} />
@@ -164,7 +163,7 @@ export default function MembershipScreen({ navigation }) {
                       ]}
                     >
                       {idx === 0
-                        ? 'Show at the counter to redeem perks and stamps.'
+                        ? 'Show at the counter to receive stamps.'
                         : 'Show at the counter to redeem.'}
                     </Text>
                     {idx === 0 && (
@@ -194,19 +193,19 @@ export default function MembershipScreen({ navigation }) {
               )}
             </View>
 
-            {(summary.tier === 'paid' || stats.freebiesLeft > 0) && (
+            {(summary.tier === 'paid' || (stats?.freebiesLeft ?? 0) > 0) && (
               <View style={{ marginTop: 14 }}>
-                <FreeDrinksCounter count={stats.freebiesLeft} />
+                <FreeDrinksCounter count={stats?.freebiesLeft ?? 0} />
               </View>
             )}
 
             <View style={{ marginTop: 14 }}>
-              <LoyaltyStampTile count={stats.loyaltyStamps} />
+              <LoyaltyStampTile count={stats?.loyaltyStamps ?? 0} />
             </View>
 
             {summary.tier === 'paid' ? (
               <View style={styles.gridRow}>
-                <Stat label="Dividends pending" value={Number(stats.dividendsPending).toFixed(2)} prefix="£" />
+                <Stat label="Dividends pending" value={Number(stats?.dividendsPending || 0).toFixed(2)} prefix="£" />
                 <Stat label="Pay-it-forward" value={(pifSelfCents / 100).toFixed(2)} prefix="£" />
               </View>
             ) : (
@@ -320,7 +319,6 @@ const styles = StyleSheet.create({
   notice: { backgroundColor: palette.paper, borderColor: palette.border, borderWidth: 1, borderRadius: 10, padding: 10, marginTop: 12, textAlign: 'center', color: palette.clay, fontFamily: 'Fraunces_700Bold' },
 
   qrWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: 12, height: 260 },
-  carousel: { height: 420, width: '100%' },
   qrCard: { marginTop: 0, flex: 1 },
   voucherCard: { backgroundColor: palette.coffee, borderColor: palette.coffee },
   voucherTitle: { color: palette.cream },
