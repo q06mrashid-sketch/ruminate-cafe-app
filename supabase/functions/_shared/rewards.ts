@@ -1,10 +1,12 @@
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 export async function normalizeRewards(admin: SupabaseClient, userId: string) {
-  const { count: totalStamps = 0 } = await admin
+  const { data: stampRows, error: stampErr } = await admin
     .from("loyalty_stamps")
-    .select("id", { count: "exact", head: true })
+    .select("stamps")
     .eq("user_id", userId);
+  if (stampErr) throw stampErr;
+  const totalStamps = (stampRows ?? []).reduce((sum, r) => sum + (r.stamps || 0), 0);
 
   let { data: vouchers, error } = await admin
     .from("drink_vouchers")

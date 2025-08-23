@@ -15,7 +15,7 @@ const supabase = createAdminClient();
 const uid = await findUserIdByEmail(supabase, email);
 
 if (addStamps > 0) {
-  const rows = Array.from({ length: addStamps }, () => ({ user_id: uid }));
+  const rows = Array.from({ length: addStamps }, () => ({ user_id: uid, stamps: 1 }));
   const { error } = await supabase.from('loyalty_stamps').insert(rows);
   if (error) throw error;
 }
