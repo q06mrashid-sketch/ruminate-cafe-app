@@ -1,16 +1,69 @@
-export async function getMyStats(token) {
-  const base = process.env.EXPO_PUBLIC_FUNCTIONS_URL || (process.env.EXPO_PUBLIC_SUPABASE_URL + '/functions/v1');
-  const r = await fetch(`${base}/me-stats`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token || ''}` },
-    body: JSON.stringify({}),
-  });
-  const json = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(json?.error || `me-stats ${r.status}`);
-  const { loyaltyStamps, freebiesLeft, vouchers } = json;
-  if (![loyaltyStamps, freebiesLeft].every(n => Number.isFinite(n)) || !Array.isArray(vouchers)) {
-    throw new Error('Invalid me-stats payload');
-  }
-  return { loyaltyStamps, freebiesLeft, vouchers };
-}
+import { supabase, hasSupabase } from '../lib/supabase';
 
+export async function getMyStats() {
+  if (!hasSupabase || !supabase) {
+    return {
+      freebiesLeft: 0,
+      dividendsPending: 0,
+      loyaltyStamps: 0,
+      payItForwardContrib: 0,
+      communityContrib: 0,
+    };
+  }
+
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      return {
+        freebiesLeft: 0,
+        dividendsPending: 0,
+        loyaltyStamps: 0,
+        payItForwardContrib: 0,
+        communityContrib: 0,
+      };
+    }
+    const [
+      { data: profile },
+      { data: statsData, error: statsError },
+    ] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('discount_credits')
+        .eq('user_id', session.user.id)
+        .maybeSingle(),
+      supabase.functions.invoke('me-stats', { body: {} }),
+    ]);
+
+    const edgeStats = statsError ? {} : statsData || {};
+    const freebiesLeft = edgeStats.freebiesLeft ?? 0;
+    const dividendsPending = edgeStats.dividendsPending ?? 0;
+    const loyaltyStamps = edgeStats.loyaltyStamps ?? edgeStats.discountUses ?? 0;
+    const payItForwardContrib = edgeStats.payItForwardContrib ?? 0;
+    const communityContrib = edgeStats.communityContrib ?? 0;
+    const discountCredits = profile?.discount_credits ?? 0;
+
+    const result = {
+      freebiesLeft,
+      dividendsPending,
+      loyaltyStamps,
+      payItForwardContrib,
+      communityContrib,
+      discountCredits,
+    };
+    globalThis.freebiesLeft = result.freebiesLeft;
+    globalThis.loyaltyStamps = result.loyaltyStamps;
+    return result;
+  } catch {
+    const result = {
+      freebiesLeft: 0,
+      dividendsPending: 0,
+      loyaltyStamps: 0,
+      payItForwardContrib: 0,
+      communityContrib: 0,
+      discountCredits: 0,
+    };
+    globalThis.freebiesLeft = result.freebiesLeft;
+    globalThis.loyaltyStamps = result.loyaltyStamps;
+    return result;
+  }
+}
