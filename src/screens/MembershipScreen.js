@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScrollView, View, Text, StyleSheet, Share, Pressable, Alert } from 'react-native';
 import * as Sharing from 'expo-sharing';
@@ -6,6 +6,7 @@ import * as FileSystem from 'expo-file-system';
 import membershipPassBase64 from '../../assets/membershipPassBase64';
 import { useFocusEffect } from '@react-navigation/native';
 import QRCode from 'react-native-qrcode-svg';
+import PagerView from 'react-native-pager-view';
 import { palette } from '../design/theme';
 import { supabase } from '../lib/supabase';
 import { getMembershipSummary } from '../services/membership';
@@ -30,31 +31,24 @@ export default function MembershipScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const [summary, setSummary] = useState({ signedIn: false, tier: 'free', status: 'none', next_billing_at: null });
   const [pifSelfCents, setPifSelfCents] = useState(0);
-  const [stats, setStats] = useState({ freebiesLeft: 0, dividendsPending: 0, loyaltyStamps: 0, payItForwardContrib: 0, communityContrib: 0 });
+  const [stats, setStats] = useState(null);
   const [vouchers, setVouchers] = useState([]);
   const [page, setPage] = useState(0);
-  const [carouselWidth, setCarouselWidth] = useState(0); // track width of carousel for QR/voucher cards
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
 
   const memberPayload = user ? `ruminate:${user.id}` : 'ruminate:member';
-  const pages = useMemo(() => [memberPayload, ...vouchers], [memberPayload, vouchers]);
-  const totalPages = pages.length;
-  const FUNCTIONS_URL = process.env.EXPO_PUBLIC_FUNCTIONS_URL;
+  const totalPages = 1 + vouchers.length;
 
   const refresh = useCallback(async () => {
     try { const m = await getMembershipSummary(); if (m) setSummary(m); } catch {}
-    try {
-      const s = await getMyStats();
-      setStats(s);
-      globalThis.freebiesLeft = s.freebiesLeft;
-      globalThis.loyaltyStamps = s.loyaltyStamps;
-    } catch {}
+    let token = '';
     if (supabase) {
       try {
         const { data: { session: sess } } = await supabase.auth.getSession();
         setSession(sess);
         setUser(sess?.user || null);
+        token = sess?.access_token || '';
       } catch {
         setSession(null);
         setUser(null);
@@ -63,41 +57,23 @@ export default function MembershipScreen({ navigation }) {
       setSession(null);
       setUser(null);
     }
+    try {
+      const s = await getMyStats(token);
+      setStats({ loyaltyStamps: s.loyaltyStamps, freebiesLeft: s.freebiesLeft });
+      setVouchers(Array.from(new Set((s.vouchers || []).filter(Boolean))));
+      globalThis.freebiesLeft = s.freebiesLeft;
+      globalThis.loyaltyStamps = s.loyaltyStamps;
+    } catch {}
   }, []);
 
 
   useEffect(() => {
-    setStats(prev => ({
-      ...prev,
-      freebiesLeft: globalThis.freebiesLeft ?? prev.freebiesLeft,
-      loyaltyStamps: globalThis.loyaltyStamps ?? prev.loyaltyStamps,
-    }));
+    setStats({
+      freebiesLeft: globalThis.freebiesLeft ?? 0,
+      loyaltyStamps: globalThis.loyaltyStamps ?? 0,
+    });
     refresh();
   }, [refresh]);
-
-  useEffect(() => {
-    let on = true;
-    (async () => {
-      if (!session?.access_token || !FUNCTIONS_URL) {
-        if (on) setVouchers([]);
-        return;
-      }
-      try {
-        const res = await fetch(`${FUNCTIONS_URL}/vouchers-sync`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
-        const json = await res.json();
-        const codes = (json?.vouchers || [])
-          .filter(v => v && v.code && !v.redeemed)
-          .map(v => v.code);
-        if (on) setVouchers(codes);
-      } catch {
-        if (on) setVouchers([]);
-      }
-    })();
-    return () => { on = false; };
-  }, [session?.access_token, stats.freebiesLeft, FUNCTIONS_URL]);
   useFocusEffect(useCallback(() => { let on = true; (async()=>{ if(on) await refresh(); })(); return () => { on = false; }; }, [refresh]));
 
   useEffect(()=>{ 
@@ -115,11 +91,11 @@ export default function MembershipScreen({ navigation }) {
   }, [user, summary]);
 
   const [notice, setNotice] = useState('');
-  const prevFreebies = useRef(globalThis.lastFreebiesLeft ?? stats.freebiesLeft);
+  const prevFreebies = useRef(globalThis.lastFreebiesLeft ?? 0);
 
   useEffect(() => {
     const prev = prevFreebies.current;
-    const curr = stats.freebiesLeft;
+    const curr = stats?.freebiesLeft ?? 0;
     if (curr - prev === 1) {
       Alert.alert('Free drink earned', 'A free drink voucher has been added to your account.');
       setNotice("You've earned a free drink!");
@@ -131,7 +107,7 @@ export default function MembershipScreen({ navigation }) {
     prevFreebies.current = curr;
     globalThis.lastFreebiesLeft = curr;
     if (curr === 0) setNotice('');
-  }, [stats.freebiesLeft]);
+  }, [stats?.freebiesLeft]);
 
   const handleAddToWallet = useCallback(async () => {
     try {
@@ -149,66 +125,47 @@ export default function MembershipScreen({ navigation }) {
       <View style={[styles.header, { paddingTop: insets.top }]}><Text style={styles.headerTitle}>Membership</Text></View>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Membership</Text>
-        {notice && stats.freebiesLeft > 0 ? <Text style={styles.notice}>{notice}</Text> : null}
+        {notice && (stats?.freebiesLeft ?? 0) > 0 ? <Text style={styles.notice}>{notice}</Text> : null}
 
         {summary.signedIn ? (
           <>
 
-            <View style={{ marginTop: 14 }} onLayout={(e) => setCarouselWidth(e.nativeEvent.layout.width)}>
-              <ScrollView
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                style={styles.carousel}
-                onMomentumScrollEnd={(e) => {
-                  const { contentOffset, layoutMeasurement } = e.nativeEvent;
-                  const index = Math.round(contentOffset.x / layoutMeasurement.width);
-                  setPage(index);
-                }}
+            <View style={{ marginTop: 14 }}>
+              <PagerView
+                style={{ height: 440, width: '100%' }}
+                initialPage={0}
+                key={`pv-${vouchers.length}`}
+                onPageSelected={e => setPage(e.nativeEvent.position)}
               >
-                {pages.map((code, idx) => (
-                  <View
-                    key={idx === 0 ? 'member' : code}
-                    style={[
-                      styles.card,
-                      styles.qrCard,
-                      idx > 0 && styles.voucherCard,
-                      { width: carouselWidth },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.cardTitle,
-                        idx > 0 && styles.voucherTitle,
-                      ]}
-                    >
-                      {idx === 0 ? 'Your QR' : 'Drink voucher'}
-                    </Text>
+                <View key="member" style={[styles.card, styles.qrCard]}>
+                  <Text style={styles.cardTitle}>Your QR</Text>
+                  <View style={styles.qrWrap}>
+                    <QRCode value={memberPayload} size={180} />
+                  </View>
+                  <Text style={styles.mutedSmall}>
+                    Show at the counter to redeem perks and stamps.
+                  </Text>
+                  <View style={{ marginTop: 12 }}>
+                    <GlowingGlassButton
+                      text="Add to Wallet"
+                      variant="dark"
+                      onPress={handleAddToWallet}
+                    />
+                  </View>
+                </View>
+
+                {vouchers.map(code => (
+                  <View key={code} style={[styles.card, styles.qrCard, styles.voucherCard]}>
+                    <Text style={[styles.cardTitle, styles.voucherTitle]}>Drink voucher</Text>
                     <View style={styles.qrWrap}>
                       <QRCode value={code} size={180} />
                     </View>
-                    <Text
-                      style={[
-                        styles.mutedSmall,
-                        idx > 0 && styles.voucherText,
-                      ]}
-                    >
-                      {idx === 0
-                        ? 'Show at the counter to redeem perks and stamps.'
-                        : 'Show at the counter to redeem.'}
+                    <Text style={[styles.mutedSmall, styles.voucherText]}>
+                      Show at the counter to redeem.
                     </Text>
-                    {idx === 0 && (
-                      <View style={{ marginTop: 12 }}>
-                        <GlowingGlassButton
-                          text="Add to Wallet"
-                          variant="dark"
-                          onPress={handleAddToWallet}
-                        />
-                      </View>
-                    )}
                   </View>
                 ))}
-              </ScrollView>
+              </PagerView>
               {totalPages > 1 && (
                 <>
                   <Text style={styles.swipePrompt}>Swipe to see your drink vouchers</Text>
@@ -224,19 +181,19 @@ export default function MembershipScreen({ navigation }) {
               )}
             </View>
 
-            {(summary.tier === 'paid' || stats.freebiesLeft > 0) && (
+            {(summary.tier === 'paid' || (stats?.freebiesLeft ?? 0) > 0) && (
               <View style={{ marginTop: 14 }}>
-                <FreeDrinksCounter count={stats.freebiesLeft} />
+                <FreeDrinksCounter count={stats?.freebiesLeft ?? 0} />
               </View>
             )}
 
             <View style={{ marginTop: 14 }}>
-              <LoyaltyStampTile count={stats.loyaltyStamps} />
+              <LoyaltyStampTile count={stats?.loyaltyStamps ?? 0} />
             </View>
 
             {summary.tier === 'paid' ? (
               <View style={styles.gridRow}>
-                <Stat label="Dividends pending" value={Number(stats.dividendsPending).toFixed(2)} prefix="£" />
+                <Stat label="Dividends pending" value={Number(stats?.dividendsPending || 0).toFixed(2)} prefix="£" />
                 <Stat label="Pay-it-forward" value={(pifSelfCents / 100).toFixed(2)} prefix="£" />
               </View>
             ) : (
@@ -350,7 +307,6 @@ const styles = StyleSheet.create({
   notice: { backgroundColor: palette.paper, borderColor: palette.border, borderWidth: 1, borderRadius: 10, padding: 10, marginTop: 12, textAlign: 'center', color: palette.clay, fontFamily: 'Fraunces_700Bold' },
 
   qrWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: 12, height: 260 },
-  carousel: { height: 420, width: '100%' },
   qrCard: { marginTop: 0, flex: 1 },
   voucherCard: { backgroundColor: palette.coffee, borderColor: palette.coffee },
   voucherTitle: { color: palette.cream },
