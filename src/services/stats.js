@@ -25,8 +25,6 @@ export async function getMyStats() {
     const [
       { data: profile },
       { data: statsData, error: statsError },
-      { count: voucherCount, error: voucherError },
-      { data: stampRows, error: stampError },
     ] = await Promise.all([
       supabase
         .from('profiles')
@@ -34,31 +32,12 @@ export async function getMyStats() {
         .eq('user_id', session.user.id)
         .maybeSingle(),
       supabase.functions.invoke('me-stats', { body: {} }),
-        supabase
-          .from('drink_vouchers')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', session.user.id)
-          .or('redeemed.eq.false,redeemed.is.null'),
-      supabase
-        .from('loyalty_stamps')
-        .select('stamps')
-        .eq('user_id', session.user.id),
     ]);
 
-    if (voucherError) {
-      console.error('Error fetching drink_vouchers:', voucherError);
-    }
-    if (stampError) {
-      console.error('Error fetching loyalty_stamps:', stampError);
-    }
-
     const edgeStats = statsError ? {} : statsData || {};
-    const freebiesLeft =
-      (profile?.free_drinks ?? 0) + (voucherError ? 0 : (voucherCount ?? 0));
+    const freebiesLeft = (profile?.free_drinks ?? 0) + (edgeStats.freebiesLeft ?? 0);
     const dividendsPending = edgeStats.dividendsPending ?? 0;
-    const loyaltyStamps =
-      (edgeStats.loyaltyStamps ?? edgeStats.discountUses ?? 0) +
-      (stampError ? 0 : (stampRows ?? []).reduce((sum, r) => sum + (r.stamps || 0), 0));
+    const loyaltyStamps = edgeStats.loyaltyStamps ?? edgeStats.discountUses ?? 0;
     const payItForwardContrib = edgeStats.payItForwardContrib ?? 0;
     const communityContrib = edgeStats.communityContrib ?? 0;
     const discountCredits = profile?.discount_credits ?? 0;
