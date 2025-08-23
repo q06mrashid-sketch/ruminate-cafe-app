@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScrollView, View, Text, StyleSheet, Share, Pressable, Alert } from 'react-native';
 import * as Sharing from 'expo-sharing';
@@ -31,14 +31,15 @@ export default function MembershipScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const [summary, setSummary] = useState({ signedIn: false, tier: 'free', status: 'none', next_billing_at: null });
   const [pifSelfCents, setPifSelfCents] = useState(0);
-  const [stats, setStats] = useState(null);
+  const [stats, setStats] = useState({ freebiesLeft: 0, dividendsPending: 0, loyaltyStamps: 0 });
   const [vouchers, setVouchers] = useState([]);
   const [page, setPage] = useState(0);
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
 
   const memberPayload = user ? `ruminate:${user.id}` : 'ruminate:member';
-  const totalPages = 1 + vouchers.length;
+  const pages = useMemo(() => [memberPayload, ...vouchers], [memberPayload, vouchers]);
+  const totalPages = pages.length;
 
   const refresh = useCallback(async () => {
     try { const m = await getMembershipSummary(); if (m) setSummary(m); } catch {}
@@ -53,13 +54,10 @@ export default function MembershipScreen({ navigation }) {
         setSession(null);
         setUser(null);
       }
-    } else {
-      setSession(null);
-      setUser(null);
     }
     try {
       const s = await getMyStats(token);
-      setStats({ loyaltyStamps: s.loyaltyStamps, freebiesLeft: s.freebiesLeft });
+      setStats(prev => ({ ...prev, freebiesLeft: s.freebiesLeft, loyaltyStamps: s.loyaltyStamps }));
       setVouchers(Array.from(new Set((s.vouchers || []).filter(Boolean))));
       globalThis.freebiesLeft = s.freebiesLeft;
       globalThis.loyaltyStamps = s.loyaltyStamps;
@@ -74,6 +72,7 @@ export default function MembershipScreen({ navigation }) {
     });
     refresh();
   }, [refresh]);
+
   useFocusEffect(useCallback(() => { let on = true; (async()=>{ if(on) await refresh(); })(); return () => { on = false; }; }, [refresh]));
 
   useEffect(()=>{ 
@@ -132,37 +131,50 @@ export default function MembershipScreen({ navigation }) {
 
             <View style={{ marginTop: 14 }}>
               <PagerView
-                style={{ height: 440, width: '100%' }}
+                style={styles.carousel}
                 initialPage={0}
                 key={`pv-${vouchers.length}`}
-                onPageSelected={e => setPage(e.nativeEvent.position)}
+                onPageSelected={(e) => setPage(e.nativeEvent.position)}
               >
-                <View key="member" style={[styles.card, styles.qrCard]}>
-                  <Text style={styles.cardTitle}>Your QR</Text>
-                  <View style={styles.qrWrap}>
-                    <QRCode value={memberPayload} size={180} />
-                  </View>
-                  <Text style={styles.mutedSmall}>
-                    Show at the counter to redeem perks and stamps.
-                  </Text>
-                  <View style={{ marginTop: 12 }}>
-                    <GlowingGlassButton
-                      text="Add to Wallet"
-                      variant="dark"
-                      onPress={handleAddToWallet}
-                    />
-                  </View>
-                </View>
-
-                {vouchers.map(code => (
-                  <View key={code} style={[styles.card, styles.qrCard, styles.voucherCard]}>
-                    <Text style={[styles.cardTitle, styles.voucherTitle]}>Drink voucher</Text>
+                {pages.map((code, idx) => (
+                  <View
+                    key={idx === 0 ? 'member' : code}
+                    style={[
+                      styles.card,
+                      styles.qrCard,
+                      idx > 0 && styles.voucherCard,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.cardTitle,
+                        idx > 0 && styles.voucherTitle,
+                      ]}
+                    >
+                      {idx === 0 ? 'Your QR' : 'Free Drink Voucher'}
+                    </Text>
                     <View style={styles.qrWrap}>
                       <QRCode value={code} size={180} />
                     </View>
-                    <Text style={[styles.mutedSmall, styles.voucherText]}>
-                      Show at the counter to redeem.
+                    <Text
+                      style={[
+                        styles.mutedSmall,
+                        idx > 0 && styles.voucherText,
+                      ]}
+                    >
+                      {idx === 0
+                        ? 'Show at the counter to receive stamps.'
+                        : 'Show at the counter to redeem.'}
                     </Text>
+                    {idx === 0 && (
+                      <View style={{ marginTop: 12 }}>
+                        <GlowingGlassButton
+                          text="Add to Wallet"
+                          variant="dark"
+                          onPress={handleAddToWallet}
+                        />
+                      </View>
+                    )}
                   </View>
                 ))}
               </PagerView>
