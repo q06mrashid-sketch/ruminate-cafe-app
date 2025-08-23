@@ -22,7 +22,6 @@ export async function findUserIdByEmail(supabase, email) {
     // Fallback for environments where auth.users isn't exposed
     return findUserIdByEmailFallback(supabase, email);
   }
-}
 
 export async function findUserIdByEmailFallback(supabase, email) {
   let page = 1;
