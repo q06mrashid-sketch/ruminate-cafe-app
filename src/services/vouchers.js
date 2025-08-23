@@ -1,12 +1,12 @@
 import { supabase, hasSupabase } from '../lib/supabase';
 
-export async function syncVouchers(freebiesLeft) {
+export async function syncVouchers() {
   if (!hasSupabase || !supabase) {
     return [];
   }
   try {
-    const { data } = await supabase.functions.invoke('vouchers-sync', { body: { freebiesLeft } });
-    return data?.codes ?? [];
+    const { data } = await supabase.functions.invoke('vouchers-sync', { body: {} });
+    return data?.vouchers ?? [];
   } catch {
     return [];
   }
