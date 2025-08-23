@@ -58,12 +58,22 @@ export default function MembershipScreen({ navigation }) {
           try {
             const qrs = await getMemberQRCodes(usr.id);
             setPayload(qrs.payload);
-            setVouchers(qrs.vouchers || []);
+            setVouchers((prev) => (
+              Array.isArray(qrs.vouchers) && qrs.vouchers.length > 0
+                ? qrs.vouchers
+                : prev
+            ));
             setStats((st) => {
-              const voucherCount = qrs.vouchers ? qrs.vouchers.length : 0;
-              const updated = { ...st, freebiesLeft: voucherCount };
-              globalThis.freebiesLeft = updated.freebiesLeft;
-              return updated;
+              const voucherCount =
+                Array.isArray(qrs.vouchers) && qrs.vouchers.length > 0
+                  ? qrs.vouchers.length
+                  : null;
+              const freebiesLeft =
+                voucherCount !== null
+                  ? voucherCount
+                  : st.freebiesLeft;
+              globalThis.freebiesLeft = freebiesLeft;
+              return { ...st, freebiesLeft };
             });
           } catch {}
         } else {
