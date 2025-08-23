@@ -14,6 +14,7 @@ import { getFundCurrent, getFundProgress } from '../services/community';
 import { getToday, getPayItForward, openInstagramProfile, getWeeklyHours, getLatestInstagramPost } from '../services/homeData';
 import { getMyStats } from '../services/stats';
 import { getCMS } from '../services/cms';
+import { redeemLoyaltyReward } from '../services/loyalty';
 import logo from '../../assets/logo.png';
 
 function ProgressBar({ value, max, tint = palette.clay, track = '#EED8C4' }) {
@@ -114,6 +115,23 @@ export default function HomeScreen({ navigation }) {
       Animated.timing(quoteOpacity, { toValue: 1, duration: 1000, useNativeDriver: true }).start();
     }
   }, [signedIn]);
+
+  useEffect(() => {
+    if (loyalty.current >= 8) {
+      (async () => {
+        try { await redeemLoyaltyReward(); } catch {}
+        try {
+          const stats = await getMyStats();
+          const freebies = stats.freebiesLeft || 0;
+          const stamps = stats.loyaltyStamps || 0;
+          setFreebiesLeft(freebies);
+          setLoyalty({ current: stamps, target: 8 });
+          globalThis.freebiesLeft = freebies;
+          globalThis.loyaltyStamps = stamps;
+        } catch {}
+      })();
+    }
+  }, [loyalty.current]);
 
   return (
     <SafeAreaView style={styles.container} edges={['left','right']}>
