@@ -7,30 +7,25 @@ if (!email) {
   process.exit(1);
 }
 
-const url = process.env.SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://eamewialuovzguldcdcf.supabase.co';
+const url = process.env.SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
-if (!serviceKey) {
-  console.error('Missing SUPABASE_SERVICE_ROLE_KEY.');
+if (!url || !serviceKey) {
+  console.error('Missing Supabase environment variables.');
   process.exit(1);
 }
 
-const admin = createClient(url, serviceKey);
+const supabase = createClient(url, serviceKey);
 
-(async () => {
-  const {
-    data: { users },
-    error: userErr,
-  } = await admin.auth.admin.listUsers({ email });
-  const user = users && users.length ? users[0] : null;
-  if (userErr || !user) {
-    console.error('User not found.');
-    process.exit(1);
-  }
+try {
+  const { data: { user } } = await supabase.auth.admin.getUserByEmail(email);
+  if (!user) throw new Error('User not found');
   const userId = user.id;
 
-  await admin.from('drink_vouchers').delete().eq('user_id', userId);
-  await admin.from('loyalty_stamps').delete().eq('user_id', userId);
-  await admin.from('profiles').upsert({ user_id: userId, free_drinks: 0 });
+  await supabase.from('loyalty_stamps').delete().eq('user_id', userId);
+  await supabase.from('drink_vouchers').delete().eq('user_id', userId).eq('redeemed', false);
 
-  console.log(`Reset free drinks and loyalty stamps for ${email}`);
-})();
+  console.log(JSON.stringify({ stamps: 0, vouchersUnredeemed: 0 }, null, 2));
+} catch (err) {
+  console.error(err.message);
+  process.exit(1);
+}
