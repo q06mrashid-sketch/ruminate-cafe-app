@@ -30,7 +30,7 @@ const admin = createClient(url, serviceKey);
 
   await admin.from('drink_vouchers').delete().eq('user_id', userId);
   await admin.from('loyalty_stamps').delete().eq('user_id', userId);
-  await admin.from('profiles').update({ free_drinks: 0 }).eq('user_id', userId);
+  await admin.from('profiles').upsert({ user_id: userId, free_drinks: 0 });
 
   console.log(`Reset free drinks and loyalty stamps for ${email}`);
 })();
