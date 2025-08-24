@@ -68,9 +68,8 @@ export default function MembershipScreen({ navigation }) {
   useFocusEffect(useCallback(() => { let on = true; (async()=>{ if(on) await refresh(); })(); return () => { on = false; }; }, [refresh]));
 
   useEffect(() => {
-    const codes = Array.isArray(stats.vouchers) ? stats.vouchers : [];
-    setVouchers(codes.slice(0, stats?.freebiesLeft || codes.length));
-  }, [stats.vouchers, stats.freebiesLeft]);
+    setVouchers(Array.isArray(stats.vouchers) ? stats.vouchers : []);
+  }, [stats.vouchers]);
 
   useEffect(() => {
     if (page > totalPages - 1) {
