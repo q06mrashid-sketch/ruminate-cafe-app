@@ -39,7 +39,7 @@ export default function MembershipScreen({ navigation }) {
 
   const memberPayload = user ? `ruminate:${user.id}` : 'ruminate:member';
 
-  const totalPages = 1 + (stats.vouchers?.length || 0);
+  const totalPages = 1 + (stats?.freebiesLeft || 0);
 
   const refresh = useCallback(async () => {
     try { const m = await getMembershipSummary(); if (m) setSummary(m); } catch {}
@@ -68,8 +68,9 @@ export default function MembershipScreen({ navigation }) {
   useFocusEffect(useCallback(() => { let on = true; (async()=>{ if(on) await refresh(); })(); return () => { on = false; }; }, [refresh]));
 
   useEffect(() => {
-    setVouchers(Array.isArray(stats.vouchers) ? stats.vouchers : []);
-  }, [stats.vouchers]);
+    const codes = Array.isArray(stats.vouchers) ? stats.vouchers : [];
+    setVouchers(codes.slice(0, stats?.freebiesLeft || codes.length));
+  }, [stats.vouchers, stats.freebiesLeft]);
 
   useEffect(() => {
     if (page > totalPages - 1) {

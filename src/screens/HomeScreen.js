@@ -59,7 +59,6 @@ export default function HomeScreen({ navigation }) {
         const s = await getMyStats();
         if (mounted) {
           setStats(s);
-          console.log('stats', s);
         }
       } catch {}
       try { const ig = await getLatestInstagramPost(); if (mounted) setIgPost(ig); } catch {}
