@@ -49,6 +49,7 @@ Deno.serve(async (req) => {
     );
   } catch (e) {
     console.error('me-stats failure', e);
+
     return new Response(JSON.stringify({ error: String(e) }), { status: 500 });
   }
 });
