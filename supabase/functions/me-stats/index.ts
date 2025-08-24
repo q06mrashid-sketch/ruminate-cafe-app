@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { normalizeRewards } from '../_shared/rewards.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -24,30 +25,9 @@ Deno.serve(async (req) => {
     console.log('Resolved userId', userId);
 
     const db = createClient(url, service, { auth: { persistSession: false } });
+    const stats = await normalizeRewards(db, userId);
 
-    const { data: sumRows, error: sumErr } = await db
-      .from('loyalty_stamps')
-      .select('sum(stamps)')
-      .eq('user_id', userId);
-    if (sumErr) throw sumErr;
-    const totalStamps = Number(sumRows?.[0]?.sum ?? 0);
-    const remainder = totalStamps % 8;
-
-    const { data: voucherRows, error: vErr } = await db
-      .from('drink_vouchers')
-      .select('code')
-      .eq('user_id', userId)
-      .eq('redeemed', false)
-      .order('created_at', { ascending: true });
-    if (vErr) throw vErr;
-    const vouchers = (voucherRows || []).map(v => v.code);
-    const res = {
-      loyaltyStamps: remainder,
-      freebiesLeft: vouchers.length,
-      vouchers,
-    };
-
-    return new Response(JSON.stringify(res), {
+    return new Response(JSON.stringify(stats), {
       headers: { 'content-type': 'application/json' },
     });
   } catch (e) {
