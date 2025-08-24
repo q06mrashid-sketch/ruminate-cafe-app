@@ -8,7 +8,6 @@ Deno.serve(async (req) => {
     const service = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
     const authHeader = req.headers.get('Authorization') || '';
-    console.log('Auth header', authHeader);
     const token = authHeader.startsWith('Bearer ')
       ? authHeader.slice(7)
       : null;
@@ -22,13 +21,11 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
     }
     const userId = auth.user.id;
-    console.log('Resolved userId', userId);
 
     const db = createClient(url, service, { auth: { persistSession: false } });
     const stats = await normalizeRewards(db, userId);
 
     return new Response(JSON.stringify(stats), {
-
       headers: { 'content-type': 'application/json' },
     });
   } catch (e) {
