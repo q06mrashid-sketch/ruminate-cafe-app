@@ -3,12 +3,14 @@ import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 export async function normalizeRewards(admin: SupabaseClient, userId: string) {
   const { count: totalStamps, error: stampErr } = await admin
     .from("loyalty_stamps")
+
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId);
   if (stampErr) throw stampErr;
 
   const { count: totalVouchers, error: voucherCountErr } = await admin
     .from("drink_vouchers")
+
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId);
   if (voucherCountErr) throw voucherCountErr;
@@ -23,12 +25,12 @@ export async function normalizeRewards(admin: SupabaseClient, userId: string) {
 
   const shouldExist = Math.floor((totalStamps ?? 0) / 8);
   const toMint = Math.max(0, shouldExist - (totalVouchers ?? 0));
-
   if (toMint > 0) {
     const inserts = Array.from({ length: toMint }, () => ({
       user_id: userId,
       code: crypto.randomUUID(),
     }));
+
     const { error: insertErr } = await admin.from("drink_vouchers").insert(inserts);
     if (insertErr) throw insertErr;
 
@@ -51,11 +53,14 @@ export async function normalizeRewards(admin: SupabaseClient, userId: string) {
     toMint,
     remainder,
     freebiesLeft: unredeemed?.length ?? 0,
+
   });
 
   return {
     loyaltyStamps: remainder,
     freebiesLeft: unredeemed?.length ?? 0,
+
     vouchers: (unredeemed ?? []).map(v => v.code),
+
   };
 }

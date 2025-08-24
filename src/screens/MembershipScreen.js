@@ -41,6 +41,7 @@ export default function MembershipScreen({ navigation }) {
   const [session, setSession] = useState(null);
 
   const memberPayload = user ? `ruminate:${user.id}` : 'ruminate:member';
+
   const totalPages = 1 + vouchers.length;
 
   const refresh = useCallback(async () => {
@@ -56,21 +57,21 @@ export default function MembershipScreen({ navigation }) {
         setSession(null);
         setUser(null);
       }
-    } else {
-      setSession(null);
-      setUser(null);
     }
     try {
       const s = await getMyStats(token);
+
       if (s.loyaltyStamps < 0 || s.loyaltyStamps > 7) {
         console.warn('[MEMBERSHIP] loyaltyStamps out of range', s.loyaltyStamps);
       }
       setStats({ loyaltyStamps: s.loyaltyStamps, freebiesLeft: s.freebiesLeft });
+
       setVouchers(Array.from(new Set((s.vouchers || []).filter(Boolean))));
       globalThis.freebiesLeft = s.freebiesLeft;
       globalThis.loyaltyStamps = s.loyaltyStamps;
     } catch {}
   }, []);
+
 
 
   useEffect(() => { refresh(); }, [refresh]);
@@ -132,6 +133,7 @@ export default function MembershipScreen({ navigation }) {
 
             <View style={{ marginTop: 14 }}>
               <PagerView
+
                 style={{ height: 440, width: '100%' }}
                 initialPage={0}
                 key={`pv-${user?.id}-${vouchers.length}`}
@@ -143,7 +145,7 @@ export default function MembershipScreen({ navigation }) {
                     <QRCode value={memberPayload} size={180} />
                   </View>
                   <Text style={styles.mutedSmall}>
-                    Show at the counter to redeem perks and stamps.
+                    Show at the counter to collect stamps.
                   </Text>
                   <View style={{ marginTop: 12 }}>
                     <GlowingGlassButton
