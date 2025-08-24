@@ -72,6 +72,7 @@ export default function MembershipScreen({ navigation }) {
       globalThis.freebiesLeft = s.freebiesLeft;
       globalThis.loyaltyStamps = s.loyaltyStamps;
 
+
       let codes = Array.isArray(s.vouchers)
         ? s.vouchers.map(c => `ruminate:voucher:${c}`)
         : [];
