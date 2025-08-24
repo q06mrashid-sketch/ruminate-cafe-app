@@ -65,6 +65,7 @@ export default function MembershipScreen({ navigation }) {
       }
       setStats(s);
       setVouchers(Array.isArray(s.vouchers) ? s.vouchers.slice(0, s.freebiesLeft) : []);
+
     } catch {}
   }, []);
 
