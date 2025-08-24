@@ -31,10 +31,7 @@ export default function MembershipScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const [summary, setSummary] = useState({ signedIn: false, tier: 'free', status: 'none', next_billing_at: null });
   const [pifSelfCents, setPifSelfCents] = useState(0);
-  const [stats, setStats] = useState({
-    loyaltyStamps: globalThis.loyaltyStamps ?? 0,
-    freebiesLeft: globalThis.freebiesLeft ?? 0,
-  });
+  const [stats, setStats] = useState({ loyaltyStamps: 0, freebiesLeft: 0, vouchers: [] });
   const [vouchers, setVouchers] = useState([]);
   const [page, setPage] = useState(0);
   const [user, setUser] = useState(null);
@@ -46,29 +43,22 @@ export default function MembershipScreen({ navigation }) {
 
   const refresh = useCallback(async () => {
     try { const m = await getMembershipSummary(); if (m) setSummary(m); } catch {}
-    let token = '';
     if (supabase) {
       try {
         const { data: { session: sess } } = await supabase.auth.getSession();
         setSession(sess);
         setUser(sess?.user || null);
-        token = sess?.access_token || '';
       } catch {
         setSession(null);
         setUser(null);
       }
     }
     try {
-      const s = await getMyStats(token);
-
+      const s = await getMyStats();
       if (s.loyaltyStamps < 0 || s.loyaltyStamps > 7) {
         console.warn('[MEMBERSHIP] loyaltyStamps out of range', s.loyaltyStamps);
       }
-      setStats({ loyaltyStamps: s.loyaltyStamps, freebiesLeft: s.freebiesLeft });
-
-      setVouchers(Array.from(new Set((s.vouchers || []).filter(Boolean))));
-      globalThis.freebiesLeft = s.freebiesLeft;
-      globalThis.loyaltyStamps = s.loyaltyStamps;
+      setStats(s);
     } catch {}
   }, []);
 
@@ -77,22 +67,26 @@ export default function MembershipScreen({ navigation }) {
   useEffect(() => { refresh(); }, [refresh]);
   useFocusEffect(useCallback(() => { let on = true; (async()=>{ if(on) await refresh(); })(); return () => { on = false; }; }, [refresh]));
 
-  useEffect(()=>{ 
+  useEffect(() => {
+    setVouchers(Array.isArray(stats.vouchers) ? stats.vouchers : []);
+  }, [stats.vouchers]);
+
+  useEffect(() => {
+    if (page > totalPages - 1) {
+      setPage(Math.max(0, totalPages - 1));
+    }
+  }, [totalPages, page]);
+
+  useEffect(()=>{
     let m=true; 
-    const email=(typeof user!=='undefined'&&user&&user.email)
-      ? user.email
-      : (summary && summary.user && summary.user.email)
-      ? summary.user.email
-      : (globalThis && globalThis.auth && globalThis.auth.user && globalThis.auth.user.email)
-      ? globalThis.auth.user.email
-      : null; 
+    const email = user?.email || summary?.user?.email || null;
     if (!email) { setPifSelfCents(0); return; } 
     getPIFByEmail(email).then(r => { if (m) setPifSelfCents(Number(r.total_cents) || 0); }).catch(() => { if (m) setPifSelfCents(0); }); 
     return () => { m = false }; 
   }, [user, summary]);
 
   const [notice, setNotice] = useState('');
-  const prevFreebies = useRef(globalThis.lastFreebiesLeft ?? 0);
+  const prevFreebies = useRef(0);
 
   useEffect(() => {
     const prev = prevFreebies.current;
@@ -102,11 +96,9 @@ export default function MembershipScreen({ navigation }) {
       setNotice("You've earned a free drink!");
       const timeoutId = setTimeout(() => setNotice(''), 4000);
       prevFreebies.current = curr;
-      globalThis.lastFreebiesLeft = curr;
       return () => clearTimeout(timeoutId);
     }
     prevFreebies.current = curr;
-    globalThis.lastFreebiesLeft = curr;
     if (curr === 0) setNotice('');
   }, [stats?.freebiesLeft]);
 
@@ -135,7 +127,6 @@ export default function MembershipScreen({ navigation }) {
               <PagerView
                 style={{ height: 440, width: '100%' }}
                 initialPage={0}
-                key={`pv-${user?.id}-${vouchers.length}`}
                 onPageSelected={e => setPage(e.nativeEvent.position)}
               >
                 <View key="member" style={[styles.card, styles.qrCard]}>

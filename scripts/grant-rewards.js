@@ -9,20 +9,20 @@ if (!email) {
   process.exit(1);
 }
 
-const drinks = Number(freeDrinksArg || 0);
-const stamps = Number(stampsArg || 0);
+const freeDrinksToAdd = Number(freeDrinksArg || 0);
+const stampsToAdd = Number(stampsArg || 0);
 
 const url = process.env.SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!url || !key) throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
-const admin = createClient(url, key, { auth: { persistSession: false } });
+const supabase = createClient(url, key, { auth: { persistSession: false } });
 
 async function getUserByEmailOrList(email) {
   const hasGetByEmail =
-    admin?.auth?.admin && typeof admin.auth.admin.getUserByEmail === 'function';
+    supabase?.auth?.admin && typeof supabase.auth.admin.getUserByEmail === 'function';
 
   if (hasGetByEmail) {
-    const { data, error } = await admin.auth.admin.getUserByEmail(email);
+    const { data, error } = await supabase.auth.admin.getUserByEmail(email);
     if (error) throw error;
     if (!data?.user) throw new Error(`User not found for ${email}`);
     return data.user;
@@ -30,7 +30,7 @@ async function getUserByEmailOrList(email) {
 
   let page = 1;
   for (;;) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
     if (error) throw error;
     const hit = data?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
     if (hit) return hit;
@@ -41,25 +41,26 @@ async function getUserByEmailOrList(email) {
 }
 
 const user = await getUserByEmailOrList(email);
+const uid = user.id;
 
-if (stamps > 0) {
-  const rows = Array.from({ length: stamps }, () => ({
-    user_id: user.id,
-    stamps: 1,
-  }));
-  const { error } = await admin.from('loyalty_stamps').insert(rows);
+if (stampsToAdd > 0) {
+  const { error } = await supabase
+    .from('loyalty_stamps')
+    .insert([{ user_id: uid, stamps: Number(stampsToAdd) }], { returning: 'minimal' });
   if (error) throw error;
 }
 
-if (drinks > 0) {
-  const rows = Array.from({ length: drinks }, () => ({
-    user_id: user.id,
+if (freeDrinksToAdd > 0) {
+  const rows = Array.from({ length: freeDrinksToAdd }, () => ({
+    user_id: uid,
     code: crypto.randomUUID(),
-    redeemed: false,
+    redeemed: false
   }));
-  const { error } = await admin.from('drink_vouchers').insert(rows);
+  const { error } = await supabase
+    .from('drink_vouchers')
+    .insert(rows, { returning: 'minimal' });
   if (error) throw error;
 }
 
-console.log(`[SCRIPT] Granted ${drinks} free drinks and ${stamps} loyalty stamps to ${email}`);
+console.log(`[SCRIPT] Granted ${freeDrinksToAdd} free drinks and ${stampsToAdd} loyalty stamps to ${email}`);
 
