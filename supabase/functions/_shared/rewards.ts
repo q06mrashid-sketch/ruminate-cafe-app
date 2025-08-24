@@ -1,6 +1,7 @@
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 export async function normalizeRewards(admin: SupabaseClient, userId: string) {
+
   const { data: stampAgg, error: stampErr } = await admin
     .from("loyalty_stamps")
     .select("sum:stamps")
@@ -26,11 +27,15 @@ export async function normalizeRewards(admin: SupabaseClient, userId: string) {
   const shouldExist = Math.floor(totalStamps / 8);
   const toMint = Math.max(0, shouldExist - (totalVouchers ?? 0));
 
+
+  const shouldExist = Math.floor((totalStamps ?? 0) / 8);
+  const toMint = Math.max(0, shouldExist - (totalVouchers ?? 0));
   if (toMint > 0) {
     const inserts = Array.from({ length: toMint }, () => ({
       user_id: userId,
       code: crypto.randomUUID(),
     }));
+
     const { error: insertErr } = await admin.from("drink_vouchers").insert(inserts);
     if (insertErr) throw insertErr;
 
@@ -43,6 +48,7 @@ export async function normalizeRewards(admin: SupabaseClient, userId: string) {
     if (refreshErr) throw refreshErr;
     unredeemed = refreshed ?? [];
   }
+
 
   const remainder = totalStamps % 8;
 
