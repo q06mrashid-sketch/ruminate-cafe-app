@@ -40,6 +40,7 @@ export default function MembershipScreen({ navigation }) {
   const [session, setSession] = useState(null);
   const pagerRef = useRef(null);
 
+
   const vouchers = React.useMemo(() => {
     if (Array.isArray(stats?.vouchers) && stats.vouchers.length) {
       return stats.vouchers.map(code => ({ id: code, code, used: false, expiresAt: null }));
@@ -64,7 +65,6 @@ export default function MembershipScreen({ navigation }) {
   , [vouchers, isExpired]);
 
   const totalPages = 1 + visibleVouchers.length;
-
   const refresh = useCallback(async () => {
     try { const m = await getMembershipSummary(); if (m) setSummary(m); } catch {}
     let uid = null;
@@ -94,7 +94,6 @@ export default function MembershipScreen({ navigation }) {
       setStats(s);
       globalThis.freebiesLeft = s.freebiesLeft;
       globalThis.loyaltyStamps = s.loyaltyStamps;
-
       if (uid) {
         setMemberPayload(`ruminate:member:${uid}`);
         try {
@@ -104,7 +103,6 @@ export default function MembershipScreen({ navigation }) {
       } else {
         setMemberPayload('ruminate:member');
       }
-
     } catch {}
   }, []);
 
