@@ -58,11 +58,9 @@ export default function HomeScreen({ navigation }) {
       try { const f = await getFundCurrent(); if (mounted && f) setFund(f); } catch {}
       try { const t = await getToday(); if (mounted) setToday(t); } catch {}
       try { const s = await getPIFStats(); if (mounted) setPif(s); } catch {}
-      let token = '';
-      if (supabase) {
-        try { const { data: { session } } = await supabase.auth.getSession(); token = session?.access_token || ''; } catch {}
-      }
-      try {        const stats = await getMyStats(token);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const stats = await getMyStats(session?.access_token);
         if (mounted) {
           const freebies = stats.freebiesLeft || 0;
           const stamps = stats.loyaltyStamps || 0;
