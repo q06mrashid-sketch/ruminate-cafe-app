@@ -55,17 +55,17 @@ export default function MembershipScreen({ navigation }) {
       }
     }
     try {
-      const s = await getMyStats();
+      let s = await getMyStats();
+      if (s.freebiesLeft > 0 && (!Array.isArray(s.vouchers) || s.vouchers.length !== s.freebiesLeft)) {
+        await syncVouchers();
+        s = await getMyStats();
+      }
       if (s.loyaltyStamps < 0 || s.loyaltyStamps > 7) {
         console.warn('[MEMBERSHIP] loyaltyStamps out of range', s.loyaltyStamps);
       }
       setStats(s);
-      if (s.freebiesLeft > 0) {
-        let codes = Array.isArray(s.vouchers) && s.vouchers.length === s.freebiesLeft ? s.vouchers : await syncVouchers();
-        setVouchers(Array.isArray(codes) ? codes.slice(0, s.freebiesLeft) : []);
-      } else {
-        setVouchers([]);
-      }
+      setVouchers(Array.isArray(s.vouchers) ? s.vouchers.slice(0, s.freebiesLeft) : []);
+
     } catch {}
   }, []);
 
@@ -128,7 +128,7 @@ export default function MembershipScreen({ navigation }) {
 
             <View style={{ marginTop: 14 }}>
               <PagerView
-                key={vouchers.join(',')}
+                key={JSON.stringify(vouchers)}
                 style={{ height: 440, width: '100%' }}
                 initialPage={0}
                 onPageSelected={e => setPage(e.nativeEvent.position)}
