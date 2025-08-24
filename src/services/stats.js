@@ -1,11 +1,9 @@
 import { supabase } from '../lib/supabase';
 import Constants from 'expo-constants';
 
-
 export async function getMyStats() {
   try {
     const { data: { session } } = await supabase.auth.getSession();
-
     console.log('session user', session?.user?.id, session?.user?.email);
 
     if (!session?.access_token) return { loyaltyStamps: 0, freebiesLeft: 0, vouchers: [] };
@@ -29,7 +27,7 @@ export async function getMyStats() {
       return { loyaltyStamps: 0, freebiesLeft: 0, vouchers: [] };
     }
 
-
+    const url = `${base.replace(/\/$/, '')}/me-stats`;
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${session.access_token}` }
     });

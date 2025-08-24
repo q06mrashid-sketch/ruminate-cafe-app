@@ -25,13 +25,13 @@ Deno.serve(async (req) => {
 
     const db = createClient(url, service, { auth: { persistSession: false } });
 
-    const { data: sumRow, error: sumErr } = await db
+    const { data: sumRows, error: sumErr } = await db
       .from('loyalty_stamps')
-      .select('sum:stamps')
-      .eq('user_id', userId)
-      .single();
+      .select('sum(stamps)')
+      .eq('user_id', userId);
     if (sumErr) throw sumErr;
-    const totalStamps = Number(sumRow?.sum ?? 0);
+    const totalStamps = Number(sumRows?.[0]?.sum ?? 0);
+
     const remainder = totalStamps % 8;
 
     const { data: voucherRows, error: vErr } = await db
