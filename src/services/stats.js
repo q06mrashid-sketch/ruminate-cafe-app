@@ -28,8 +28,14 @@ export async function getMyStats() {
     }
 
     const url = `${base.replace(/\/$/, '')}/me-stats`;
+
     const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${session.access_token}` }
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json'
+      },
+      body: '{}'
     });
 
     const text = await res.text();
@@ -46,12 +52,10 @@ export async function getMyStats() {
     return {
       loyaltyStamps: Number(json?.loyaltyStamps ?? 0),
       freebiesLeft: Number(json?.freebiesLeft ?? 0),
-
       vouchers: Array.isArray(json?.vouchers) ? json.vouchers.filter(Boolean) : []
     };
   } catch (e) {
     console.error('getMyStats failed', e);
-
     return { loyaltyStamps: 0, freebiesLeft: 0, vouchers: [] };
   }
 }
