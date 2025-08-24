@@ -147,7 +147,7 @@ export default function MembershipScreen({ navigation }) {
                   </View>
                 </View>
 
-                {vouchers.map(code => (
+                {stats.vouchers.map(code => (
                   <View key={code} style={[styles.card, styles.qrCard, styles.voucherCard]}>
                     <Text style={[styles.cardTitle, styles.voucherTitle]}>Drink voucher</Text>
                     <View style={styles.qrWrap}>
