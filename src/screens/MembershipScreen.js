@@ -11,6 +11,7 @@ import { palette } from '../design/theme';
 import { supabase } from '../lib/supabase';
 import { getMembershipSummary } from '../services/membership';
 import { getMyStats } from '../services/stats';
+import { syncVouchers } from '../services/vouchers';
 import GlowingGlassButton from '../components/GlowingGlassButton';
 import { getPIFByEmail } from '../services/pif';
 import { createReferral } from '../services/referral';
@@ -59,6 +60,12 @@ export default function MembershipScreen({ navigation }) {
         console.warn('[MEMBERSHIP] loyaltyStamps out of range', s.loyaltyStamps);
       }
       setStats(s);
+      if (s.freebiesLeft > 0) {
+        let codes = Array.isArray(s.vouchers) && s.vouchers.length === s.freebiesLeft ? s.vouchers : await syncVouchers();
+        setVouchers(Array.isArray(codes) ? codes.slice(0, s.freebiesLeft) : []);
+      } else {
+        setVouchers([]);
+      }
     } catch {}
   }, []);
 
@@ -66,10 +73,6 @@ export default function MembershipScreen({ navigation }) {
 
   useEffect(() => { refresh(); }, [refresh]);
   useFocusEffect(useCallback(() => { let on = true; (async()=>{ if(on) await refresh(); })(); return () => { on = false; }; }, [refresh]));
-
-  useEffect(() => {
-    setVouchers(Array.isArray(stats.vouchers) ? [...stats.vouchers] : []);
-  }, [stats.vouchers]);
 
   useEffect(() => {
     if (page > totalPages - 1) {
