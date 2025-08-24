@@ -4,7 +4,11 @@ import Svg, { Path } from 'react-native-svg';
 import { palette } from '../design/theme';
 
 export default function LoyaltyStampTile({ count = 0 }) {
-  const filled = Math.max(0, Math.min(7, count));
+  const normalized = Number.isFinite(count) ? count : 0;
+  if (normalized < 0 || normalized > 7) {
+    console.warn('[LOYALTY_TILE] count out of range, got', count, '— applying % 8 fallback');
+  }
+  const filled = ((normalized % 8) + 8) % 8;
   const beans = Array.from({ length: 8 }, (_, i) => i < filled);
   const Bean = ({ filled }) => (
     <Svg width={24} height={24} viewBox="0 0 24 24" style={styles.bean}>

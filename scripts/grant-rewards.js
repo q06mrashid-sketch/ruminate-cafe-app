@@ -1,6 +1,7 @@
 #!/usr/bin/env node
+import 'dotenv/config';
+import { createClient } from '@supabase/supabase-js';
 import crypto from 'node:crypto';
-import { createAdminClient, findUserIdByEmail } from './_supabase.js';
 
 const [,, email, freeDrinksArg, stampsArg] = process.argv;
 if (!email) {
@@ -8,41 +9,57 @@ if (!email) {
   process.exit(1);
 }
 
-const freeDrinks = Number(freeDrinksArg || 0);
-const addStamps = Number(stampsArg || 0);
+const drinks = Number(freeDrinksArg || 0);
+const stamps = Number(stampsArg || 0);
 
-const supabase = createAdminClient();
-const uid = await findUserIdByEmail(supabase, email);
+const url = process.env.SUPABASE_URL;
+const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!url || !key) throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+const admin = createClient(url, key, { auth: { persistSession: false } });
 
-if (addStamps > 0) {
-  const rows = Array.from({ length: addStamps }, () => ({ user_id: uid, stamps: 1 }));
-  const { error } = await supabase.from('loyalty_stamps').insert(rows);
-  if (error) throw error;
+async function getUserByEmailOrList(email) {
+  const hasGetByEmail =
+    admin?.auth?.admin && typeof admin.auth.admin.getUserByEmail === 'function';
+
+  if (hasGetByEmail) {
+    const { data, error } = await admin.auth.admin.getUserByEmail(email);
+    if (error) throw error;
+    if (!data?.user) throw new Error(`User not found for ${email}`);
+    return data.user;
+  }
+
+  let page = 1;
+  for (;;) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) throw error;
+    const hit = data?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
+    if (hit) return hit;
+    if (!data?.users?.length) break;
+    page++;
+  }
+  throw new Error(`User not found for ${email}`);
 }
 
-if (freeDrinks > 0) {
-  const rows = Array.from({ length: freeDrinks }, () => ({
-    user_id: uid,
-    code: crypto.randomUUID()
+const user = await getUserByEmailOrList(email);
+
+if (stamps > 0) {
+  const rows = Array.from({ length: stamps }, () => ({
+    user_id: user.id,
+    stamps: 1,
   }));
-  const { error } = await supabase
-    .from('drink_vouchers')
-    .insert(rows, { count: 'exact' });
+  const { error } = await admin.from('loyalty_stamps').insert(rows);
   if (error) throw error;
 }
 
-const functionsUrl = process.env.FUNCTIONS_URL || process.env.EXPO_PUBLIC_FUNCTIONS_URL;
-const svcKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (functionsUrl) {
-  await fetch(`${functionsUrl}/me-stats`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${svcKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ userId: uid, normalize: true })
-  }).catch(() => {});
+if (drinks > 0) {
+  const rows = Array.from({ length: drinks }, () => ({
+    user_id: user.id,
+    code: crypto.randomUUID(),
+    redeemed: false,
+  }));
+  const { error } = await admin.from('drink_vouchers').insert(rows);
+  if (error) throw error;
 }
 
-console.log(`Granted ${freeDrinks} free drinks and ${addStamps} loyalty stamps to ${email}`);
+console.log(`[SCRIPT] Granted ${drinks} free drinks and ${stamps} loyalty stamps to ${email}`);
+

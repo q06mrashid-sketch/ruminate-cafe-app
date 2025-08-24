@@ -1,48 +1,63 @@
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 export async function normalizeRewards(admin: SupabaseClient, userId: string) {
-  const { data: stampRows, error: stampErr } = await admin
+  const { data: stampAgg, error: stampErr } = await admin
     .from("loyalty_stamps")
-    .select("stamps")
-    .eq("user_id", userId);
-  if (stampErr) throw stampErr;
-  const totalStamps = (stampRows ?? []).reduce((sum, r) => sum + (r.stamps || 0), 0);
-
-  let { data: vouchers, error } = await admin
-    .from("drink_vouchers")
-    .select("code, redeemed, created_at")
+    .select("sum:stamps")
     .eq("user_id", userId)
-    .order("created_at", { ascending: false });
-  if (error) throw error;
+    .single();
+  if (stampErr) throw stampErr;
+  const totalStamps = stampAgg?.sum ?? 0;
 
-  let vouchersTotal = vouchers?.length ?? 0;
-  let vouchersUnredeemed = vouchers?.filter(v => !v.redeemed).length ?? 0;
+  const { count: totalVouchers, error: voucherCountErr } = await admin
+    .from("drink_vouchers")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId);
+  if (voucherCountErr) throw voucherCountErr;
 
-  const shouldExist = Math.floor((totalStamps || 0) / 8);
-  const toMint = Math.max(0, shouldExist - vouchersTotal);
+  let { data: unredeemed, error: unredeemedErr } = await admin
+    .from("drink_vouchers")
+    .select("code")
+    .eq("user_id", userId)
+    .eq("redeemed", false)
+    .order("created_at", { ascending: true });
+  if (unredeemedErr) throw unredeemedErr;
+
+  const shouldExist = Math.floor(totalStamps / 8);
+  const toMint = Math.max(0, shouldExist - (totalVouchers ?? 0));
 
   if (toMint > 0) {
     const inserts = Array.from({ length: toMint }, () => ({
       user_id: userId,
       code: crypto.randomUUID(),
     }));
-    await admin.from("drink_vouchers").insert(inserts);
-    const { data: refreshed, error: refErr } = await admin
+    const { error: insertErr } = await admin.from("drink_vouchers").insert(inserts);
+    if (insertErr) throw insertErr;
+
+    const { data: refreshed, error: refreshErr } = await admin
       .from("drink_vouchers")
-      .select("code, redeemed, created_at")
+      .select("code")
       .eq("user_id", userId)
-      .order("created_at", { ascending: false });
-    if (refErr) throw refErr;
-    vouchers = refreshed ?? [];
-    vouchersTotal = vouchers.length;
-    vouchersUnredeemed = vouchers.filter(v => !v.redeemed).length;
+      .eq("redeemed", false)
+      .order("created_at", { ascending: true });
+    if (refreshErr) throw refreshErr;
+    unredeemed = refreshed ?? [];
   }
 
-  const remainder = (totalStamps || 0) - shouldExist * 8;
+  const remainder = totalStamps % 8;
+
+  console.log("[ME_STATS]", {
+    totalStamps,
+    totalVouchers: totalVouchers ?? 0,
+    shouldExist,
+    toMint,
+    remainder,
+    freebiesLeft: unredeemed?.length ?? 0,
+  });
 
   return {
     loyaltyStamps: remainder,
-    freebiesLeft: vouchersUnredeemed,
-    vouchers: vouchers?.map(v => ({ code: v.code, redeemed: v.redeemed })) ?? [],
+    freebiesLeft: unredeemed?.length ?? 0,
+    vouchers: (unredeemed ?? []).map(v => v.code),
   };
 }
