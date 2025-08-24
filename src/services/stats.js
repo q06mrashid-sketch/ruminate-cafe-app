@@ -26,8 +26,8 @@ export async function getMyStats() {
       console.error('getMyStats failed: missing functions URL');
       return { loyaltyStamps: 0, freebiesLeft: 0, vouchers: [] };
     }
-    const url = `${base.replace(/\/$/, '')}/me-stats`;
 
+    const url = `${base.replace(/\/$/, '')}/me-stats`;
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${session.access_token}` }
     });
@@ -46,10 +46,12 @@ export async function getMyStats() {
     return {
       loyaltyStamps: Number(json?.loyaltyStamps ?? 0),
       freebiesLeft: Number(json?.freebiesLeft ?? 0),
+
       vouchers: Array.isArray(json?.vouchers) ? json.vouchers.filter(Boolean) : []
     };
   } catch (e) {
     console.error('getMyStats failed', e);
+
     return { loyaltyStamps: 0, freebiesLeft: 0, vouchers: [] };
   }
 }
