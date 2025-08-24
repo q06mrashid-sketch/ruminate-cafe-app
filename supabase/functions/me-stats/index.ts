@@ -25,14 +25,12 @@ serve(async (req: Request) => {
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   const stats = await normalizeRewards(admin, user.id);
+  console.log("[ME_STATS]", stats);
 
   return new Response(
     JSON.stringify({
-      freebiesLeft: stats.freebiesLeft,
-      dividendsPending: 0,
       loyaltyStamps: stats.loyaltyStamps,
-      payItForwardContrib: 0,
-      communityContrib: 0,
+      freebiesLeft: stats.freebiesLeft,
       vouchers: stats.vouchers,
     }),
     { headers: { ...cors(), "content-type": "application/json" } }

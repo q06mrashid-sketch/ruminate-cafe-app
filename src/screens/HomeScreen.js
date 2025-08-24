@@ -59,7 +59,8 @@ export default function HomeScreen({ navigation }) {
       try { const t = await getToday(); if (mounted) setToday(t); } catch {}
       try { const s = await getPIFStats(); if (mounted) setPif(s); } catch {}
       try {
-        const stats = await getMyStats();
+        const { data: { session } } = await supabase.auth.getSession();
+        const stats = await getMyStats(session?.access_token);
         if (mounted) {
           const freebies = stats.freebiesLeft || 0;
           const stamps = stats.loyaltyStamps || 0;
