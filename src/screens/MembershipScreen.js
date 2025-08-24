@@ -56,7 +56,9 @@ export default function MembershipScreen({ navigation }) {
     }
     try {
       let s = await getMyStats();
-      if (s.freebiesLeft > 0 && (!Array.isArray(s.vouchers) || s.vouchers.length !== s.freebiesLeft)) {
+      const mismatch = s.freebiesLeft !== (Array.isArray(s.vouchers) ? s.vouchers.length : 0);
+      const outOfRange = s.loyaltyStamps < 0 || s.loyaltyStamps > 7;
+      if (mismatch || outOfRange) {
         await syncVouchers();
         s = await getMyStats();
       }
@@ -64,6 +66,8 @@ export default function MembershipScreen({ navigation }) {
         console.warn('[MEMBERSHIP] loyaltyStamps out of range', s.loyaltyStamps);
       }
       setStats(s);
+      globalThis.freebiesLeft = s.freebiesLeft;
+      globalThis.loyaltyStamps = s.loyaltyStamps;
       setVouchers(Array.isArray(s.vouchers) ? s.vouchers.slice(0, s.freebiesLeft) : []);
 
     } catch {}

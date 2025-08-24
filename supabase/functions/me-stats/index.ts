@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
       .select('code')
       .eq('user_id', userId)
       .eq('redeemed', false)
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: false });
     if (vErr) throw vErr;
     const vouchers = (voucherRows || []).map(v => v.code);
     const res = {
