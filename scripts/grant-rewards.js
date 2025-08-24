@@ -43,7 +43,10 @@ async function getUserByEmailOrList(email) {
 const user = await getUserByEmailOrList(email);
 
 if (stamps > 0) {
-  const rows = Array.from({ length: stamps }, () => ({ user_id: user.id }));
+  const rows = Array.from({ length: stamps }, () => ({
+    user_id: user.id,
+    stamps: 1,
+  }));
   const { error } = await admin.from('loyalty_stamps').insert(rows);
   if (error) throw error;
 }

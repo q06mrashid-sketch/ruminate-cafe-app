@@ -133,7 +133,6 @@ export default function MembershipScreen({ navigation }) {
 
             <View style={{ marginTop: 14 }}>
               <PagerView
-
                 style={{ height: 440, width: '100%' }}
                 initialPage={0}
                 key={`pv-${user?.id}-${vouchers.length}`}
