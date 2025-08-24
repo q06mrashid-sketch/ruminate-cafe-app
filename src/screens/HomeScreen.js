@@ -42,16 +42,13 @@ export default function HomeScreen({ navigation }) {
   const [fund, setFund] = useState({ total_cents: 0, goal_cents: 0 });
   const [today, setToday] = useState({ openNow: false, until: '--:--', specials: [] });
   const [pif, setPif] = useState({ available: 0, contributed: 0 });
-  const [loyalty, setLoyalty] = useState({ current: 0, target: 8 });
-  const [freebiesLeft, setFreebiesLeft] = useState(0);
+  const [stats, setStats] = useState({ loyaltyStamps: 0, freebiesLeft: 0, vouchers: [] });
   const [rumiQuote, setRumiQuote] = useState(null);
   const [igPost, setIgPost] = useState({ image: null, caption: '', url: null });
 
   useEffect(() => {
     getFundProgress().then(setFund).catch(() => setFund({ progress: 0, total_cents: 0, goal_cents: 0 }));
     getWeeklyHours().then(setWeekHours).catch(() => setWeekHours([]));
-    if (globalThis.freebiesLeft !== undefined) setFreebiesLeft(globalThis.freebiesLeft);
-    if (globalThis.loyaltyStamps !== undefined) setLoyalty({ current: globalThis.loyaltyStamps, target: 8 });
     let mounted = true;
     (async () => {
       try { const m = await getMembershipSummary(); if (mounted && m) setMember(prev => ({ ...prev, ...m })); } catch {}
@@ -59,15 +56,9 @@ export default function HomeScreen({ navigation }) {
       try { const t = await getToday(); if (mounted) setToday(t); } catch {}
       try { const s = await getPIFStats(); if (mounted) setPif(s); } catch {}
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const stats = await getMyStats(session?.access_token);
+        const s = await getMyStats();
         if (mounted) {
-          const freebies = stats.freebiesLeft || 0;
-          const stamps = stats.loyaltyStamps || 0;
-          setFreebiesLeft(freebies);
-          setLoyalty({ current: stamps, target: 8 });
-          globalThis.freebiesLeft = freebies;
-          globalThis.loyaltyStamps = stamps;
+          setStats(s);
         }
       } catch {}
       try { const ig = await getLatestInstagramPost(); if (mounted) setIgPost(ig); } catch {}
@@ -141,13 +132,13 @@ export default function HomeScreen({ navigation }) {
                 </Animated.View>
               ) : null}
 
-              <View style={{ marginTop: 16 }}>
-                <LoyaltyStampTile count={loyalty.current} />
-              </View>
+            <View style={{ marginTop: 16 }}>
+              <LoyaltyStampTile count={stats.loyaltyStamps} />
+            </View>
 
-              {(member?.tier === 'paid' || freebiesLeft > 0) && (
+            {(member?.tier === 'paid' || stats.freebiesLeft > 0) && (
                 <View style={{ marginTop: 16 }}>
-                  <FreeDrinksCounter count={freebiesLeft} />
+                  <FreeDrinksCounter count={stats.freebiesLeft} />
                 </View>
               )}
             </View>

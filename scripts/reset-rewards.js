@@ -11,14 +11,14 @@ if (!email) {
 const url = process.env.SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!url || !key) throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
-const admin = createClient(url, key, { auth: { persistSession: false } });
+const supabase = createClient(url, key, { auth: { persistSession: false } });
 
 async function getUserByEmailOrList(email) {
   const hasGetByEmail =
-    admin?.auth?.admin && typeof admin.auth.admin.getUserByEmail === 'function';
+    supabase?.auth?.admin && typeof supabase.auth.admin.getUserByEmail === 'function';
 
   if (hasGetByEmail) {
-    const { data, error } = await admin.auth.admin.getUserByEmail(email);
+    const { data, error } = await supabase.auth.admin.getUserByEmail(email);
     if (error) throw error;
     if (!data?.user) throw new Error(`User not found for ${email}`);
     return data.user;
@@ -26,7 +26,7 @@ async function getUserByEmailOrList(email) {
 
   let page = 1;
   for (;;) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
     if (error) throw error;
     const hit = data?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
     if (hit) return hit;
@@ -37,18 +37,13 @@ async function getUserByEmailOrList(email) {
 }
 
 const user = await getUserByEmailOrList(email);
+const uid = user.id;
 
-const { error: e1, count: sCount } = await admin
-  .from('loyalty_stamps')
-  .delete({ count: 'exact' })
-  .eq('user_id', user.id);
+const { error: e1 } = await supabase.from('drink_vouchers').delete().eq('user_id', uid);
 if (e1) throw e1;
 
-const { error: e2, count: vCount } = await admin
-  .from('drink_vouchers')
-  .delete({ count: 'exact' })
-  .eq('user_id', user.id);
+const { error: e2 } = await supabase.from('loyalty_stamps').delete().eq('user_id', uid);
 if (e2) throw e2;
 
-console.log(`[SCRIPT] Reset free drinks and loyalty stamps for ${email} (removed ${vCount || 0} vouchers, ${sCount || 0} stamps)`);
+console.log(`[SCRIPT] Reset free drinks and loyalty stamps for ${email}`);
 
