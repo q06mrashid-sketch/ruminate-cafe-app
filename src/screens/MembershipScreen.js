@@ -34,14 +34,37 @@ export default function MembershipScreen({ navigation }) {
   const [summary, setSummary] = useState({ signedIn: false, tier: 'free', status: 'none', next_billing_at: null });
   const [pifSelfCents, setPifSelfCents] = useState(0);
   const [stats, setStats] = useState({ loyaltyStamps: 0, freebiesLeft: 0, vouchers: [] });
-  const [vouchers, setVouchers] = useState([]);
   const [memberPayload, setMemberPayload] = useState('ruminate:member');
   const [page, setPage] = useState(0);
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
+  const pagerRef = useRef(null);
 
-  const totalPages = 1 + vouchers.length;
 
+  const vouchers = React.useMemo(() => {
+    if (Array.isArray(stats?.vouchers) && stats.vouchers.length) {
+      return stats.vouchers.map(code => ({ id: code, code, used: false, expiresAt: null }));
+    }
+    const n = Math.max(0, Number(stats?.freebiesLeft || 0));
+    return Array.from({ length: n }, (_, i) => ({
+      id: `local-${i}`,
+      code: `FREE-${i + 1}`,
+      used: false,
+      expiresAt: null,
+      isLocal: true,
+    }));
+  }, [stats?.vouchers, stats?.freebiesLeft]);
+
+  const isExpired = React.useCallback((iso) => {
+    if (!iso) return false;
+    return new Date(iso).getTime() < Date.now();
+  }, []);
+
+  const visibleVouchers = React.useMemo(() =>
+    vouchers.filter(v => !v.used && !isExpired(v.expiresAt))
+  , [vouchers, isExpired]);
+
+  const totalPages = 1 + visibleVouchers.length;
   const refresh = useCallback(async () => {
     try { const m = await getMembershipSummary(); if (m) setSummary(m); } catch {}
     let uid = null;
@@ -71,27 +94,15 @@ export default function MembershipScreen({ navigation }) {
       setStats(s);
       globalThis.freebiesLeft = s.freebiesLeft;
       globalThis.loyaltyStamps = s.loyaltyStamps;
-
-
-      let codes = Array.isArray(s.vouchers)
-        ? s.vouchers.map(c => `ruminate:voucher:${c}`)
-        : [];
-
       if (uid) {
         setMemberPayload(`ruminate:member:${uid}`);
         try {
           const qrs = await getMemberQRCodes(uid);
           if (qrs?.payload) setMemberPayload(qrs.payload);
-          if (Array.isArray(qrs?.vouchers) && qrs.vouchers.length) {
-            codes = qrs.vouchers;
-          }
         } catch {}
       } else {
         setMemberPayload('ruminate:member');
       }
-
-      setVouchers(codes.slice(0, s.freebiesLeft));
-
     } catch {}
   }, []);
 
@@ -99,6 +110,13 @@ export default function MembershipScreen({ navigation }) {
 
   useEffect(() => { refresh(); }, [refresh]);
   useFocusEffect(useCallback(() => { let on = true; (async()=>{ if(on) await refresh(); })(); return () => { on = false; }; }, [refresh]));
+
+  useEffect(() => {
+    if (pagerRef.current && visibleVouchers.length > 0) {
+      pagerRef.current.setPageWithoutAnimation(0);
+      setPage(0);
+    }
+  }, [visibleVouchers.length]);
 
   useEffect(() => {
     if (page > totalPages - 1) {
@@ -154,7 +172,8 @@ export default function MembershipScreen({ navigation }) {
 
             <View style={{ marginTop: 14 }}>
               <PagerView
-                key={JSON.stringify(vouchers)}
+                ref={pagerRef}
+                key={`pv-${visibleVouchers.length}`}
                 style={{ height: 440, width: '100%' }}
                 initialPage={0}
                 onPageSelected={e => setPage(e.nativeEvent.position)}
@@ -176,11 +195,11 @@ export default function MembershipScreen({ navigation }) {
                   </View>
                 </View>
 
-                {vouchers.map(code => (
-                  <View key={code} style={[styles.card, styles.qrCard, styles.voucherCard]}>
+                {visibleVouchers.map(v => (
+                  <View key={v.id ?? v.code} style={[styles.card, styles.qrCard, styles.voucherCard]}>
                     <Text style={[styles.cardTitle, styles.voucherTitle]}>Drink voucher</Text>
                     <View style={styles.qrWrap}>
-                      <QRCode value={code} size={180} />
+                      <QRCode value={`ruminate:voucher:${v.code}`} size={180} />
                     </View>
                     <Text style={[styles.mutedSmall, styles.voucherText]}>
                       Show at the counter to redeem.
