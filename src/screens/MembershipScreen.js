@@ -12,6 +12,7 @@ import { supabase } from '../lib/supabase';
 import { getMembershipSummary } from '../services/membership';
 import { getMyStats } from '../services/stats';
 import { syncVouchers } from '../services/vouchers';
+import { getMemberQRCodes } from '../services/qr';
 import GlowingGlassButton from '../components/GlowingGlassButton';
 import { getPIFByEmail } from '../services/pif';
 import { createReferral } from '../services/referral';
@@ -34,24 +35,26 @@ export default function MembershipScreen({ navigation }) {
   const [pifSelfCents, setPifSelfCents] = useState(0);
   const [stats, setStats] = useState({ loyaltyStamps: 0, freebiesLeft: 0, vouchers: [] });
   const [vouchers, setVouchers] = useState([]);
+  const [memberPayload, setMemberPayload] = useState('ruminate:member');
   const [page, setPage] = useState(0);
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
-
-  const memberPayload = user ? `ruminate:${user.id}` : 'ruminate:member';
 
   const totalPages = 1 + vouchers.length;
 
   const refresh = useCallback(async () => {
     try { const m = await getMembershipSummary(); if (m) setSummary(m); } catch {}
+    let uid = null;
     if (supabase) {
       try {
         const { data: { session: sess } } = await supabase.auth.getSession();
         setSession(sess);
         setUser(sess?.user || null);
+        uid = sess?.user?.id || null;
       } catch {
         setSession(null);
         setUser(null);
+        uid = null;
       }
     }
     try {
@@ -68,7 +71,9 @@ export default function MembershipScreen({ navigation }) {
       setStats(s);
       globalThis.freebiesLeft = s.freebiesLeft;
       globalThis.loyaltyStamps = s.loyaltyStamps;
+
       setVouchers(Array.isArray(s.vouchers) ? s.vouchers.slice(0, s.freebiesLeft) : []);
+
 
     } catch {}
   }, []);
