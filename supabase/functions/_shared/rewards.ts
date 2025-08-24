@@ -21,12 +21,8 @@ export async function normalizeRewards(admin: SupabaseClient, userId: string) {
     .select("code")
     .eq("user_id", userId)
     .eq("redeemed", false)
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: false });
   if (unredeemedErr) throw unredeemedErr;
-
-  const shouldExist = Math.floor(totalStamps / 8);
-  const toMint = Math.max(0, shouldExist - (totalVouchers ?? 0));
-
 
   const shouldExist = Math.floor((totalStamps ?? 0) / 8);
   const toMint = Math.max(0, shouldExist - (totalVouchers ?? 0));
@@ -44,7 +40,7 @@ export async function normalizeRewards(admin: SupabaseClient, userId: string) {
       .select("code")
       .eq("user_id", userId)
       .eq("redeemed", false)
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: false });
     if (refreshErr) throw refreshErr;
     unredeemed = refreshed ?? [];
   }
