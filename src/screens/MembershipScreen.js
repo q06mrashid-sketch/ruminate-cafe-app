@@ -32,6 +32,7 @@ export default function MembershipScreen({ navigation }) {
   const [summary, setSummary] = useState({ signedIn: false, tier: 'free', status: 'none', next_billing_at: null });
   const [pifSelfCents, setPifSelfCents] = useState(0);
   const [stats, setStats] = useState({ loyaltyStamps: 0, freebiesLeft: 0, vouchers: [] });
+  const [vouchers, setVouchers] = useState([]);
   const [page, setPage] = useState(0);
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
@@ -58,7 +59,6 @@ export default function MembershipScreen({ navigation }) {
         console.warn('[MEMBERSHIP] loyaltyStamps out of range', s.loyaltyStamps);
       }
       setStats(s);
-      console.log('stats', s);
     } catch {}
   }, []);
 
@@ -67,7 +67,17 @@ export default function MembershipScreen({ navigation }) {
   useEffect(() => { refresh(); }, [refresh]);
   useFocusEffect(useCallback(() => { let on = true; (async()=>{ if(on) await refresh(); })(); return () => { on = false; }; }, [refresh]));
 
-  useEffect(()=>{ 
+  useEffect(() => {
+    setVouchers(Array.isArray(stats.vouchers) ? stats.vouchers : []);
+  }, [stats.vouchers]);
+
+  useEffect(() => {
+    if (page > totalPages - 1) {
+      setPage(Math.max(0, totalPages - 1));
+    }
+  }, [totalPages, page]);
+
+  useEffect(()=>{
     let m=true; 
     const email = user?.email || summary?.user?.email || null;
     if (!email) { setPifSelfCents(0); return; } 
@@ -117,7 +127,6 @@ export default function MembershipScreen({ navigation }) {
               <PagerView
                 style={{ height: 440, width: '100%' }}
                 initialPage={0}
-                key={`pv-${user?.id}-${stats.vouchers.length}`}
                 onPageSelected={e => setPage(e.nativeEvent.position)}
               >
                 <View key="member" style={[styles.card, styles.qrCard]}>
