@@ -39,7 +39,7 @@ export default function MembershipScreen({ navigation }) {
 
   const memberPayload = user ? `ruminate:${user.id}` : 'ruminate:member';
 
-  const totalPages = 1 + vouchers.length;
+  const totalPages = 1 + (stats.vouchers?.length || 0);
 
   const refresh = useCallback(async () => {
     try { const m = await getMembershipSummary(); if (m) setSummary(m); } catch {}
@@ -146,7 +146,7 @@ export default function MembershipScreen({ navigation }) {
                   </View>
                 </View>
 
-                {vouchers.map(code => (
+                {stats.vouchers.map(code => (
                   <View key={code} style={[styles.card, styles.qrCard, styles.voucherCard]}>
                     <Text style={[styles.cardTitle, styles.voucherTitle]}>Drink voucher</Text>
                     <View style={styles.qrWrap}>

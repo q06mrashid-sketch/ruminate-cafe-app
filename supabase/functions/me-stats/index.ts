@@ -40,7 +40,6 @@ Deno.serve(async (req) => {
       .eq('redeemed', false)
       .order('created_at', { ascending: true });
     if (vErr) throw vErr;
-
     const vouchers = (voucherRows || []).map(v => v.code);
     const res = {
       loyaltyStamps: remainder,
