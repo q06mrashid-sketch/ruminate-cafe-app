@@ -28,6 +28,7 @@ Deno.serve(async (req) => {
     const stats = await normalizeRewards(db, userId);
 
     return new Response(JSON.stringify(stats), {
+
       headers: { 'content-type': 'application/json' },
     });
   } catch (e) {

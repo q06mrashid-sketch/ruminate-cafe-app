@@ -72,19 +72,8 @@ export default function MembershipScreen({ navigation }) {
       globalThis.freebiesLeft = s.freebiesLeft;
       globalThis.loyaltyStamps = s.loyaltyStamps;
 
-      if (uid) {
-        setMemberPayload(`ruminate:member:${uid}`);
-        try {
-          const qrs = await getMemberQRCodes(uid);
-          setMemberPayload(qrs?.payload || `ruminate:member:${uid}`);
-          setVouchers(Array.isArray(qrs?.vouchers) ? qrs.vouchers.slice(0, s.freebiesLeft) : []);
-        } catch {
-          setVouchers([]);
-        }
-      } else {
-        setMemberPayload('ruminate:member');
-        setVouchers([]);
-      }
+      setVouchers(Array.isArray(s.vouchers) ? s.vouchers.slice(0, s.freebiesLeft) : []);
+
 
     } catch {}
   }, []);
