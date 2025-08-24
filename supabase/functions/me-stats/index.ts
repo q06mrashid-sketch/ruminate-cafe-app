@@ -37,10 +37,12 @@ Deno.serve(async (req) => {
     const { data: voucherRows, error: vErr } = await db
       .from('drink_vouchers')
       .select('code')
+
       .eq('user_id', userId)
       .eq('redeemed', false)
       .order('created_at', { ascending: true });
     if (vErr) throw vErr;
+
 
     const vouchers = (voucherRows || []).map(v => v.code);
     const res = {
@@ -54,6 +56,7 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error('me-stats failure', e);
+
     return new Response(JSON.stringify({ error: String(e) }), { status: 500 });
   }
 });
