@@ -12,6 +12,7 @@ import { supabase } from '../lib/supabase';
 import { getMembershipSummary } from '../services/membership';
 import { getMyStats } from '../services/stats';
 import { syncVouchers } from '../services/vouchers';
+import { getMemberQRCodes } from '../services/qr';
 import GlowingGlassButton from '../components/GlowingGlassButton';
 import { getPIFByEmail } from '../services/pif';
 import { createReferral } from '../services/referral';
@@ -34,29 +35,33 @@ export default function MembershipScreen({ navigation }) {
   const [pifSelfCents, setPifSelfCents] = useState(0);
   const [stats, setStats] = useState({ loyaltyStamps: 0, freebiesLeft: 0, vouchers: [] });
   const [vouchers, setVouchers] = useState([]);
+  const [memberPayload, setMemberPayload] = useState('ruminate:member');
   const [page, setPage] = useState(0);
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
-
-  const memberPayload = user ? `ruminate:${user.id}` : 'ruminate:member';
 
   const totalPages = 1 + vouchers.length;
 
   const refresh = useCallback(async () => {
     try { const m = await getMembershipSummary(); if (m) setSummary(m); } catch {}
+    let uid = null;
     if (supabase) {
       try {
         const { data: { session: sess } } = await supabase.auth.getSession();
         setSession(sess);
         setUser(sess?.user || null);
+        uid = sess?.user?.id || null;
       } catch {
         setSession(null);
         setUser(null);
+        uid = null;
       }
     }
     try {
       let s = await getMyStats();
-      if (s.freebiesLeft > 0 && (!Array.isArray(s.vouchers) || s.vouchers.length !== s.freebiesLeft)) {
+      const mismatch = s.freebiesLeft !== (Array.isArray(s.vouchers) ? s.vouchers.length : 0);
+      const outOfRange = s.loyaltyStamps < 0 || s.loyaltyStamps > 7;
+      if (mismatch || outOfRange) {
         await syncVouchers();
         s = await getMyStats();
       }
@@ -64,7 +69,27 @@ export default function MembershipScreen({ navigation }) {
         console.warn('[MEMBERSHIP] loyaltyStamps out of range', s.loyaltyStamps);
       }
       setStats(s);
-      setVouchers(Array.isArray(s.vouchers) ? s.vouchers.slice(0, s.freebiesLeft) : []);
+      globalThis.freebiesLeft = s.freebiesLeft;
+      globalThis.loyaltyStamps = s.loyaltyStamps;
+
+      let codes = Array.isArray(s.vouchers)
+        ? s.vouchers.map(c => `ruminate:voucher:${c}`)
+        : [];
+
+      if (uid) {
+        setMemberPayload(`ruminate:member:${uid}`);
+        try {
+          const qrs = await getMemberQRCodes(uid);
+          if (qrs?.payload) setMemberPayload(qrs.payload);
+          if (Array.isArray(qrs?.vouchers) && qrs.vouchers.length) {
+            codes = qrs.vouchers;
+          }
+        } catch {}
+      } else {
+        setMemberPayload('ruminate:member');
+      }
+
+      setVouchers(codes.slice(0, s.freebiesLeft));
 
     } catch {}
   }, []);
