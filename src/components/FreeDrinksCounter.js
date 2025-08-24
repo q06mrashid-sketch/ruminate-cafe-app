@@ -6,8 +6,7 @@ import { palette } from '../design/theme';
 
 export default function FreeDrinksCounter({ count = 0 }) {
   const limit = 3;
-  const remaining = Math.max(0, Math.min(limit, count));
-  const ratio = remaining / limit;
+  const ratio = Math.max(0, Math.min(1, count / limit));
   const size = 64;
   const radius = 28;
   const circumference = 2 * Math.PI * radius;
