@@ -23,6 +23,7 @@ export async function normalizeRewards(admin: SupabaseClient, userId: string) {
 
   if (vouchersEarned > 0) {
     const inserts = Array.from({ length: vouchersEarned }, () => ({
+
       user_id: userId,
       code: crypto.randomUUID(),
     }));
