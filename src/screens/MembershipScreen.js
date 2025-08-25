@@ -65,6 +65,13 @@ export default function MembershipScreen({ navigation }) {
   , [vouchers, isExpired]);
 
   const totalPages = 1 + visibleVouchers.length;
+
+
+  const visibleVouchers = React.useMemo(() =>
+    vouchers.filter(v => !v.used && !isExpired(v.expiresAt))
+  , [vouchers, isExpired]);
+
+  const totalPages = 1 + visibleVouchers.length;
   const refresh = useCallback(async () => {
     try { const m = await getMembershipSummary(); if (m) setSummary(m); } catch {}
     let uid = null;
@@ -94,6 +101,7 @@ export default function MembershipScreen({ navigation }) {
       setStats(s);
       globalThis.freebiesLeft = s.freebiesLeft;
       globalThis.loyaltyStamps = s.loyaltyStamps;
+
       if (uid) {
         setMemberPayload(`ruminate:member:${uid}`);
         try {
@@ -103,6 +111,7 @@ export default function MembershipScreen({ navigation }) {
       } else {
         setMemberPayload('ruminate:member');
       }
+
     } catch {}
   }, []);
 

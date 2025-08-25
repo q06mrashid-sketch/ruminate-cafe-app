@@ -10,12 +10,6 @@ export async function normalizeRewards(admin: SupabaseClient, userId: string) {
   if (stampErr) throw stampErr;
   const totalStamps = stampAgg?.sum ?? 0;
 
-  const { count: totalVouchers, error: voucherCountErr } = await admin
-    .from("drink_vouchers")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId);
-  if (voucherCountErr) throw voucherCountErr;
-
   let { data: unredeemed, error: unredeemedErr } = await admin
     .from("drink_vouchers")
     .select("code")
@@ -24,10 +18,12 @@ export async function normalizeRewards(admin: SupabaseClient, userId: string) {
     .order("created_at", { ascending: false });
   if (unredeemedErr) throw unredeemedErr;
 
-  const shouldExist = Math.floor((totalStamps ?? 0) / 8);
-  const toMint = Math.max(0, shouldExist - (totalVouchers ?? 0));
-  if (toMint > 0) {
-    const inserts = Array.from({ length: toMint }, () => ({
+  const vouchersEarned = Math.floor((totalStamps ?? 0) / 8);
+  const remainder = totalStamps % 8;
+
+  if (vouchersEarned > 0) {
+    const inserts = Array.from({ length: vouchersEarned }, () => ({
+
       user_id: userId,
       code: crypto.randomUUID(),
     }));
@@ -45,14 +41,23 @@ export async function normalizeRewards(admin: SupabaseClient, userId: string) {
     unredeemed = refreshed ?? [];
   }
 
-
-  const remainder = totalStamps % 8;
+  if (totalStamps !== remainder) {
+    const { error: delErr } = await admin
+      .from("loyalty_stamps")
+      .delete()
+      .eq("user_id", userId);
+    if (delErr) throw delErr;
+    if (remainder > 0) {
+      const { error: insErr } = await admin
+        .from("loyalty_stamps")
+        .insert({ user_id: userId, stamps: remainder });
+      if (insErr) throw insErr;
+    }
+  }
 
   console.log("[ME_STATS]", {
     totalStamps,
-    totalVouchers: totalVouchers ?? 0,
-    shouldExist,
-    toMint,
+    vouchersEarned,
     remainder,
     freebiesLeft: unredeemed?.length ?? 0,
   });
