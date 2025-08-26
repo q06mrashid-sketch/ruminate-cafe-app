@@ -28,10 +28,12 @@ export async function normalizeRewards(admin: SupabaseClient, userId: string) {
     .order("created_at", { ascending: false });
   if (unredeemedErr) throw unredeemedErr;
 
+
   const { vouchersEarned, stampsRemainder } = applyStampAccrual(0, totalStamps);
 
   if (vouchersEarned > 0) {
     const inserts = Array.from({ length: vouchersEarned }, () => ({
+
       user_id: userId,
       code: crypto.randomUUID(),
     }));
@@ -49,7 +51,9 @@ export async function normalizeRewards(admin: SupabaseClient, userId: string) {
     unredeemed = refreshed ?? [];
   }
 
+
   if (totalStamps !== stampsRemainder) {
+
     const { error: delErr } = await admin
       .from("loyalty_stamps")
       .delete()
@@ -59,6 +63,7 @@ export async function normalizeRewards(admin: SupabaseClient, userId: string) {
       const { error: insErr } = await admin
         .from("loyalty_stamps")
         .insert({ user_id: userId, stamps: stampsRemainder });
+
       if (insErr) throw insErr;
     }
   }

@@ -65,6 +65,11 @@ export default function MembershipScreen({ navigation }) {
 
   const totalPages = 1 + activeVouchers.length;
 
+  const visibleVouchers = React.useMemo(() =>
+    vouchers.filter(v => !v.used && !isExpired(v.expiresAt))
+  , [vouchers, isExpired]);
+
+  const totalPages = 1 + visibleVouchers.length;
   const refresh = useCallback(async () => {
     try { const m = await getMembershipSummary(); if (m) setSummary(m); } catch {}
     let uid = null;
@@ -114,6 +119,7 @@ export default function MembershipScreen({ navigation }) {
   useFocusEffect(useCallback(() => { let on = true; (async()=>{ if(on) await refresh(); })(); return () => { on = false; }; }, [refresh]));
 
   useEffect(() => {
+
     if (pagerRef.current && activeVouchers.length > 0) {
       pagerRef.current.setPageWithoutAnimation(0);
       setPage(0);
@@ -175,7 +181,9 @@ export default function MembershipScreen({ navigation }) {
             <View style={{ marginTop: 14 }}>
               <PagerView
                 ref={pagerRef}
+
                 key={`pv-${activeVouchers.length}`}
+
                 style={{ height: 440, width: '100%' }}
                 initialPage={0}
                 onPageSelected={e => setPage(e.nativeEvent.position)}
@@ -196,8 +204,8 @@ export default function MembershipScreen({ navigation }) {
                     />
                   </View>
                 </View>
+          {activeVouchers.map(v => (
 
-                {activeVouchers.map(v => (
                   <View key={v.id ?? v.code} style={[styles.card, styles.qrCard, styles.voucherCard]}>
                     <Text style={[styles.cardTitle, styles.voucherTitle]}>Drink voucher</Text>
                     <View style={styles.qrWrap}>
