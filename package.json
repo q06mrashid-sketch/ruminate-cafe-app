@@ -11,7 +11,8 @@
     "web": "expo start --web",
     "mock": "node generatePasses.js && expo start",
     "grant-rewards": "node scripts/grant-rewards.js",
-    "reset-rewards": "node scripts/reset-rewards.js"
+    "reset-rewards": "node scripts/reset-rewards.js",
+    "sync-menu-items": "node scripts/sync-menu-items.js"
   },
   "dependencies": {
     "@expo-google-fonts/fraunces": "^0.4.0",
