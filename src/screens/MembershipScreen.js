@@ -19,6 +19,7 @@ import { createReferral } from '../services/referral';
 import 'react-native-get-random-values';
 import FreeDrinksCounter from '../components/FreeDrinksCounter';
 import LoyaltyStampTile from '../components/LoyaltyStampTile';
+import { applyStampAccrual } from '../utils/rewards';
 
 function Stat({ label, value, prefix = '', suffix = '', style }) {
   return (
@@ -88,7 +89,12 @@ export default function MembershipScreen({ navigation }) {
         s = await getMyStats();
       }
       if (s.loyaltyStamps < 0 || s.loyaltyStamps > 7) {
-        console.warn('[MEMBERSHIP] loyaltyStamps out of range', s.loyaltyStamps);
+        const { vouchersEarned, stampsRemainder } = applyStampAccrual(0, s.loyaltyStamps);
+        s.loyaltyStamps = stampsRemainder;
+        if (vouchersEarned > 0) {
+          s.freebiesLeft += vouchersEarned;
+          s.vouchers = Array.isArray(s.vouchers) ? s.vouchers : [];
+        }
       }
       setStats(s);
       globalThis.freebiesLeft = s.freebiesLeft;
