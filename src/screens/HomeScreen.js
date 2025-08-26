@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { getPIFStats } from '../services/pif';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, Animated, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useIsFocused } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import { palette } from '../design/theme';
 import GlowingGlassButton from '../components/GlowingGlassButton';
 import LoyaltyStampTile from '../components/LoyaltyStampTile';
@@ -11,8 +11,8 @@ import FreeDrinksCounter from '../components/FreeDrinksCounter';
 import { supabase } from '../lib/supabase';
 import { getMembershipSummary } from '../services/membership';
 import { getFundCurrent, getFundProgress } from '../services/community';
-import { getToday, getPayItForward, openInstagramProfile, getWeeklyHours, getLatestInstagramPost } from '../services/homeData';
-import { getMyStats } from '../services/stats';
+import { getToday, openInstagramProfile, getWeeklyHours, getLatestInstagramPost } from '../services/homeData';
+import { useStats } from '../hooks/useStats';
 import { getCMS } from '../services/cms';
 import logo from '../../assets/logo.png';
 
@@ -37,44 +37,36 @@ export default function HomeScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const [hoursExpanded, setHoursExpanded] = useState(false);
   const [weekHours, setWeekHours] = useState([]);
-  const isFocused = useIsFocused();
   const [member, setMember] = useState({ status: 'none', next_billing_at: null, signedIn: false });
   const [fund, setFund] = useState({ total_cents: 0, goal_cents: 0 });
   const [today, setToday] = useState({ openNow: false, until: '--:--', specials: [] });
   const [pif, setPif] = useState({ available: 0, contributed: 0 });
-  const [stats, setStats] = useState({ loyaltyStamps: 0, freebiesLeft: 0, vouchers: [] });
+  const { stats, refreshStats } = useStats();
   const [rumiQuote, setRumiQuote] = useState(null);
   const [igPost, setIgPost] = useState({ image: null, caption: '', url: null });
 
-  useEffect(() => {
+  const refresh = useCallback(async () => {
     getFundProgress().then(setFund).catch(() => setFund({ progress: 0, total_cents: 0, goal_cents: 0 }));
     getWeeklyHours().then(setWeekHours).catch(() => setWeekHours([]));
-    let mounted = true;
-    (async () => {
-      try { const m = await getMembershipSummary(); if (mounted && m) setMember(prev => ({ ...prev, ...m })); } catch {}
-      try { const f = await getFundCurrent(); if (mounted && f) setFund(f); } catch {}
-      try { const t = await getToday(); if (mounted) setToday(t); } catch {}
-      try { const s = await getPIFStats(); if (mounted) setPif(s); } catch {}
-      try {
-        const s = await getMyStats();
-        if (mounted) {
-          setStats(s);
-        }
-      } catch {}
-      try { const ig = await getLatestInstagramPost(); if (mounted) setIgPost(ig); } catch {}
-      try {
-        const cms = await getCMS();
-        if (cms) {
-          const s1 = cms['special 1'] || null;
-          const s2 = cms['special 2'] || null;
-          if (s1 || s2) setToday(prev => ({ ...prev, specials: [s1, s2].filter(Boolean) }));
-          if (cms['rumi quote']) setRumiQuote(cms['rumi quote']);
-        }
-      } catch {}
-    })();
+    try { const m = await getMembershipSummary(); if (m) setMember(prev => ({ ...prev, ...m })); } catch {}
+    try { const f = await getFundCurrent(); if (f) setFund(f); } catch {}
+    try { const t = await getToday(); setToday(t); } catch {}
+    try { const s = await getPIFStats(); setPif(s); } catch {}
+    try { await refreshStats(); } catch {}
+    try { const ig = await getLatestInstagramPost(); setIgPost(ig); } catch {}
+    try {
+      const cms = await getCMS();
+      if (cms) {
+        const s1 = cms['special 1'] || null;
+        const s2 = cms['special 2'] || null;
+        if (s1 || s2) setToday(prev => ({ ...prev, specials: [s1, s2].filter(Boolean) }));
+        if (cms['rumi quote']) setRumiQuote(cms['rumi quote']);
+      }
+    } catch {}
+  }, [refreshStats, member.signedIn]);
 
-    return () => { mounted = false; };
-  }, [isFocused, member.signedIn]);
+  useEffect(() => { refresh(); }, [refresh]);
+  useFocusEffect(useCallback(() => { let on = true; (async()=>{ if(on) await refresh(); })(); return () => { on = false; }; }, [refresh]));
 
   useEffect(() => {
     if (!supabase?.auth) {

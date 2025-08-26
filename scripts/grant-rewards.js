@@ -2,6 +2,7 @@
 import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'node:crypto';
+import { applyStampAccrual } from '../src/utils/rewards.js';
 
 const [,, email, freeDrinksArg, stampsArg] = process.argv;
 if (!email) {
@@ -16,16 +17,6 @@ const url = process.env.SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!url || !key) throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
 const supabase = createClient(url, key, { auth: { persistSession: false } });
-
-function applyStampAccrual(prevStamps, delta) {
-  const start = Math.max(0, Number(prevStamps || 0));
-  const inc = Math.max(0, Number(delta || 0));
-  const total = start + inc;
-  return {
-    vouchersEarned: Math.floor(total / 8),
-    stampsRemainder: total % 8,
-  };
-}
 
 async function getUserByEmailOrList(email) {
   const hasGetByEmail =
