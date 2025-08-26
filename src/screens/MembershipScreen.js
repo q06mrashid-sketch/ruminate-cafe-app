@@ -18,6 +18,7 @@ import { createReferral } from '../services/referral';
 import 'react-native-get-random-values';
 import FreeDrinksCounter from '../components/FreeDrinksCounter';
 import LoyaltyStampTile from '../components/LoyaltyStampTile';
+import { applyStampAccrual } from '../utils/rewards';
 
 function Stat({ label, value, prefix = '', suffix = '', style }) {
   return (
@@ -79,7 +80,9 @@ export default function MembershipScreen({ navigation }) {
       }
     }
     try {
+
       await refreshStats();
+
       if (uid) {
         setMemberPayload(`ruminate:member:${uid}`);
         try {
