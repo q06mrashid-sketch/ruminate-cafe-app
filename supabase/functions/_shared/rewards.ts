@@ -1,5 +1,15 @@
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+function applyStampAccrual(prevStamps: number, delta: number) {
+  const start = Math.max(0, Number(prevStamps || 0));
+  const inc = Math.max(0, Number(delta || 0));
+  const total = start + inc;
+  return {
+    vouchersEarned: Math.floor(total / 8),
+    stampsRemainder: total % 8,
+  };
+}
+
 export async function normalizeRewards(admin: SupabaseClient, userId: string) {
 
   const { data: stampAgg, error: stampErr } = await admin
@@ -10,28 +20,18 @@ export async function normalizeRewards(admin: SupabaseClient, userId: string) {
   if (stampErr) throw stampErr;
   const totalStamps = stampAgg?.sum ?? 0;
 
-  const { count: totalVouchers, error: voucherCountErr } = await admin
-    .from("drink_vouchers")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId);
-  if (voucherCountErr) throw voucherCountErr;
-
   let { data: unredeemed, error: unredeemedErr } = await admin
     .from("drink_vouchers")
     .select("code")
     .eq("user_id", userId)
     .eq("redeemed", false)
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: false });
   if (unredeemedErr) throw unredeemedErr;
 
-  const shouldExist = Math.floor(totalStamps / 8);
-  const toMint = Math.max(0, shouldExist - (totalVouchers ?? 0));
+  const { vouchersEarned, stampsRemainder } = applyStampAccrual(0, totalStamps);
 
-
-  const shouldExist = Math.floor((totalStamps ?? 0) / 8);
-  const toMint = Math.max(0, shouldExist - (totalVouchers ?? 0));
-  if (toMint > 0) {
-    const inserts = Array.from({ length: toMint }, () => ({
+  if (vouchersEarned > 0) {
+    const inserts = Array.from({ length: vouchersEarned }, () => ({
       user_id: userId,
       code: crypto.randomUUID(),
     }));
@@ -44,25 +44,34 @@ export async function normalizeRewards(admin: SupabaseClient, userId: string) {
       .select("code")
       .eq("user_id", userId)
       .eq("redeemed", false)
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: false });
     if (refreshErr) throw refreshErr;
     unredeemed = refreshed ?? [];
   }
 
-
-  const remainder = totalStamps % 8;
+  if (totalStamps !== stampsRemainder) {
+    const { error: delErr } = await admin
+      .from("loyalty_stamps")
+      .delete()
+      .eq("user_id", userId);
+    if (delErr) throw delErr;
+    if (stampsRemainder > 0) {
+      const { error: insErr } = await admin
+        .from("loyalty_stamps")
+        .insert({ user_id: userId, stamps: stampsRemainder });
+      if (insErr) throw insErr;
+    }
+  }
 
   console.log("[ME_STATS]", {
     totalStamps,
-    totalVouchers: totalVouchers ?? 0,
-    shouldExist,
-    toMint,
-    remainder,
+    vouchersEarned,
+    remainder: stampsRemainder,
     freebiesLeft: unredeemed?.length ?? 0,
   });
 
   return {
-    loyaltyStamps: remainder,
+    loyaltyStamps: stampsRemainder,
     freebiesLeft: unredeemed?.length ?? 0,
     vouchers: (unredeemed ?? []).map(v => v.code),
   };

@@ -17,6 +17,16 @@ const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!url || !key) throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
 const supabase = createClient(url, key, { auth: { persistSession: false } });
 
+function applyStampAccrual(prevStamps, delta) {
+  const start = Math.max(0, Number(prevStamps || 0));
+  const inc = Math.max(0, Number(delta || 0));
+  const total = start + inc;
+  return {
+    vouchersEarned: Math.floor(total / 8),
+    stampsRemainder: total % 8,
+  };
+}
+
 async function getUserByEmailOrList(email) {
   const hasGetByEmail =
     supabase?.auth?.admin && typeof supabase.auth.admin.getUserByEmail === 'function';
@@ -43,22 +53,41 @@ async function getUserByEmailOrList(email) {
 const user = await getUserByEmailOrList(email);
 const uid = user.id;
 
+let voucherRows = [];
+
 if (stampsToAdd > 0) {
-  const { error } = await supabase
-    .from('loyalty_stamps')
-    .insert([{ user_id: uid, stamps: Number(stampsToAdd) }], { returning: 'minimal' });
-  if (error) throw error;
+  const { vouchersEarned, stampsRemainder } = applyStampAccrual(0, stampsToAdd);
+  if (stampsRemainder > 0) {
+    const { error } = await supabase
+      .from('loyalty_stamps')
+      .insert([{ user_id: uid, stamps: stampsRemainder }], { returning: 'minimal' });
+    if (error) throw error;
+  }
+  if (vouchersEarned > 0) {
+    voucherRows.push(
+      ...Array.from({ length: vouchersEarned }, () => ({
+        user_id: uid,
+        code: crypto.randomUUID(),
+        redeemed: false,
+      }))
+    );
+  }
 }
 
 if (freeDrinksToAdd > 0) {
-  const rows = Array.from({ length: freeDrinksToAdd }, () => ({
-    user_id: uid,
-    code: crypto.randomUUID(),
-    redeemed: false
-  }));
+  voucherRows.push(
+    ...Array.from({ length: freeDrinksToAdd }, () => ({
+      user_id: uid,
+      code: crypto.randomUUID(),
+      redeemed: false,
+    }))
+  );
+}
+
+if (voucherRows.length > 0) {
   const { error } = await supabase
     .from('drink_vouchers')
-    .insert(rows, { returning: 'minimal' });
+    .insert(voucherRows, { returning: 'minimal' });
   if (error) throw error;
 }
 
