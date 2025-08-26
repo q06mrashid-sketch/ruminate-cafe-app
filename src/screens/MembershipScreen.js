@@ -19,6 +19,7 @@ import { createReferral } from '../services/referral';
 import 'react-native-get-random-values';
 import FreeDrinksCounter from '../components/FreeDrinksCounter';
 import LoyaltyStampTile from '../components/LoyaltyStampTile';
+import { applyStampAccrual } from '../utils/rewards';
 
 function Stat({ label, value, prefix = '', suffix = '', style }) {
   return (
@@ -59,17 +60,11 @@ export default function MembershipScreen({ navigation }) {
     return new Date(iso).getTime() < Date.now();
   }, []);
 
-  const activeVouchers = React.useMemo(() =>
-    vouchers.filter(v => !v.used && !isExpired(v.expiresAt))
-  , [vouchers, isExpired]);
-
-  const totalPages = 1 + activeVouchers.length;
-
   const visibleVouchers = React.useMemo(() =>
     vouchers.filter(v => !v.used && !isExpired(v.expiresAt))
   , [vouchers, isExpired]);
 
-  const totalPages = 1 + visibleVouchers.length;
+  const pageCount = 1 + visibleVouchers.length;
   const refresh = useCallback(async () => {
     try { const m = await getMembershipSummary(); if (m) setSummary(m); } catch {}
     let uid = null;
@@ -94,7 +89,12 @@ export default function MembershipScreen({ navigation }) {
         s = await getMyStats();
       }
       if (s.loyaltyStamps < 0 || s.loyaltyStamps > 7) {
-        console.warn('[MEMBERSHIP] loyaltyStamps out of range', s.loyaltyStamps);
+        const { vouchersEarned, stampsRemainder } = applyStampAccrual(0, s.loyaltyStamps);
+        s.loyaltyStamps = stampsRemainder;
+        if (vouchersEarned > 0) {
+          s.freebiesLeft += vouchersEarned;
+          s.vouchers = Array.isArray(s.vouchers) ? s.vouchers : [];
+        }
       }
       setStats(s);
       globalThis.freebiesLeft = s.freebiesLeft;
@@ -120,17 +120,17 @@ export default function MembershipScreen({ navigation }) {
 
   useEffect(() => {
 
-    if (pagerRef.current && activeVouchers.length > 0) {
+    if (pagerRef.current && visibleVouchers.length > 0) {
       pagerRef.current.setPageWithoutAnimation(0);
       setPage(0);
     }
-  }, [activeVouchers.length]);
+  }, [visibleVouchers.length]);
 
   useEffect(() => {
-    if (page > totalPages - 1) {
-      setPage(Math.max(0, totalPages - 1));
+    if (page > pageCount - 1) {
+      setPage(Math.max(0, pageCount - 1));
     }
-  }, [totalPages, page]);
+  }, [pageCount, page]);
 
   useEffect(()=>{
     let m=true; 
@@ -182,7 +182,7 @@ export default function MembershipScreen({ navigation }) {
               <PagerView
                 ref={pagerRef}
 
-                key={`pv-${activeVouchers.length}`}
+                key={`pv-${visibleVouchers.length}`}
 
                 style={{ height: 440, width: '100%' }}
                 initialPage={0}
@@ -204,7 +204,7 @@ export default function MembershipScreen({ navigation }) {
                     />
                   </View>
                 </View>
-          {activeVouchers.map(v => (
+          {visibleVouchers.map(v => (
 
                   <View key={v.id ?? v.code} style={[styles.card, styles.qrCard, styles.voucherCard]}>
                     <Text style={[styles.cardTitle, styles.voucherTitle]}>Drink voucher</Text>
@@ -217,11 +217,11 @@ export default function MembershipScreen({ navigation }) {
                   </View>
                 ))}
               </PagerView>
-              {totalPages > 1 && (
+              {pageCount > 1 && (
                 <>
                   <Text style={styles.swipePrompt}>Swipe to see your drink vouchers</Text>
                   <View style={styles.dots}>
-                    {Array.from({ length: totalPages }).map((_, i) => (
+                    {Array.from({ length: pageCount }).map((_, i) => (
                       <View
                         key={i}
                         style={[styles.dot, i === page && styles.dotActive]}
