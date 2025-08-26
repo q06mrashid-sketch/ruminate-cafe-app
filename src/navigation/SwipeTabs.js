@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
+import React, { useState, useEffect, useContext } from 'react';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -13,11 +13,14 @@ import MembershipScreen from '../screens/MembershipScreen';
 import CommunityScreen from '../screens/CommunityScreen';
 import AdminScreen from '../screens/AdminScreen';
 import { supabase } from '../lib/supabase';
+import CartScreen from '../screens/CartScreen';
+import { CartContext } from '../context/CartContext';
 
 const Tab = createMaterialTopTabNavigator();
 
 function GlassTabBar({ state, descriptors, navigation }) {
   const insets = useSafeAreaInsets();
+  const { itemCount } = useContext(CartContext);
   return (
     <View pointerEvents="box-none" style={[styles.tabWrap, { paddingBottom: (insets.bottom || 8) + 4 }]}>
       <BlurView intensity={90} tint="dark" style={styles.glass}>
@@ -38,7 +41,14 @@ function GlassTabBar({ state, descriptors, navigation }) {
           const Icon = options.tabBarIcon;
           return (
             <Pressable key={route.key} onPress={onPress} style={[styles.tabBtn, isFocused && styles.tabBtnActive]}>
-              {Icon ? Icon({ focused: isFocused, color: isFocused ? '#FFF7E6' : 'rgba(255,247,230,0.7)' }) : null}
+              <View style={{ position: 'relative' }}>
+                {Icon ? Icon({ focused: isFocused, color: isFocused ? '#FFF7E6' : 'rgba(255,247,230,0.7)' }) : null}
+                {route.name === 'Cart' && itemCount > 0 && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{itemCount}</Text>
+                  </View>
+                )}
+              </View>
               <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]} numberOfLines={1}>{label}</Text>
             </Pressable>
           );
@@ -50,6 +60,7 @@ function GlassTabBar({ state, descriptors, navigation }) {
 
 export default function SwipeTabs() {
   const [signedIn, setSignedIn] = useState(false);
+  const { items } = useContext(CartContext);
 
   useEffect(() => {
     let active = true;
@@ -100,6 +111,13 @@ export default function SwipeTabs() {
         component={CommunityScreen}
         options={{ title: 'Community', tabBarIcon: ({ color }) => <Ionicons name="people-outline" size={22} color={color} /> }}
       />
+      {items.length > 0 && (
+        <Tab.Screen
+          name="Cart"
+          component={CartScreen}
+          options={{ title: 'Cart', tabBarIcon: ({ color }) => <Ionicons name="cart-outline" size={22} color={color} /> }}
+        />
+      )}
       {signedIn && (
         <Tab.Screen
           name="Admin"
@@ -134,4 +152,17 @@ const styles = StyleSheet.create({
   tabBtnActive: { backgroundColor: 'rgba(255,247,230,0.2)' },
   tabLabel: { fontSize: 11, color: 'rgba(255,247,230,0.7)', fontWeight: '600' },
   tabLabelActive: { color: '#FFF7E6' },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -10,
+    backgroundColor: '#FF6B00',
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  badgeText: { color: '#FFF', fontSize: 10, fontWeight: '700' },
 });
