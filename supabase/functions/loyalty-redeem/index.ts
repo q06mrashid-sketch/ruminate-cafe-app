@@ -13,6 +13,16 @@ function cors() {
   };
 }
 
+function applyStampAccrual(prevStamps: number, delta: number) {
+  const start = Math.max(0, Number(prevStamps || 0));
+  const inc = Math.max(0, Number(delta || 0));
+  const total = start + inc;
+  return {
+    vouchersEarned: Math.floor(total / 8),
+    stampsRemainder: total % 8,
+  };
+}
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors() });
   if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405, headers: cors() });
@@ -28,28 +38,31 @@ serve(async (req: Request) => {
     .select("id, stamps")
     .eq("user_id", user.id);
   const total = (stampRows ?? []).reduce((sum, r) => sum + (r.stamps || 0), 0);
-  if (total < 8) {
+  const { vouchersEarned, stampsRemainder } = applyStampAccrual(0, total);
+  if (vouchersEarned === 0) {
     return new Response(JSON.stringify({ success: false }), {
       status: 200,
       headers: { ...cors(), "content-type": "application/json" },
     });
   }
 
-  const remaining = total - 8;
   await admin.from("loyalty_stamps").delete().eq("user_id", user.id);
-  if (remaining > 0) {
-    await admin.from("loyalty_stamps").insert({ user_id: user.id, stamps: remaining });
+  if (stampsRemainder > 0) {
+    await admin.from("loyalty_stamps").insert({ user_id: user.id, stamps: stampsRemainder });
   }
 
-  const code = crypto.randomUUID();
-  await admin.from("drink_vouchers").insert({ user_id: user.id, code });
+  const voucherRows = Array.from({ length: vouchersEarned }, () => ({
+    user_id: user.id,
+    code: crypto.randomUUID(),
+  }));
+  await admin.from("drink_vouchers").insert(voucherRows);
 
   const { data: profile } = await admin
     .from("profiles")
     .select("free_drinks")
     .eq("user_id", user.id)
     .maybeSingle();
-  const freeDrinks = (profile?.free_drinks ?? 0) + 1;
+  const freeDrinks = (profile?.free_drinks ?? 0) + vouchersEarned;
   await admin.from("profiles").upsert({ user_id: user.id, free_drinks: freeDrinks });
 
   return new Response(JSON.stringify({ success: true }), {

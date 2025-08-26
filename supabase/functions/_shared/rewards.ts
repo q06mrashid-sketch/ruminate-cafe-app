@@ -1,5 +1,15 @@
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+function applyStampAccrual(prevStamps: number, delta: number) {
+  const start = Math.max(0, Number(prevStamps || 0));
+  const inc = Math.max(0, Number(delta || 0));
+  const total = start + inc;
+  return {
+    vouchersEarned: Math.floor(total / 8),
+    stampsRemainder: total % 8,
+  };
+}
+
 export async function normalizeRewards(admin: SupabaseClient, userId: string) {
 
   const { data: stampAgg, error: stampErr } = await admin
@@ -18,8 +28,8 @@ export async function normalizeRewards(admin: SupabaseClient, userId: string) {
     .order("created_at", { ascending: false });
   if (unredeemedErr) throw unredeemedErr;
 
-  const vouchersEarned = Math.floor((totalStamps ?? 0) / 8);
-  const remainder = totalStamps % 8;
+
+  const { vouchersEarned, stampsRemainder } = applyStampAccrual(0, totalStamps);
 
   if (vouchersEarned > 0) {
     const inserts = Array.from({ length: vouchersEarned }, () => ({
@@ -41,16 +51,19 @@ export async function normalizeRewards(admin: SupabaseClient, userId: string) {
     unredeemed = refreshed ?? [];
   }
 
-  if (totalStamps !== remainder) {
+
+  if (totalStamps !== stampsRemainder) {
+
     const { error: delErr } = await admin
       .from("loyalty_stamps")
       .delete()
       .eq("user_id", userId);
     if (delErr) throw delErr;
-    if (remainder > 0) {
+    if (stampsRemainder > 0) {
       const { error: insErr } = await admin
         .from("loyalty_stamps")
-        .insert({ user_id: userId, stamps: remainder });
+        .insert({ user_id: userId, stamps: stampsRemainder });
+
       if (insErr) throw insErr;
     }
   }
@@ -58,12 +71,12 @@ export async function normalizeRewards(admin: SupabaseClient, userId: string) {
   console.log("[ME_STATS]", {
     totalStamps,
     vouchersEarned,
-    remainder,
+    remainder: stampsRemainder,
     freebiesLeft: unredeemed?.length ?? 0,
   });
 
   return {
-    loyaltyStamps: remainder,
+    loyaltyStamps: stampsRemainder,
     freebiesLeft: unredeemed?.length ?? 0,
     vouchers: (unredeemed ?? []).map(v => v.code),
   };

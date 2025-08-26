@@ -40,7 +40,6 @@ export default function MembershipScreen({ navigation }) {
   const [session, setSession] = useState(null);
   const pagerRef = useRef(null);
 
-
   const vouchers = React.useMemo(() => {
     if (Array.isArray(stats?.vouchers) && stats.vouchers.length) {
       return stats.vouchers.map(code => ({ id: code, code, used: false, expiresAt: null }));
@@ -60,12 +59,11 @@ export default function MembershipScreen({ navigation }) {
     return new Date(iso).getTime() < Date.now();
   }, []);
 
-  const visibleVouchers = React.useMemo(() =>
+  const activeVouchers = React.useMemo(() =>
     vouchers.filter(v => !v.used && !isExpired(v.expiresAt))
   , [vouchers, isExpired]);
 
-  const totalPages = 1 + visibleVouchers.length;
-
+  const totalPages = 1 + activeVouchers.length;
 
   const visibleVouchers = React.useMemo(() =>
     vouchers.filter(v => !v.used && !isExpired(v.expiresAt))
@@ -121,11 +119,12 @@ export default function MembershipScreen({ navigation }) {
   useFocusEffect(useCallback(() => { let on = true; (async()=>{ if(on) await refresh(); })(); return () => { on = false; }; }, [refresh]));
 
   useEffect(() => {
-    if (pagerRef.current && visibleVouchers.length > 0) {
+
+    if (pagerRef.current && activeVouchers.length > 0) {
       pagerRef.current.setPageWithoutAnimation(0);
       setPage(0);
     }
-  }, [visibleVouchers.length]);
+  }, [activeVouchers.length]);
 
   useEffect(() => {
     if (page > totalPages - 1) {
@@ -182,7 +181,9 @@ export default function MembershipScreen({ navigation }) {
             <View style={{ marginTop: 14 }}>
               <PagerView
                 ref={pagerRef}
-                key={`pv-${visibleVouchers.length}`}
+
+                key={`pv-${activeVouchers.length}`}
+
                 style={{ height: 440, width: '100%' }}
                 initialPage={0}
                 onPageSelected={e => setPage(e.nativeEvent.position)}
@@ -203,8 +204,8 @@ export default function MembershipScreen({ navigation }) {
                     />
                   </View>
                 </View>
+          {activeVouchers.map(v => (
 
-                {visibleVouchers.map(v => (
                   <View key={v.id ?? v.code} style={[styles.card, styles.qrCard, styles.voucherCard]}>
                     <Text style={[styles.cardTitle, styles.voucherTitle]}>Drink voucher</Text>
                     <View style={styles.qrWrap}>
