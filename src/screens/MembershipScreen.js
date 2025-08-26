@@ -10,8 +10,7 @@ import PagerView from 'react-native-pager-view';
 import { palette } from '../design/theme';
 import { supabase } from '../lib/supabase';
 import { getMembershipSummary } from '../services/membership';
-import { getMyStats } from '../services/stats';
-import { syncVouchers } from '../services/vouchers';
+import { useStats } from '../hooks/useStats';
 import { getMemberQRCodes } from '../services/qr';
 import GlowingGlassButton from '../components/GlowingGlassButton';
 import { getPIFByEmail } from '../services/pif';
@@ -34,7 +33,7 @@ export default function MembershipScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const [summary, setSummary] = useState({ signedIn: false, tier: 'free', status: 'none', next_billing_at: null });
   const [pifSelfCents, setPifSelfCents] = useState(0);
-  const [stats, setStats] = useState({ loyaltyStamps: 0, freebiesLeft: 0, vouchers: [] });
+  const { stats, refreshStats } = useStats();
   const [memberPayload, setMemberPayload] = useState('ruminate:member');
   const [page, setPage] = useState(0);
   const [user, setUser] = useState(null);
@@ -81,24 +80,8 @@ export default function MembershipScreen({ navigation }) {
       }
     }
     try {
-      let s = await getMyStats();
-      const mismatch = s.freebiesLeft !== (Array.isArray(s.vouchers) ? s.vouchers.length : 0);
-      const outOfRange = s.loyaltyStamps < 0 || s.loyaltyStamps > 7;
-      if (mismatch || outOfRange) {
-        await syncVouchers();
-        s = await getMyStats();
-      }
-      if (s.loyaltyStamps < 0 || s.loyaltyStamps > 7) {
-        const { vouchersEarned, stampsRemainder } = applyStampAccrual(0, s.loyaltyStamps);
-        s.loyaltyStamps = stampsRemainder;
-        if (vouchersEarned > 0) {
-          s.freebiesLeft += vouchersEarned;
-          s.vouchers = Array.isArray(s.vouchers) ? s.vouchers : [];
-        }
-      }
-      setStats(s);
-      globalThis.freebiesLeft = s.freebiesLeft;
-      globalThis.loyaltyStamps = s.loyaltyStamps;
+
+      await refreshStats();
 
       if (uid) {
         setMemberPayload(`ruminate:member:${uid}`);
@@ -109,9 +92,8 @@ export default function MembershipScreen({ navigation }) {
       } else {
         setMemberPayload('ruminate:member');
       }
-
     } catch {}
-  }, []);
+  }, [refreshStats]);
 
 
 
