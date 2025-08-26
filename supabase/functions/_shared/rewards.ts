@@ -1,6 +1,6 @@
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-function applyStampAccrual(prevStamps: number, delta: number) {
+export function applyStampAccrual(prevStamps: number, delta: number) {
   const start = Math.max(0, Number(prevStamps || 0));
   const inc = Math.max(0, Number(delta || 0));
   const total = start + inc;

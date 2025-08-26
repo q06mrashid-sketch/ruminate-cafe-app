@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { applyStampAccrual } from "../_shared/rewards.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -10,16 +11,6 @@ function cors() {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "POST,OPTIONS",
     "Access-Control-Allow-Headers": "authorization,content-type",
-  };
-}
-
-function applyStampAccrual(prevStamps: number, delta: number) {
-  const start = Math.max(0, Number(prevStamps || 0));
-  const inc = Math.max(0, Number(delta || 0));
-  const total = start + inc;
-  return {
-    vouchersEarned: Math.floor(total / 8),
-    stampsRemainder: total % 8,
   };
 }
 
