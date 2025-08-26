@@ -4,15 +4,23 @@ async function run() {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from('cms_texts')
-    .select('key,value')
-    .like('key', 'menu.%');
+
+    .select('key,value');
   if (error) throw error;
 
-  const rows = (data || []).map(row => ({
-    cms_key: row.key,
-    name: row.value || null,
-    base_price: 0
-  }));
+  const map = new Map((data || []).map(r => [r.key, r.value]));
+  const rows = [];
+  for (const [key, value] of map.entries()) {
+    if (!key.startsWith('menu.')) continue;
+    const base = key.slice(5);
+    const priceVal = map.get(`price.${base}`);
+    rows.push({
+      cms_key: key,
+      name: value || null,
+      base_price: priceVal ? parseFloat(priceVal) || 0 : 0,
+    });
+  }
+
 
   if (!rows.length) {
     console.log('No menu keys found.');
