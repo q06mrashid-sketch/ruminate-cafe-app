@@ -15,6 +15,7 @@ export async function getMenuItems() {
         const val = cms[item.cms_key];
         return typeof val !== 'undefined' && val !== null && val !== '';
       })
+
       .map(item => {
         const base = item.cms_key ? item.cms_key.replace(/^menu\./, '') : null;
         const price = base ? cms[`price.${base}`] : null;
@@ -28,6 +29,7 @@ export async function getMenuItems() {
           image: image || null,
         };
       });
+
   } catch {
     return [];
   }
