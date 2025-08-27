@@ -36,9 +36,11 @@ export function patchConsoleForLoadingSignals() {
 
 export function subscribe(fn: Listener) {
   listeners.add(fn);
-  // immediate push
-  fn({ ...state });
-  return () => listeners.delete(fn);
+  const t = setTimeout(() => fn({ ...state }), 0);
+  return () => {
+    listeners.delete(fn);
+    clearTimeout(t);
+  };
 }
 
 function notify() {

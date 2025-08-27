@@ -58,7 +58,7 @@ export default function SplashGate() {
 
     // If all are already ready (e.g. dev reload), hide immediately
     const s = getLoadingState();
-    if (s.auth && s.stamps && s.cms) setVisible(false);
+    if (s.auth && s.stamps && s.cms) setTimeout(() => setVisible(false), 0);
 
     return () => {
       unsub?.();
