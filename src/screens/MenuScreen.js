@@ -1,4 +1,6 @@
+
 import React, { useEffect, useState, useCallback } from 'react';
+
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   View,
@@ -13,15 +15,19 @@ import {
 } from 'react-native';
 import { palette } from '../design/theme';
 import { getMenuItems } from '../services/menu';
+import { getCachedMenuItems, setCachedMenuItems } from '../boot/preload';
 import { useCart } from '../context/CartContext';
 
 export default function MenuScreen() {
   const insets = useSafeAreaInsets();
   const { addItem } = useCart();
+
   const [items, setItems] = useState(globalThis.preloaded?.menuItems || []);
+
   const [selected, setSelected] = useState(null);
   const [shots, setShots] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+
 
   const refreshMenu = useCallback(async () => {
     const data = await getMenuItems();
@@ -29,6 +35,7 @@ export default function MenuScreen() {
     globalThis.preloaded = globalThis.preloaded || {};
     globalThis.preloaded.menuItems = data;
   }, []);
+
 
   useEffect(() => {
     if (items.length === 0) refreshMenu();
@@ -65,7 +72,9 @@ export default function MenuScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['left','right']}>
       <View style={[styles.header, { paddingTop: insets.top }]}><Text style={styles.headerTitle}>Menu</Text></View>
+
       <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />} contentContainerStyle={styles.scroll}>
+
         {coffeeItems.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Coffee</Text>
