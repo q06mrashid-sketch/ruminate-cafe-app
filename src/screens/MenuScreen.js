@@ -90,14 +90,15 @@ export default function MenuScreen() {
 
   const renderItem = ({ item }) => (
     <Pressable style={styles.itemCard} onPress={() => { setSelected(item); setShots(0); }}>
-      {item.image && <Image source={{ uri: item.image }} style={styles.itemImage} />}
       <Text style={styles.itemName}>{item.name}</Text>
       <Text style={styles.itemPrice}>£{item.base_price?.toFixed(2)}</Text>
     </Pressable>
   );
 
   const coffeeItems = items.filter(i => i.category === 'coffee');
-  const otherItems = items.filter(i => i.category !== 'coffee');
+  const pifItems = items.filter(i => i.category === 'pif');
+  const specialsItems = items.filter(i => i.category === 'specials');
+  const otherItems = items.filter(i => !['coffee', 'pif', 'specials'].includes(i.category));
 
   return (
     <SafeAreaView style={styles.container} edges={['left','right']}>
@@ -123,6 +124,32 @@ export default function MenuScreen() {
             <Text style={styles.sectionTitle}>Not Coffee</Text>
             <FlatList
               data={otherItems}
+              horizontal
+              keyExtractor={(item) => String(item.id)}
+              renderItem={renderItem}
+              contentContainerStyle={styles.carousel}
+              showsHorizontalScrollIndicator={false}
+            />
+          </View>
+        )}
+        {pifItems.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Pay It Forward</Text>
+            <FlatList
+              data={pifItems}
+              horizontal
+              keyExtractor={(item) => String(item.id)}
+              renderItem={renderItem}
+              contentContainerStyle={styles.carousel}
+              showsHorizontalScrollIndicator={false}
+            />
+          </View>
+        )}
+        {specialsItems.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Specials</Text>
+            <FlatList
+              data={specialsItems}
               horizontal
               keyExtractor={(item) => String(item.id)}
               renderItem={renderItem}
@@ -180,18 +207,28 @@ const styles = StyleSheet.create({
   sectionTitle: { marginLeft: 16, marginBottom: 8, color: palette.coffee, fontFamily: 'Fraunces_700Bold', fontSize: 18 },
   carousel: { paddingHorizontal: 16 },
   itemCard: {
-    width: 140,
+    width: 120,
+    height: 120,
     backgroundColor: palette.paper,
     borderColor: palette.border,
     borderWidth: 1,
     borderRadius: 14,
-    padding: 12,
     marginRight: 16,
     alignItems: 'center',
+    justifyContent: 'center',
+    padding: 8,
   },
-  itemName: { color: palette.coffee, fontFamily: 'Fraunces_700Bold', marginBottom: 4 },
-  itemPrice: { color: palette.coffee, fontFamily: 'Fraunces_600SemiBold' },
-  itemImage: { width: 100, height: 100, marginBottom: 8, borderRadius: 8 },
+  itemName: {
+    color: palette.coffee,
+    fontFamily: 'Fraunces_700Bold',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  itemPrice: {
+    color: palette.coffee,
+    fontFamily: 'Fraunces_600SemiBold',
+    textAlign: 'center',
+  },
   modalOverlay: { flex:1, backgroundColor:'rgba(0,0,0,0.5)', justifyContent:'center', alignItems:'center' },
   modalContent: { backgroundColor: palette.paper, borderRadius: 14, padding:20, width:'80%' },
   modalImage: { width: '100%', height: 150, borderRadius: 8, marginBottom: 12 },
