@@ -9,7 +9,9 @@ import {
   patchConsoleForLoadingSignals,
   subscribe,
   getLoadingState,
+  markLoaded,
 } from '../boot/loadingSignals';
+import { preloadMenuItems } from '../boot/preload';
 
 const LINES = [
   'collecting beans…',
@@ -34,6 +36,8 @@ export default function SplashGate() {
 
   useEffect(() => {
     patchConsoleForLoadingSignals();
+
+    preloadMenuItems().finally(() => markLoaded('cms'));
 
     const unsub = subscribe((st) => {
       if (st.auth && st.stamps && st.cms) setVisible(false);
