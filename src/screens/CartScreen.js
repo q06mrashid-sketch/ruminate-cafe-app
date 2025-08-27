@@ -70,8 +70,27 @@ export default function CartScreen({ navigation }) {
           <Text style={styles.itemName}>{item.name}</Text>
           <Text style={styles.itemPrice}>£{(item.price * item.quantity).toFixed(2)}</Text>
         </View>
+        {(() => {
+          const parts = [];
+          const mods = item.modifiers || {};
+          if (mods.altMilk) parts.push(mods.altMilk);
+          if (mods.syrups && mods.syrups.length) {
+            const counts = {};
+            mods.syrups.forEach((s) => { counts[s] = (counts[s] || 0) + 1; });
+            for (const [label, count] of Object.entries(counts)) {
+              parts.push(count > 1 ? `${count}× ${label}` : label);
+            }
+          }
+          if (mods.coffeeBlend) parts.push(mods.coffeeBlend);
+          if (typeof mods.extraShots === 'number' && mods.extraShots > 0) {
+            parts.push(`+${mods.extraShots} shot${mods.extraShots > 1 ? 's' : ''}`);
+          }
+          return parts.length ? (
+            <Text style={styles.itemSubtitle}>{parts.join(' · ')}</Text>
+          ) : null;
+        })()}
 
-        <View style={[styles.rowBetween, { marginTop: 10 }]}>
+        <View style={[styles.rowBetween, { marginTop: 10 }]}> 
           <View style={styles.qtyControls}>
             <TouchableOpacity
               style={[styles.qtyBtn, styles.qtyBtnLeft]}
@@ -191,6 +210,12 @@ const styles = StyleSheet.create({
     fontFamily: 'Fraunces_700Bold',
     flexShrink: 1,
     paddingRight: 10,
+  },
+  itemSubtitle: {
+    fontSize: 12,
+    color: palette.clay,
+    fontFamily: 'Fraunces_600SemiBold',
+    marginTop: 4,
   },
 
   itemPrice: {
