@@ -12,14 +12,18 @@ import {
   Image,
   ScrollView,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { palette } from '../design/theme';
 import { getMenuItems } from '../services/menu';
 import { getCachedMenuItems, setCachedMenuItems } from '../boot/preload';
 import { useCart } from '../context/CartContext';
+import { supabase } from '../lib/supabase';
+import { useNavigation } from '@react-navigation/native';
 
 export default function MenuScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
   const { addItem } = useCart();
 
   const [items, setItems] = useState(globalThis.preloaded?.menuItems || []);
@@ -53,7 +57,33 @@ export default function MenuScreen() {
     return selected.base_price + shots * shotPrice;
   };
 
-  const addToCart = () => {
+  const addToCart = async () => {
+    try {
+      const { data } = await supabase?.auth?.getSession();
+      if (!data?.session) {
+        setSelected(null);
+        Alert.alert(
+          'Sign in required',
+          'Please sign in or create an account to add items to your cart.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Sign in', onPress: () => navigation.navigate('MembershipStart') },
+          ],
+        );
+        return;
+      }
+    } catch {
+      setSelected(null);
+      Alert.alert(
+        'Sign in required',
+        'Please sign in or create an account to add items to your cart.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Sign in', onPress: () => navigation.navigate('MembershipStart') },
+        ],
+      );
+      return;
+    }
     addItem({ ...selected, shots, price: priceWithShots() });
     setSelected(null);
   };
