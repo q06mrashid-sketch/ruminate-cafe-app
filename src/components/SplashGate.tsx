@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Image, StyleSheet, Animated } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { Image, StyleSheet, Animated } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { palette } from '../design/theme';
 import logo from '../../assets/logo.png';
 import {
@@ -22,8 +24,9 @@ const LINES = [
 const HARD_TIMEOUT_MS = 30000; // 30s
 const ROTATE_MS = 3000;
 const FADE_MS = 300;
+
 export default function SplashGate() {
-  const insets = useSafeAreaInsets();
+
   const [visible, setVisible] = useState(true);
   const [idx, setIdx] = useState(0);
   const opacity = useRef(new Animated.Value(1)).current;
@@ -60,11 +63,12 @@ export default function SplashGate() {
   if (!visible) return null;
 
   return (
-    <View style={[styles.wrap, { paddingTop: insets.top, paddingBottom: insets.bottom }]}> 
+
+    <SafeAreaView style={styles.wrap} edges={["top", "bottom"]}>
       <Image source={logo} style={styles.logo} />
       <Animated.Text style={[styles.line, { opacity }]}>{LINES[idx]}</Animated.Text>
+    </SafeAreaView>
 
-    </View>
   );
 }
 

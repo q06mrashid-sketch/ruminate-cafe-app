@@ -18,13 +18,15 @@ export function patchConsoleForLoadingSignals() {
       const lower = msg.toLowerCase();
 
       if (lower.includes('user is signed in')) {
-        state.auth = true; notify();
+
+        state.auth = true; scheduleNotify();
       }
       if (lower.includes('loyalty stamps and free drinks have been received')) {
-        state.stamps = true; notify();
+        state.stamps = true; scheduleNotify();
       }
       if (lower.includes('cms info has all been received')) {
-        state.cms = true; notify();
+        state.cms = true; scheduleNotify();
+
       }
     } catch {}
     // always forward to original log
@@ -41,12 +43,25 @@ export function subscribe(fn: Listener) {
 
 function notify() {
   const snapshot = { ...state };
-  listeners.forEach(fn => { try { fn(snapshot); } catch {} });
+
+  listeners.forEach(fn => {
+    try { fn(snapshot); } catch {}
+  });
+}
+
+function scheduleNotify() {
+  setTimeout(notify, 0);
+
 }
 
 // Optional: for manual marking from code instead of console text
 export function markLoaded(key: Keys) {
-  if (!state[key]) { state[key] = true; notify(); }
+
+  if (!state[key]) {
+    state[key] = true;
+    scheduleNotify();
+  }
+
 }
 
 // Expose read-only
