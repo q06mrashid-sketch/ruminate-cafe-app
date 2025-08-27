@@ -2,14 +2,14 @@ import React, { useContext, useMemo, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Swipeable } from 'react-native-gesture-handler';
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { useTabBarHeight } from '../navigation/TabBarHeightContext';
 import { CartContext } from '../context/CartContext';
 import { palette } from '../design/theme';
 
 export default function CartScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const tabBarHeight = useBottomTabBarHeight();
 
+  const tabBarHeight = useTabBarHeight();
   // Be defensive about what's available in CartContext
   const cart = useContext(CartContext) || {};
   const {
@@ -26,8 +26,10 @@ export default function CartScreen({ navigation }) {
   const [timeSlot, setTimeSlot] = useState(null);
 
   const contentBottomPad = useMemo(
-    () => insets.bottom + tabBarHeight + 140,
-    [insets.bottom, tabBarHeight]
+
+    () => tabBarHeight + 140,
+    [tabBarHeight]
+
   );
 
   const onInc = (id) => {
