@@ -20,22 +20,22 @@ export default function CartScreen({ navigation }) {
     clearItem, // some apps name it like this
   } = cart;
 
-  const [timeSlot, setTimeSlot] = useState<string | null>(null);
+  const [timeSlot, setTimeSlot] = useState(null);
 
   const contentBottomPad = useMemo(
     () => insets.bottom + 140, // leave room for sticky footer
     [insets.bottom]
   );
 
-  const onInc = (id: string | number) => {
+  const onInc = (id) => {
     if (incrementItem) return incrementItem(id);
     if (updateQuantity) return updateQuantity(id, +1);
   };
-  const onDec = (id: string | number) => {
+  const onDec = (id) => {
     if (decrementItem) return decrementItem(id);
     if (updateQuantity) return updateQuantity(id, -1);
   };
-  const onRemove = (id: string | number) => {
+  const onRemove = (id) => {
     if (removeItem) return removeItem(id);
     if (clearItem) return clearItem(id);
     if (updateQuantity) return updateQuantity(id, 'remove'); // if your impl supports a special op
