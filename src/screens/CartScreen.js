@@ -8,8 +8,8 @@ import { palette } from '../design/theme';
 
 export default function CartScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const tabBarHeight = useTabBarHeight();
 
+  const tabBarHeight = useTabBarHeight();
   // Be defensive about what's available in CartContext
   const cart = useContext(CartContext) || {};
   const {
@@ -26,8 +26,10 @@ export default function CartScreen({ navigation }) {
   const [timeSlot, setTimeSlot] = useState(null);
 
   const contentBottomPad = useMemo(
+
     () => tabBarHeight + 140,
     [tabBarHeight]
+
   );
 
   const onInc = (id) => {
