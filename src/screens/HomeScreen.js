@@ -15,6 +15,7 @@ import { getToday, openInstagramProfile, getWeeklyHours, getLatestInstagramPost 
 import { useStats } from '../hooks/useStats';
 import { getCMS } from '../services/cms';
 import logo from '../../assets/logo.png';
+import { markLoaded } from '../boot/loadingSignals';
 
 function ProgressBar({ value, max, tint = palette.clay, track = '#EED8C4' }) {
   const pct = Math.max(0, Math.min(1, max > 0 ? value / max : 0));
@@ -37,18 +38,20 @@ export default function HomeScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const [hoursExpanded, setHoursExpanded] = useState(false);
   const [weekHours, setWeekHours] = useState([]);
-  const [member, setMember] = useState({ status: 'none', next_billing_at: null, signedIn: false });
+  const [member, setMember] = useState(() => globalThis.membershipSummary || { status: 'none', next_billing_at: null, signedIn: false });
   const [fund, setFund] = useState({ total_cents: 0, goal_cents: 0 });
-  const [today, setToday] = useState({ openNow: false, until: '--:--', specials: [] });
+  const preCms = globalThis.cms || {};
+  const initialSpecials = [preCms['special 1'], preCms['special 2']].filter(Boolean);
+  const [today, setToday] = useState({ openNow: false, until: '--:--', specials: initialSpecials });
   const [pif, setPif] = useState({ available: 0, contributed: 0 });
   const { stats, refreshStats } = useStats();
-  const [rumiQuote, setRumiQuote] = useState(null);
+  const [rumiQuote, setRumiQuote] = useState(preCms['rumi quote'] || null);
   const [igPost, setIgPost] = useState({ image: null, caption: '', url: null });
 
   const refresh = useCallback(async () => {
     getFundProgress().then(setFund).catch(() => setFund({ progress: 0, total_cents: 0, goal_cents: 0 }));
     getWeeklyHours().then(setWeekHours).catch(() => setWeekHours([]));
-    try { const m = await getMembershipSummary(); if (m) setMember(prev => ({ ...prev, ...m })); } catch {}
+    try { const m = await getMembershipSummary(); if (m) setMember(prev => { const merged = { ...prev, ...m }; globalThis.membershipSummary = merged; return merged; }); } catch {}
     try { const f = await getFundCurrent(); if (f) setFund(f); } catch {}
     try { const t = await getToday(); setToday(t); } catch {}
     try { const s = await getPIFStats(); setPif(s); } catch {}
@@ -56,6 +59,8 @@ export default function HomeScreen({ navigation }) {
     try { const ig = await getLatestInstagramPost(); setIgPost(ig); } catch {}
     try {
       const cms = await getCMS();
+      globalThis.cms = cms;
+      markLoaded('cms');
       if (cms) {
         const s1 = cms['special 1'] || null;
         const s2 = cms['special 2'] || null;
