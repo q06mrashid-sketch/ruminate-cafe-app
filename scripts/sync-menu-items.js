@@ -4,7 +4,6 @@ async function run() {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from('cms_texts')
-
     .select('key,value');
   if (error) throw error;
 
@@ -20,7 +19,6 @@ async function run() {
       base_price: priceVal ? parseFloat(priceVal) || 0 : 0,
     });
   }
-
 
   if (!rows.length) {
     console.log('No menu keys found.');

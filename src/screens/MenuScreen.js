@@ -9,7 +9,6 @@ import {
   Modal,
   Image,
   ScrollView,
-
 } from 'react-native';
 import { palette } from '../design/theme';
 import { getMenuItems } from '../services/menu';
@@ -44,15 +43,14 @@ export default function MenuScreen() {
 
   const renderItem = ({ item }) => (
     <Pressable style={styles.itemCard} onPress={() => { setSelected(item); setShots(0); }}>
-
       {item.image && <Image source={{ uri: item.image }} style={styles.itemImage} />}
       <Text style={styles.itemName}>{item.name}</Text>
       <Text style={styles.itemPrice}>£{item.base_price?.toFixed(2)}</Text>
     </Pressable>
   );
 
-  const coffeeItems = items.filter(i => i.type === 'coffee');
-  const otherItems = items.filter(i => i.type !== 'coffee');
+  const coffeeItems = items.filter(i => i.category === 'coffee');
+  const otherItems = items.filter(i => i.category !== 'coffee');
 
   return (
     <SafeAreaView style={styles.container} edges={['left','right']}>
@@ -91,7 +89,6 @@ export default function MenuScreen() {
             {selected?.image && <Image source={{ uri: selected.image }} style={styles.modalImage} />}
             <Text style={styles.modalTitle}>{selected?.name}</Text>
             {selected?.description && <Text style={styles.modalDesc}>{selected.description}</Text>}
-
             {['coffee', 'matcha'].includes(selected?.type) && (
               <View style={styles.shotRow}>
                 <Text style={styles.shotLabel}>Syrup shots:</Text>
@@ -129,19 +126,16 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   headerTitle: { fontSize: 20, color: '#3E2723', fontFamily: 'Fraunces_700Bold' },
-
   scroll: { paddingVertical: 16 },
   section: { marginBottom: 24 },
   sectionTitle: { marginLeft: 16, marginBottom: 8, color: palette.coffee, fontFamily: 'Fraunces_700Bold', fontSize: 18 },
   carousel: { paddingHorizontal: 16 },
   itemCard: {
     width: 140,
-
     backgroundColor: palette.paper,
     borderColor: palette.border,
     borderWidth: 1,
     borderRadius: 14,
-
     padding: 12,
     marginRight: 16,
     alignItems: 'center',
@@ -154,7 +148,6 @@ const styles = StyleSheet.create({
   modalImage: { width: '100%', height: 150, borderRadius: 8, marginBottom: 12 },
   modalTitle: { fontSize:20, color: palette.coffee, fontFamily:'Fraunces_700Bold', marginBottom:8 },
   modalDesc: { color: palette.coffee, fontFamily:'Fraunces_600SemiBold', marginBottom:12 },
-
   shotRow: { flexDirection:'row', alignItems:'center', marginBottom:12, justifyContent:'space-between' },
   shotLabel: { color: palette.coffee, fontFamily:'Fraunces_600SemiBold' },
   shotCtrls: { flexDirection:'row', alignItems:'center', gap:12 },

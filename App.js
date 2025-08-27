@@ -4,6 +4,7 @@ import { StatusBar, ImageBackground } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { CartProvider } from './src/context/CartContext';
 import Router from './src/navigation/Router';
+import { CartProvider } from './src/contexts/CartContext';
 import { useFonts, Fraunces_600SemiBold, Fraunces_700Bold } from '@expo-google-fonts/fraunces';
 import appBgBase64 from './assets/appBgBase64';
 
@@ -21,12 +22,12 @@ export default function App() {
       style={{ flex: 1 }}
     >
 
-      <CartProvider>
-        <SafeAreaProvider>
-          <StatusBar barStyle="dark-content" />
+      <SafeAreaProvider>
+        <StatusBar barStyle="dark-content" />
+        <CartProvider>
           <Router />
-        </SafeAreaProvider>
-      </CartProvider>
+        </CartProvider>
+      </SafeAreaProvider>
     </ImageBackground>
   );
 }
