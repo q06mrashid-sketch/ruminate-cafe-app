@@ -159,7 +159,7 @@ export default function MenuScreen() {
           </View>
         )}
       </ScrollView>
-      <Modal visible={!!selected} transparent animationType="slide" onRequestClose={() => setSelected(null)}>
+      <Modal visible={!!selected} transparent animationType="fade" onRequestClose={() => setSelected(null)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             {selected?.image && <Image source={{ uri: selected.image }} style={styles.modalImage} />}
