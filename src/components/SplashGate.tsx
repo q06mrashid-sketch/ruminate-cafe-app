@@ -9,7 +9,11 @@ import {
   patchConsoleForLoadingSignals,
   subscribe,
   getLoadingState,
+  markLoaded,
 } from '../boot/loadingSignals';
+import { supabase } from '../lib/supabase';
+import { getMyStats } from '../services/stats';
+import { getCMS } from '../services/cms';
 
 const LINES = [
   'collecting beans…',
@@ -34,6 +38,15 @@ export default function SplashGate() {
 
   useEffect(() => {
     patchConsoleForLoadingSignals();
+
+    if (supabase?.auth) {
+      supabase.auth.getSession().catch(() => {}).finally(() => markLoaded('auth'));
+    } else {
+      markLoaded('auth');
+    }
+
+    getMyStats().catch(() => {}).finally(() => markLoaded('stamps'));
+    getCMS().catch(() => {}).finally(() => markLoaded('cms'));
 
     const unsub = subscribe((st) => {
       if (st.auth && st.stamps && st.cms) setVisible(false);
