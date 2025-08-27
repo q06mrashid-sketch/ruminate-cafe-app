@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
+
 import { Image, StyleSheet, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { palette } from '../design/theme';
 import logo from '../../assets/logo.png';
 import {
@@ -24,9 +26,11 @@ const ROTATE_MS = 3000;
 const FADE_MS = 300;
 
 export default function SplashGate() {
+
   const [visible, setVisible] = useState(true);
   const [idx, setIdx] = useState(0);
   const opacity = useRef(new Animated.Value(1)).current;
+
 
   useEffect(() => {
     patchConsoleForLoadingSignals();
@@ -36,12 +40,14 @@ export default function SplashGate() {
     });
 
     const tmr = setTimeout(() => setVisible(false), HARD_TIMEOUT_MS);
+
     const rot = setInterval(() => {
       Animated.timing(opacity, { toValue: 0, duration: FADE_MS, useNativeDriver: true }).start(() => {
         setIdx(i => (i + 1) % LINES.length);
         Animated.timing(opacity, { toValue: 1, duration: FADE_MS, useNativeDriver: true }).start();
       });
     }, ROTATE_MS);
+
 
     // If all are already ready (e.g. dev reload), hide immediately
     const s = getLoadingState();
@@ -57,10 +63,12 @@ export default function SplashGate() {
   if (!visible) return null;
 
   return (
+
     <SafeAreaView style={styles.wrap} edges={["top", "bottom"]}>
       <Image source={logo} style={styles.logo} />
       <Animated.Text style={[styles.line, { opacity }]}>{LINES[idx]}</Animated.Text>
     </SafeAreaView>
+
   );
 }
 
@@ -69,7 +77,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     zIndex: 9999,
     left: 0, right: 0, top: 0, bottom: 0,
+
     backgroundColor: palette.cream,
+
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
