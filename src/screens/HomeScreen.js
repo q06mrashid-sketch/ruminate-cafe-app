@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { getPIFStats } from '../services/pif';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { View, Text, StyleSheet, ScrollView, Pressable, Image, Animated, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Image, Animated, TouchableOpacity, RefreshControl } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { palette } from '../design/theme';
@@ -11,7 +11,7 @@ import FreeDrinksCounter from '../components/FreeDrinksCounter';
 import { supabase } from '../lib/supabase';
 import { getMembershipSummary } from '../services/membership';
 import { getFundCurrent, getFundProgress } from '../services/community';
-import { getToday, openInstagramProfile, getWeeklyHours, getLatestInstagramPost } from '../services/homeData';
+import { getToday, openInstagramProfile, getWeeklyHours, getLatestInstagramPost, openInstagramUrl } from '../services/homeData';
 import { useStats } from '../hooks/useStats';
 import { getCMS } from '../services/cms';
 import logo from '../../assets/logo.png';
@@ -44,18 +44,19 @@ export default function HomeScreen({ navigation }) {
   const { stats, refreshStats } = useStats();
   const [rumiQuote, setRumiQuote] = useState(null);
   const [igPost, setIgPost] = useState({ image: null, caption: '', url: null });
+  const [refreshing, setRefreshing] = useState(false);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (force = false) => {
     getFundProgress().then(setFund).catch(() => setFund({ progress: 0, total_cents: 0, goal_cents: 0 }));
     getWeeklyHours().then(setWeekHours).catch(() => setWeekHours([]));
     try { const m = await getMembershipSummary(); if (m) setMember(prev => ({ ...prev, ...m })); } catch {}
     try { const f = await getFundCurrent(); if (f) setFund(f); } catch {}
     try { const t = await getToday(); setToday(t); } catch {}
     try { const s = await getPIFStats(); setPif(s); } catch {}
-    try { await refreshStats(); } catch {}
+    try { await refreshStats(force); } catch {}
     try { const ig = await getLatestInstagramPost(); setIgPost(ig); } catch {}
     try {
-      const cms = await getCMS();
+      const cms = await getCMS(force);
       if (cms) {
         const s1 = cms['special 1'] || null;
         const s2 = cms['special 2'] || null;
@@ -65,8 +66,14 @@ export default function HomeScreen({ navigation }) {
     } catch {}
   }, [refreshStats, member.signedIn]);
 
-  useEffect(() => { refresh(); }, [refresh]);
-  useFocusEffect(useCallback(() => { let on = true; (async()=>{ if(on) await refresh(); })(); return () => { on = false; }; }, [refresh]));
+  useEffect(() => { refresh(false); }, [refresh]);
+  useFocusEffect(useCallback(() => { let on = true; (async()=>{ if(on) await refresh(true); })(); return () => { on = false; }; }, [refresh]));
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refresh(true);
+    setRefreshing(false);
+  }, [refresh]);
 
   useEffect(() => {
     if (!supabase?.auth) {
@@ -104,7 +111,7 @@ export default function HomeScreen({ navigation }) {
       <View style={[styles.header, { paddingTop: insets.top }] }>
         <Image source={logo} style={styles.logo} />
       </View>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />} contentContainerStyle={styles.content}>
         <View style={styles.hero}>
           <Text style={styles.subcopy}>Track perks, collect stamps, and support the community fund.</Text>
           <View style={{ height: 18 }} />
