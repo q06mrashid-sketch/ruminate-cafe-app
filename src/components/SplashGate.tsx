@@ -25,7 +25,7 @@ const LINES = [
   'dialling in…',
 ];
 
-const HARD_TIMEOUT_MS = 30000; // 30s
+const HARD_TIMEOUT_MS = 12000; // 12s
 const ROTATE_MS = 3000;
 const FADE_MS = 300;
 
