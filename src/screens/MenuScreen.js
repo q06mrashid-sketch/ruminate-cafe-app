@@ -99,7 +99,9 @@ export default function MenuScreen() {
                 </View>
               </View>
             )}
+
             <Text style={styles.modalPrice}>£{priceWithShots().toFixed(2)}</Text>
+
             <Pressable style={styles.addBtn} onPress={addToCart}><Text style={styles.addTxt}>Add to cart</Text></Pressable>
             <Pressable style={styles.closeBtn} onPress={() => setSelected(null)}><Text style={styles.closeTxt}>Close</Text></Pressable>
           </View>
