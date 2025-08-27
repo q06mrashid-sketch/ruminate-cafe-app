@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ScrollView, View, Text, StyleSheet, Share, Pressable, Alert } from 'react-native';
+import { ScrollView, View, Text, StyleSheet, Share, Pressable, Alert, RefreshControl } from 'react-native';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 import membershipPassBase64 from '../../assets/membershipPassBase64';
@@ -39,6 +39,7 @@ export default function MembershipScreen({ navigation }) {
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
   const pagerRef = useRef(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const vouchers = React.useMemo(() => {
     if (Array.isArray(stats?.vouchers) && stats.vouchers.length) {
@@ -64,7 +65,7 @@ export default function MembershipScreen({ navigation }) {
   , [vouchers, isExpired]);
 
   const pageCount = 1 + visibleVouchers.length;
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (force = false) => {
     try { const m = await getMembershipSummary(); if (m) setSummary(m); } catch {}
     let uid = null;
     if (supabase) {
@@ -81,7 +82,7 @@ export default function MembershipScreen({ navigation }) {
     }
     try {
 
-      await refreshStats();
+      await refreshStats(force);
 
       if (uid) {
         setMemberPayload(`ruminate:member:${uid}`);
@@ -95,10 +96,14 @@ export default function MembershipScreen({ navigation }) {
     } catch {}
   }, [refreshStats]);
 
+  useEffect(() => { refresh(false); }, [refresh]);
+  useFocusEffect(useCallback(() => { let on = true; (async()=>{ if(on) await refresh(true); })(); return () => { on = false; }; }, [refresh]));
 
-
-  useEffect(() => { refresh(); }, [refresh]);
-  useFocusEffect(useCallback(() => { let on = true; (async()=>{ if(on) await refresh(); })(); return () => { on = false; }; }, [refresh]));
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refresh(true);
+    setRefreshing(false);
+  }, [refresh]);
 
   useEffect(() => {
 
@@ -153,7 +158,7 @@ export default function MembershipScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container} edges={['left','right']}>
       <View style={[styles.header, { paddingTop: insets.top }]}><Text style={styles.headerTitle}>Membership</Text></View>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />} contentContainerStyle={styles.content}>
         <Text style={styles.title}>Membership</Text>
         {notice && (stats?.freebiesLeft ?? 0) > 0 ? <Text style={styles.notice}>{notice}</Text> : null}
 
