@@ -31,7 +31,7 @@ function Stat({ label, value, prefix = '', suffix = '', style }) {
 
 export default function MembershipScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const [summary, setSummary] = useState({ signedIn: false, tier: 'free', status: 'none', next_billing_at: null });
+  const [summary, setSummary] = useState(() => globalThis.membershipSummary || { signedIn: false, tier: 'free', status: 'none', next_billing_at: null });
   const [pifSelfCents, setPifSelfCents] = useState(0);
   const { stats, refreshStats } = useStats();
   const [memberPayload, setMemberPayload] = useState('ruminate:member');
@@ -65,7 +65,7 @@ export default function MembershipScreen({ navigation }) {
 
   const pageCount = 1 + visibleVouchers.length;
   const refresh = useCallback(async () => {
-    try { const m = await getMembershipSummary(); if (m) setSummary(m); } catch {}
+    try { const m = await getMembershipSummary(); if (m) { setSummary(m); globalThis.membershipSummary = m; } } catch {}
     let uid = null;
     if (supabase) {
       try {

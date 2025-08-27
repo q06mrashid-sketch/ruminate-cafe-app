@@ -2,9 +2,15 @@ import { useState, useCallback } from 'react';
 import { getMyStats } from '../services/stats';
 import { syncVouchers } from '../services/vouchers';
 import { applyStampAccrual } from '../utils/rewards';
+import { markLoaded } from '../boot/loadingSignals';
 
 export function useStats() {
-  const [stats, setStats] = useState({ loyaltyStamps: 0, freebiesLeft: 0, vouchers: [] });
+  const initialStats = {
+    loyaltyStamps: globalThis.loyaltyStamps ?? globalThis.stats?.loyaltyStamps ?? 0,
+    freebiesLeft: globalThis.freebiesLeft ?? globalThis.stats?.freebiesLeft ?? 0,
+    vouchers: Array.isArray(globalThis.stats?.vouchers) ? globalThis.stats.vouchers : [],
+  };
+  const [stats, setStats] = useState(initialStats);
 
   const refreshStats = useCallback(async () => {
     try {
@@ -26,10 +32,13 @@ export function useStats() {
       setStats(s);
       globalThis.freebiesLeft = s.freebiesLeft;
       globalThis.loyaltyStamps = s.loyaltyStamps;
+      globalThis.stats = s;
+      markLoaded('stamps');
       return s;
     } catch {
       const fallback = { loyaltyStamps: 0, freebiesLeft: 0, vouchers: [] };
       setStats(fallback);
+      markLoaded('stamps');
       return fallback;
     }
   }, []);
