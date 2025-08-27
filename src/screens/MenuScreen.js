@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { palette } from '../design/theme';
 import { getMenuItems } from '../services/menu';
-import { useCart } from '../contexts/CartContext';
+import { useCart } from '../context/CartContext';
 
 export default function MenuScreen() {
   const insets = useSafeAreaInsets();

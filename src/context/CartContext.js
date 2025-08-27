@@ -1,4 +1,4 @@
-import React, { createContext, useState, useMemo } from 'react';
+import React, { createContext, useState, useMemo, useContext } from 'react';
 
 export const CartContext = createContext({
   items: [],
@@ -39,4 +39,8 @@ export function CartProvider({ children }) {
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+}
+
+export function useCart() {
+  return useContext(CartContext);
 }
