@@ -11,6 +11,8 @@ export async function getMembershipSummary() {
       return { signedIn: false, tier: 'free', status: 'none', next_billing_at: null };
     }
 
+    console.log('user is signed in');
+
     const meta = session.user.user_metadata || {};
     // For testing, force specific user email to be treated as paid tier
     // regardless of metadata.
