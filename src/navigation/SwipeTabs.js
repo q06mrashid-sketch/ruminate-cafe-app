@@ -15,14 +15,19 @@ import AdminScreen from '../screens/AdminScreen';
 import { supabase } from '../lib/supabase';
 import CartScreen from '../screens/CartScreen';
 import { CartContext } from '../context/CartContext';
+import { TabBarHeightContext } from './TabBarHeightContext';
 
 const Tab = createMaterialTopTabNavigator();
 
-function GlassTabBar({ state, descriptors, navigation }) {
+function GlassTabBar({ state, descriptors, navigation, setHeight }) {
   const insets = useSafeAreaInsets();
   const { itemCount } = useContext(CartContext);
   return (
-    <View pointerEvents="box-none" style={[styles.tabWrap, { paddingBottom: (insets.bottom || 8) + 4 }]}>
+    <View
+      pointerEvents="box-none"
+      style={[styles.tabWrap, { paddingBottom: (insets.bottom || 8) + 4 }]}
+      onLayout={(e) => setHeight?.(e.nativeEvent.layout.height)}
+    >
       <BlurView intensity={90} tint="dark" style={styles.glass}>
         <LinearGradient
           colors={['rgba(58,41,32,0.9)', 'rgba(58,41,32,0.7)']}
@@ -61,6 +66,7 @@ function GlassTabBar({ state, descriptors, navigation }) {
 export default function SwipeTabs() {
   const [signedIn, setSignedIn] = useState(false);
   const { items } = useContext(CartContext);
+  const [tabBarHeight, setTabBarHeight] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -80,17 +86,18 @@ export default function SwipeTabs() {
   }, []);
 
   return (
-    <Tab.Navigator
-      tabBarPosition="bottom"
-      tabBar={(p) => <GlassTabBar {...p} />}
-      screenOptions={{
-        swipeEnabled: true,
-        lazy: true,
-        tabBarShowIcon: true,
-        tabBarIndicatorStyle: { height: 0 },
-        animationEnabled: true,
-      }}
-    >
+    <TabBarHeightContext.Provider value={tabBarHeight}>
+      <Tab.Navigator
+        tabBarPosition="bottom"
+        tabBar={(p) => <GlassTabBar {...p} setHeight={setTabBarHeight} />}
+        screenOptions={{
+          swipeEnabled: true,
+          lazy: true,
+          tabBarShowIcon: true,
+          tabBarIndicatorStyle: { height: 0 },
+          animationEnabled: true,
+        }}
+      >
       <Tab.Screen
         name="Home"
         component={HomeScreen}
@@ -126,6 +133,7 @@ export default function SwipeTabs() {
         />
       )}
     </Tab.Navigator>
+    </TabBarHeightContext.Provider>
   );
 }
 

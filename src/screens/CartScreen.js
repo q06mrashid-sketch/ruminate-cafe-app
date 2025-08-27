@@ -1,11 +1,14 @@
 import React, { useContext, useMemo, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Swipeable } from 'react-native-gesture-handler';
+import { useTabBarHeight } from '../navigation/TabBarHeightContext';
 import { CartContext } from '../context/CartContext';
 import { palette } from '../design/theme';
 
 export default function CartScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useTabBarHeight();
 
   // Be defensive about what's available in CartContext
   const cart = useContext(CartContext) || {};
@@ -23,8 +26,8 @@ export default function CartScreen({ navigation }) {
   const [timeSlot, setTimeSlot] = useState(null);
 
   const contentBottomPad = useMemo(
-    () => insets.bottom + 140, // leave room for sticky footer
-    [insets.bottom]
+    () => tabBarHeight + 140,
+    [tabBarHeight]
   );
 
   const onInc = (id) => {
@@ -52,41 +55,50 @@ export default function CartScreen({ navigation }) {
   };
 
   const renderItem = ({ item }) => (
-    <View style={styles.card}>
-      <View style={styles.rowBetween}>
-        <Text style={styles.itemName}>{item.name}</Text>
-        <Text style={styles.itemPrice}>£{(item.price * item.quantity).toFixed(2)}</Text>
-      </View>
-
-      <View style={[styles.rowBetween, { marginTop: 10 }]}>
-        <View style={styles.qtyControls}>
-          <TouchableOpacity
-            style={[styles.qtyBtn, styles.qtyBtnLeft]}
-            onPress={() => onDec?.(item.id)}
-            disabled={item.quantity <= 1}
-          >
-            <Text style={styles.qtyBtnText}>−</Text>
-          </TouchableOpacity>
-          <View style={styles.qtyBadge}>
-            <Text style={styles.qtyBadgeText}>{item.quantity}</Text>
-          </View>
-          <TouchableOpacity
-            style={[styles.qtyBtn, styles.qtyBtnRight]}
-            onPress={() => onInc?.(item.id)}
-          >
-            <Text style={styles.qtyBtnText}>+</Text>
-          </TouchableOpacity>
+    <Swipeable
+      renderRightActions={() => (
+        <View style={styles.swipeRemove}>
+          <Text style={styles.swipeRemoveText}>Remove</Text>
+        </View>
+      )}
+      onSwipeableRightOpen={() => onRemove?.(item.id)}
+    >
+      <View style={styles.card}>
+        <View style={styles.rowBetween}>
+          <Text style={styles.itemName}>{item.name}</Text>
+          <Text style={styles.itemPrice}>£{(item.price * item.quantity).toFixed(2)}</Text>
         </View>
 
-        <TouchableOpacity onPress={() => onRemove?.(item.id)} style={styles.removeBtn}>
-          <Text style={styles.removeText}>Remove</Text>
-        </TouchableOpacity>
+        <View style={[styles.rowBetween, { marginTop: 10 }]}>
+          <View style={styles.qtyControls}>
+            <TouchableOpacity
+              style={[styles.qtyBtn, styles.qtyBtnLeft]}
+              onPress={() => onDec?.(item.id)}
+              disabled={item.quantity <= 1}
+            >
+              <Text style={styles.qtyBtnText}>−</Text>
+            </TouchableOpacity>
+            <View style={styles.qtyBadge}>
+              <Text style={styles.qtyBadgeText}>{item.quantity}</Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.qtyBtn, styles.qtyBtnRight]}
+              onPress={() => onInc?.(item.id)}
+            >
+              <Text style={styles.qtyBtnText}>+</Text>
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity onPress={() => onRemove?.(item.id)} style={styles.removeBtn}>
+            <Text style={styles.removeText}>Remove</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
+    </Swipeable>
   );
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top','bottom','left','right']}>
+    <SafeAreaView style={styles.safe} edges={['top','left','right']}>
       <FlatList
         data={items}
         keyExtractor={(item) => String(item.id)}
@@ -102,7 +114,12 @@ export default function CartScreen({ navigation }) {
       />
 
       {/* Sticky footer */}
-      <View style={[styles.footerWrap, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+      <View
+        style={[
+          styles.footerWrap,
+          { bottom: tabBarHeight, paddingBottom: Math.max(insets.bottom, 12) },
+        ]}
+      >
         <View style={styles.footerTopRow}>
           <Text style={styles.subtotalLabel}>Subtotal</Text>
           <Text style={styles.subtotalValue}>£{subtotal.toFixed(2)}</Text>
@@ -217,6 +234,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: palette.coffee,
     fontFamily: 'Fraunces_700Bold',
+  },
+
+  swipeRemove: {
+    backgroundColor: '#8E4032',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 80,
+    borderRadius: 14,
+    marginBottom: 14,
+  },
+  swipeRemoveText: {
+    color: '#fff',
+    fontFamily: 'Fraunces_600SemiBold',
   },
 
   removeBtn: {
