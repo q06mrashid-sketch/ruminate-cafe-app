@@ -52,7 +52,12 @@ function notify() {
 }
 
 function scheduleNotify() {
-  setTimeout(notify, 0);
+  if (typeof requestAnimationFrame === 'function') {
+    // Delay until next frame so React isn't mid-insertion effect when listeners update state
+    requestAnimationFrame(() => notify());
+  } else {
+    setTimeout(notify, 0);
+  }
 
 }
 
