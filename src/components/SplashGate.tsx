@@ -11,7 +11,9 @@ import {
   getLoadingState,
   markLoaded,
 } from '../boot/loadingSignals';
+
 import { preloadMenuItems } from '../boot/preload';
+
 
 const LINES = [
   'collecting beans…',
@@ -36,6 +38,7 @@ export default function SplashGate() {
 
   useEffect(() => {
     patchConsoleForLoadingSignals();
+
 
     preloadMenuItems().finally(() => markLoaded('cms'));
 
