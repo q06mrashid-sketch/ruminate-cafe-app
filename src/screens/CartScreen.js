@@ -8,10 +8,12 @@ import { palette } from '../design/theme';
 import { buildReceipt, sendReceiptToPOS } from '../utils/receipt';
 import { saveReceiptForUser } from '../services/orders';
 import { supabase } from '../lib/supabase';
-
+import { countStampsFromReceipt } from '../utils/loyalty';
+import { useStats } from '../hooks/useStats';
 
 export default function CartScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { refreshStats } = useStats();
 
   const tabBarHeight = useTabBarHeight();
   // Be defensive about what's available in CartContext
@@ -180,6 +182,17 @@ export default function CartScreen({ navigation }) {
                 const userId = session?.session?.user?.id;
                 if (userId) {
                   await saveReceiptForUser(userId, receipt);
+
+                  const add = countStampsFromReceipt(receipt);
+                  if (add > 0) {
+                    const { error } = await supabase.rpc('award_stamps', {
+                      p_user: userId,
+                      p_order_id: receipt.orderId,
+                      p_add: add,
+                    });
+                    if (error) console.warn('[LOYALTY] award_stamps failed', error);
+                  }
+                  try { await refreshStats(); } catch {}
                 }
               } catch {}
 
