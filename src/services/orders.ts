@@ -12,6 +12,7 @@ export async function saveReceiptForUser(userId: string, receipt: Receipt) {
     totals_cents: totalsCents,
     currency: receipt?.totals?.currency || 'GBP',
     channel: receipt.channel,
+    source: 'app',
     payment_method: receipt.paymentMethod,
     time_slot: receipt.timeSlot,
     items: receipt.items,
