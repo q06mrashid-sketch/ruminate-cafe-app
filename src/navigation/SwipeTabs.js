@@ -16,6 +16,8 @@ import { supabase } from '../lib/supabase';
 import CartScreen from '../screens/CartScreen';
 import { CartContext } from '../context/CartContext';
 import { TabBarHeightContext } from './TabBarHeightContext';
+import OrdersScreen from '../screens/OrdersScreen';
+import useHasOrders from '../hooks/useHasOrders';
 
 const Tab = createMaterialTopTabNavigator();
 
@@ -67,6 +69,7 @@ export default function SwipeTabs() {
   const [signedIn, setSignedIn] = useState(false);
   const { items } = useContext(CartContext);
   const [tabBarHeight, setTabBarHeight] = useState(0);
+  const hasOrders = useHasOrders();
 
   useEffect(() => {
     let active = true;
@@ -118,6 +121,13 @@ export default function SwipeTabs() {
         component={CommunityScreen}
         options={{ title: 'Community', tabBarIcon: ({ color }) => <Ionicons name="people-outline" size={22} color={color} /> }}
       />
+      {hasOrders && (
+        <Tab.Screen
+          name="Orders"
+          component={OrdersScreen}
+          options={{ title: 'Orders', tabBarIcon: ({ color }) => <Ionicons name="receipt-outline" size={22} color={color} /> }}
+        />
+      )}
       {items.length > 0 && (
         <Tab.Screen
           name="Cart"
