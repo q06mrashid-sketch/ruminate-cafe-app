@@ -146,5 +146,4 @@ begin
 end$$;
 
 -- Refresh PostgREST cache
-
 notify pgrst, 'reload schema';

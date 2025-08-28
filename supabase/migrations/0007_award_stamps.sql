@@ -38,130 +38,34 @@ alter table public.orders
   add column if not exists created_at timestamptz default now();
 
 
--- 1a) Shadow table to preserve legacy orphaned rows (idempotent)
-do $$
-begin
-  if not exists (
-    select 1 from pg_tables where schemaname='public' and tablename='orders_orphaned'
-  ) then
-    execute $DDL$
-      create table public.orders_orphaned (
-        user_id uuid,
-        order_id text,
-        pickup_code text,
-        status text,
-        totals_cents int,
-        currency text,
-        channel text,
-        source text,
-        payment_method text,
-        time_slot jsonb,
-        time_slot_start timestamptz,
-        time_slot_end timestamptz,
-        items jsonb,
-        receipt jsonb,
-        created_at timestamptz,
-        moved_at timestamptz default now(),
-        reason text
-      )
-    $DDL$;
-  end if;
-end$$;
-
--- 1b) Quarantine rows with NULL user_id (cannot satisfy FK/NOT NULL)
-with moved as (
-  delete from public.orders
-   where user_id is null
-   returning *
-)
-insert into public.orders_orphaned(
-  user_id, order_id, pickup_code, status, totals_cents, currency, channel, source,
-  payment_method, time_slot, time_slot_start, time_slot_end, items, receipt, created_at, reason
-)
-select user_id, order_id, pickup_code, status, totals_cents, currency, channel, source,
-       payment_method, time_slot, time_slot_start, time_slot_end, items, receipt, created_at,
-       'user_id was NULL'
-from moved;
-
--- 1c) Backfill defaults for other required fields on remaining rows
-update public.orders
-   set order_id      = coalesce(order_id, 'legacy-' || gen_random_uuid()),
-       status        = coalesce(status, 'pending'),
-       totals_cents  = coalesce(totals_cents, 0),
-       currency      = coalesce(currency, 'GBP'),
-       channel       = coalesce(channel, 'click_and_collect'),
-       source        = coalesce(source, 'app'),
-       created_at    = coalesce(created_at, now());
-
-
--- === Preflight: diagnose & repair legacy NULLs in orders ===
-do $$
-declare
+-- === Preflight: repair legacy NULLs in public.orders ===
+DO $$
+DECLARE
   n_user_null int := 0;
-  n_orderid_null int := 0;
-  n_status_null int := 0;
-  n_totals_null int := 0;
-  n_currency_null int := 0;
-  n_channel_null int := 0;
-  n_source_null int := 0;
-  n_created_null int := 0;
-begin
-  -- 1) Try to backfill user_id from receipt JSON if present (idempotent)
-  --    Many apps embed the user id in the receipt payload; we’ll try both keys.
-  update public.orders o
-     set user_id = coalesce(
-       nullif((o.receipt->>'user_id'),'')::uuid,
-       nullif((o.receipt->'user'->>'id'),'')::uuid
+BEGIN
+  -- Try to backfill user_id from receipt JSON if present
+  UPDATE public.orders o
+     SET user_id = COALESCE(
+       NULLIF(o.receipt->>'user_id','')::uuid,
+       NULLIF(o.receipt->'user'->>'id','')::uuid
      )
-   where user_id is null
-     and (
-       (o.receipt ? 'user_id' and (o.receipt->>'user_id') ~* '^[0-9a-f-]{36}$')
-       or (o.receipt ? 'user' and (o.receipt->'user'->>'id') ~* '^[0-9a-f-]{36}$')
+   WHERE user_id IS NULL
+     AND (
+       (o.receipt ? 'user_id' AND (o.receipt->>'user_id') ~* '^[0-9a-f-]{8}-[0-9a-f-]{4}-[0-9a-f-]{4}-[0-9a-f-]{4}-[0-9a-f-]{12}$')
+       OR (o.receipt ? 'user' AND (o.receipt->'user'->>'id') ~* '^[0-9a-f-]{8}-[0-9a-f-]{4}-[0-9a-f-]{4}-[0-9a-f-]{4}-[0-9a-f-]{12}$')
      );
 
-  -- 2) Fill other required columns from safe defaults where truly missing (only legacy)
-  update public.orders
-     set status       = coalesce(status, 'pending'),
-         totals_cents = coalesce(totals_cents, 0),
-         currency     = coalesce(currency, 'GBP'),
-         channel      = coalesce(channel, 'click_and_collect'),
-         source       = coalesce(source, 'app'),
-         created_at   = coalesce(created_at, now())
-   where status is null
-      or totals_cents is null
-      or currency is null
-      or channel is null
-      or source is null
-      or created_at is null;
+  -- Count remaining offenders
+  SELECT count(*) INTO n_user_null FROM public.orders WHERE user_id IS NULL;
 
-  -- 3) Count remaining offenders
-  select count(*) into n_user_null    from public.orders where user_id    is null;
-  select count(*) into n_orderid_null from public.orders where order_id   is null;
-  select count(*) into n_status_null  from public.orders where status     is null;
-  select count(*) into n_totals_null  from public.orders where totals_cents is null;
-  select count(*) into n_currency_null from public.orders where currency  is null;
-  select count(*) into n_channel_null  from public.orders where channel   is null;
-  select count(*) into n_source_null   from public.orders where source    is null;
-  select count(*) into n_created_null  from public.orders where created_at is null;
+  -- Dev/test safety valve: delete truly orphaned legacy rows so NOT NULL can be enforced.
+  -- If you must preserve every row, comment this DELETE and manually backfill instead.
+  IF n_user_null > 0 THEN
+    RAISE NOTICE '[orders preflight] deleting % legacy rows with NULL user_id', n_user_null;
+    DELETE FROM public.orders WHERE user_id IS NULL;
+  END IF;
+END$$;
 
-  -- 4) As a last resort in dev/test, delete rows that still violate required fields
-  if n_user_null > 0 or n_orderid_null > 0 or n_status_null > 0
-     or n_totals_null > 0 or n_currency_null > 0
-     or n_channel_null > 0 or n_source_null > 0 or n_created_null > 0 then
-    raise notice '[orders preflight] deleting legacy rows with NULL required fields: user_id=% order_id=% status=% totals=% currency=% channel=% source=% created_at=%',
-      n_user_null, n_orderid_null, n_status_null, n_totals_null, n_currency_null, n_channel_null, n_source_null, n_created_null;
-
-    delete from public.orders
-     where user_id    is null
-        or order_id   is null
-        or status     is null
-        or totals_cents is null
-        or currency   is null
-        or channel    is null
-        or source     is null
-        or created_at is null;
-  end if;
-end$$;
 
 -- Now it’s safe to enforce NOT NULLs (idempotent if already set)
 alter table public.orders
@@ -173,7 +77,6 @@ alter table public.orders
   alter column channel      set not null,
   alter column source       set not null,
   alter column created_at   set not null;
-
 
 alter table public.orders
   alter column status set default 'pending',
