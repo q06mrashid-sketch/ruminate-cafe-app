@@ -240,10 +240,8 @@ export default function CartScreen({ navigation }) {
               }
 
               const add = countStampsFromReceipt(canonical);
-              console.log(
-                `[LOYALTY] considering award for order ${canonical.orderId}: +${add} stamp(s)`
-              );
               if (userId && add > 0) {
+                console.log('[LOYALTY] awarding', add, 'for order', canonical.orderId);
                 const { data, error } = await supabase.rpc('award_stamps', {
                   p_user: userId,
                   p_order_id: canonical.orderId,
@@ -255,9 +253,7 @@ export default function CartScreen({ navigation }) {
                   const [row] = Array.isArray(data) ? data : [];
                   const stampsNow = row?.updated_stamps ?? null;
                   const freeNow = row?.updated_free_drinks ?? null;
-                  console.log(
-                    `[LOYALTY] awarded +${add}. Now → stamps: ${stampsNow}, free drinks: ${freeNow}`
-                  );
+                  console.log('[LOYALTY] new totals → stamps:', stampsNow, 'free drinks:', freeNow);
                 }
               } else {
                 console.log('[LOYALTY] no stamps awarded (no user or zero qualifying items).');
