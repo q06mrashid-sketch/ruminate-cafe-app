@@ -89,6 +89,7 @@ begin
     alter table public.orders drop constraint orders_source_check;
   end if;
   alter table public.orders add constraint orders_source_check check (lower(source) in ('app','pos','portal'));
+
 end$$;
 
 -- 2. Profiles columns
@@ -101,6 +102,7 @@ alter table public.profiles enable row level security;
 do $$
 declare pk text;
 begin
+
   if exists (
     select 1 from information_schema.columns
     where table_schema='public' and table_name='profiles' and column_name='user_id'
@@ -112,6 +114,7 @@ begin
   ) then
     pk := 'id';
   else
+
     raise exception 'profiles identifier column not found';
   end if;
 
@@ -125,6 +128,7 @@ end$$;
 do $$
 declare pk text;
 begin
+
   if exists (
     select 1 from information_schema.columns
     where table_schema='public' and table_name='profiles' and column_name='user_id'
@@ -136,6 +140,7 @@ begin
   ) then
     pk := 'id';
   else
+
     raise exception 'profiles identifier column not found';
   end if;
 
@@ -176,6 +181,7 @@ declare
   cur_stamps int;
   cur_free int;
 begin
+
   if exists (
     select 1 from information_schema.columns
     where table_schema='public' and table_name='profiles' and column_name='user_id'
@@ -187,6 +193,7 @@ begin
   ) then
     pk := 'id';
   else
+
     raise exception 'profiles identifier column not found';
   end if;
 
@@ -252,6 +259,7 @@ DECLARE u uuid := gen_random_uuid();
        cnt int;
        pk text;
 BEGIN
+
   IF EXISTS (
     SELECT 1 FROM information_schema.columns
     WHERE table_schema='public' AND table_name='profiles' AND column_name='user_id'
