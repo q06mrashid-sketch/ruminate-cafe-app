@@ -117,9 +117,6 @@ $$;
 
 grant execute on function public.award_stamps(uuid, text, int) to authenticated;
 
--- Refresh PostgREST cache
-notify pgrst, 'reload schema';
-
 -- Fix profiles_select_own policy to respect user_id or id
 do $$
 declare pk_col text;
@@ -147,5 +144,8 @@ begin
     pk_col
   );
 end$$;
+
+
+-- Refresh PostgREST cache
 
 notify pgrst, 'reload schema';
