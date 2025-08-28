@@ -1,5 +1,5 @@
-import React, { useContext, useMemo, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert, Modal, Pressable, ScrollView } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Swipeable } from 'react-native-gesture-handler';
 import { useTabBarHeight } from '../navigation/TabBarHeightContext';
@@ -12,6 +12,7 @@ import { supabase } from '../lib/supabase';
 import { countStampsFromReceipt } from '../utils/loyalty';
 import { useStats } from '../hooks/useStats';
 import { getMembershipSummary } from '../services/membership';
+import { getToday } from '../services/homeData';
 
 export default function CartScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -34,6 +35,15 @@ export default function CartScreen({ navigation }) {
   } = cart;
 
   const [timeSlot, setTimeSlot] = useState(null);
+  const [slotPickerVisible, setSlotPickerVisible] = useState(false);
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [todayHours, setTodayHours] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      try { const t = await getToday(); setTodayHours(t); } catch {}
+    })();
+  }, []);
 
   const contentBottomPad = useMemo(
 
@@ -56,13 +66,41 @@ export default function CartScreen({ navigation }) {
     if (updateQuantity) return updateQuantity(id, 'remove'); // if your impl supports a special op
   };
 
+  const buildSlots = () => {
+    const intervals = todayHours?.intervals?.length
+      ? todayHours.intervals
+      : (todayHours?.open && todayHours?.close
+        ? [{ open: todayHours.open, close: todayHours.close }]
+        : []);
+    if (!intervals.length) return [];
+    const toMins = (s) => {
+      const [h, m] = s.split(':').map(Number);
+      return h * 60 + m;
+    };
+    const now = new Date();
+    const current = now.getHours() * 60 + now.getMinutes();
+    const maxFuture = current + 30;
+    const nextQuarter = Math.ceil(current / 15) * 15;
+    const out = [];
+    for (const iv of intervals) {
+      const open = toMins(iv.open);
+      const close = toMins(iv.close);
+      const startMins = Math.max(open, nextQuarter);
+      const lastStart = Math.min(close - 30, maxFuture);
+      for (let m = startMins; m <= lastStart; m += 15) {
+        const start = new Date();
+        start.setHours(Math.floor(m / 60), m % 60, 0, 0);
+        const end = new Date(start.getTime() + 15 * 60 * 1000);
+        out.push({ start, end });
+      }
+    }
+    return out;
+  };
+
   const onPickTimeSlot = () => {
-    // If you already have a screen/modal, navigate there:
-    // navigation?.navigate?.('PickTimeSlot', { onSelect: (slot) => setTimeSlot(slot) });
-    // Minimal inline fallback for now:
-    const start = new Date();
-    const end = new Date(start.getTime() + 10 * 60 * 1000);
-    setTimeSlot({ start, end });
+    const slots = buildSlots();
+    setAvailableSlots(slots);
+    setSlotPickerVisible(true);
   };
 
   const formatSlotLabel = (slot) => {
@@ -133,7 +171,8 @@ export default function CartScreen({ navigation }) {
   );
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top','left','right']}>
+    <>
+      <SafeAreaView style={styles.safe} edges={['top','left','right']}>
       <FlatList
         data={items}
         keyExtractor={(item) => String(item.id)}
@@ -162,17 +201,20 @@ export default function CartScreen({ navigation }) {
 
         <View style={styles.footerButtonsRow}>
           <TouchableOpacity style={styles.slotBtn} onPress={onPickTimeSlot}>
-            <Text style={styles.slotBtnText}>{timeSlot ? formatSlotLabel(timeSlot) : 'Pick time slot'}</Text>
+            <Text style={styles.slotBtnText}>{timeSlot ? formatSlotLabel(timeSlot) : 'ASAP'}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.applePayBtn, !timeSlot && styles.applePayBtnDisabled]}
-            disabled={!timeSlot}
+            style={styles.applePayBtn}
             onPress={async () => {
-              if (!timeSlot) return;
+              const slot =
+                timeSlot || {
+                  start: new Date(),
+                  end: new Date(Date.now() + 15 * 60 * 1000),
+                };
               const receipt = buildReceipt({
                 cartItems: items,
-                selectedTimeSlot: timeSlot,
+                selectedTimeSlot: slot,
                 customer: null,
                 pifContribution: 0,
                 vouchersApplied: 0,
@@ -242,7 +284,46 @@ export default function CartScreen({ navigation }) {
           </TouchableOpacity>
         </View>
       </View>
-    </SafeAreaView>
+      </SafeAreaView>
+
+      <Modal
+      visible={slotPickerVisible}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setSlotPickerVisible(false)}
+    >
+      <View style={styles.pickerOverlay}>
+        <View style={styles.pickerContent}>
+          <ScrollView>
+            <Pressable
+              style={styles.pickerOption}
+              onPress={() => {
+                setTimeSlot(null);
+                setSlotPickerVisible(false);
+              }}
+            >
+              <Text style={styles.pickerOptionText}>ASAP</Text>
+            </Pressable>
+            {availableSlots.map((slot, i) => (
+              <Pressable
+                key={i}
+                style={styles.pickerOption}
+                onPress={() => {
+                  setTimeSlot(slot);
+                  setSlotPickerVisible(false);
+                }}
+              >
+                <Text style={styles.pickerOptionText}>{formatSlotLabel(slot)}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+          <Pressable style={styles.pickerClose} onPress={() => setSlotPickerVisible(false)}>
+            <Text style={styles.pickerCloseText}>Cancel</Text>
+          </Pressable>
+        </View>
+      </View>
+      </Modal>
+    </>
   );
 }
 
@@ -435,12 +516,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  applePayBtnDisabled: {
-    opacity: 0.45,
-  },
   applePayText: {
     color: '#fff',
     fontFamily: 'Fraunces_700Bold',
     fontSize: 16,
+  },
+  pickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pickerContent: {
+    backgroundColor: palette.paper,
+    borderRadius: 14,
+    padding: 20,
+    width: '80%',
+    maxHeight: '80%',
+  },
+  pickerOption: {
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  pickerOptionText: {
+    color: palette.coffee,
+    fontFamily: 'Fraunces_700Bold',
+    fontSize: 16,
+  },
+  pickerClose: {
+    marginTop: 10,
+    alignItems: 'center',
+  },
+  pickerCloseText: {
+    color: palette.coffee,
+    fontFamily: 'Fraunces_600SemiBold',
   },
 });
