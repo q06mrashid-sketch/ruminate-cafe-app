@@ -44,9 +44,10 @@ export async function getToday() {
     }
     const s = statusForIntervals(intervals, new Date());
     const text = s.openNow ? `Open until ${s.until}` : (s.until !== '--:--' ? `Closed until ${s.until}` : 'Closed today');
-    return { openNow: s.openNow, until: s.until, open: s.open, close: s.close, text, specials: [] };
+    const intervalsOut = intervals.map(([a, b]) => ({ open: hhmm(a), close: hhmm(b) }));
+    return { openNow: s.openNow, until: s.until, open: s.open, close: s.close, intervals: intervalsOut, text, specials: [] };
   } catch {
-    return { openNow: false, until: '--:--', open: '--:--', close: '--:--', text: 'Closed today', specials: [] };
+    return { openNow: false, until: '--:--', open: '--:--', close: '--:--', intervals: [], text: 'Closed today', specials: [] };
   }
 }
 
