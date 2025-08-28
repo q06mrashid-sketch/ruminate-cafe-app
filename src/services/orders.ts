@@ -1,6 +1,23 @@
 import { supabase } from '../lib/supabase';
 import type { Receipt } from '../utils/receipt';
 
+
+type VoidFn = () => void;
+const listeners = new Set<VoidFn>();
+
+export function onLocalOrdersChange(fn: VoidFn) {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}
+
+function emitLocalOrdersChange() {
+  listeners.forEach((fn) => {
+    try {
+      fn();
+    } catch {}
+  });
+}
+
 export async function saveReceiptForUser(userId: string, receipt: Receipt) {
   const grandTotalCents = Math.round((receipt?.totals?.grandTotal || 0) * 100);
   const { error } = await supabase.from('orders').insert([{
@@ -17,6 +34,9 @@ export async function saveReceiptForUser(userId: string, receipt: Receipt) {
     receipt,
   }]);
   if (error) throw error;
+
+  emitLocalOrdersChange();
+
 }
 
 export async function fetchUserOrders() {
