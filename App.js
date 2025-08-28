@@ -10,6 +10,7 @@ import { useFonts, Fraunces_600SemiBold, Fraunces_700Bold } from '@expo-google-f
 import appBgBase64 from './assets/appBgBase64';
 import SplashGate from './src/components/SplashGate';
 import { supabase } from './src/lib/supabase';
+import { getMyStats } from './src/services/stats';
 
 export default function App() {
   const [loaded] = useFonts({ Fraunces_600SemiBold, Fraunces_700Bold });
@@ -18,13 +19,9 @@ export default function App() {
       const uid = data?.session?.user?.id;
       if (uid) {
         try {
-          const { data: row } = await supabase
-            .from('profiles')
-            .select('loyalty_stamps, free_drinks')
-            .eq('id', uid)
-            .single();
+          const { loyaltyStamps, freebiesLeft } = await getMyStats();
           console.log(
-            `[LOYALTY] on boot → stamps: ${row?.loyalty_stamps ?? 0}, free drinks: ${row?.free_drinks ?? 0}`
+            `[LOYALTY] on boot → stamps: ${loyaltyStamps}, free drinks: ${freebiesLeft}`
           );
         } catch {}
       }
