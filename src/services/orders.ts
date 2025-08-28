@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import type { Receipt } from '../utils/receipt';
 
+
 export async function saveReceiptForUser(userId: string, receipt: Receipt) {
   const grandTotalCents = Math.round((receipt?.totals?.grandTotal || 0) * 100);
   const { data, error } = await supabase
@@ -39,6 +40,7 @@ export async function fetchUserOrders() {
 }
 
 export function subscribeUserOrders(onChange: () => void) {
+
   let channel: any;
   supabase.auth.getSession().then(({ data }) => {
     const uid = data?.session?.user?.id;
@@ -54,6 +56,7 @@ export function subscribeUserOrders(onChange: () => void) {
   return () => {
     try {
       channel?.unsubscribe();
+
     } catch {}
   };
 }
