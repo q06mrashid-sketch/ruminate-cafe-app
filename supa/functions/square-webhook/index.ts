@@ -25,7 +25,10 @@ serve(async (req) => {
 
   const { data: ord } = await supabase
     .from("orders")
-    .upsert({ source: "square", external_id, total_cents: Number(total_money)||0, currency, customer_email }, { onConflict: "external_id" })
+    .upsert(
+      { source: "pos", channel: 'pos', external_id, total_cents: Number(total_money) || 0, currency, customer_email },
+      { onConflict: "external_id" }
+    )
     .select("id")
     .single();
 

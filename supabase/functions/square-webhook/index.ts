@@ -13,7 +13,14 @@ serve(async (req) => {
   const total_money    = payment?.amount_money?.amount ?? order?.total_money?.amount ?? 0;
   const currency       = payment?.amount_money?.currency ?? order?.total_money?.currency ?? "GBP";
   const customer_email = payment?.buyer_email_address ?? order?.customer_details?.email_address ?? null;
-  const { data: ord } = await supabase.from("orders").upsert({ source: "square", external_id, total_cents: Number(total_money)||0, currency, customer_email }, { onConflict: "external_id" }).select("id").single();
+  const { data: ord } = await supabase
+    .from("orders")
+    .upsert(
+      { source: "pos", channel: 'pos', external_id, total_cents: Number(total_money) || 0, currency, customer_email },
+      { onConflict: "external_id" }
+    )
+    .select("id")
+    .single();
   const order_id = ord?.id ?? null;
   const items = order?.line_items || [];
   let matchedPurchase=0, matchedRedeem=0; const errors:string[]=[];
