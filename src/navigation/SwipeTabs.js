@@ -71,6 +71,7 @@ export default function SwipeTabs() {
   const [tabBarHeight, setTabBarHeight] = useState(0);
   const { hasOrders } = useOrdersPresence();
 
+
   useEffect(() => {
     let active = true;
     (async () => {

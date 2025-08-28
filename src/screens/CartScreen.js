@@ -178,6 +178,7 @@ export default function CartScreen({ navigation }) {
                 vouchersApplied: 0,
                 paymentMethod: 'test',
               });
+
               const canonical = JSON.parse(JSON.stringify(receipt));
               printReceiptToConsole(canonical);
               await sendReceiptToPOS(canonical);
@@ -220,6 +221,7 @@ export default function CartScreen({ navigation }) {
                 console.log('[LOYALTY] no stamps awarded (no user or zero qualifying items).');
               }
 
+
               try {
                 await refreshStats();
               } catch (e) {
@@ -229,7 +231,9 @@ export default function CartScreen({ navigation }) {
                 await getMembershipSummary?.();
               } catch {}
 
+
               Alert.alert('Order placed', `Pickup code: ${canonical.pickupCode}`);
+
               clear?.();
               setTimeSlot(null);
             }}

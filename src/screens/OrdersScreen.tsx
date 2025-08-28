@@ -24,6 +24,7 @@ export default function OrdersScreen({ navigation }) {
     const lineItems = r?.items ?? item.items ?? [];
     const subtitle = (lineItems?.[0]?.name || 'Order') +
       (lineItems?.length > 1 ? ` + ${lineItems.length - 1} more` : '');
+
     return (
       <Pressable style={styles.card} onPress={() => navigation.navigate('OrderDetail', { order: item })}>
         <View style={styles.rowBetween}>

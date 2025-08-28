@@ -1,28 +1,12 @@
 import { supabase } from '../lib/supabase';
-import Constants from 'expo-constants';
+import { getFunctionsUrl } from '../lib/config';
 
 export async function getMyStats() {
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) return { loyaltyStamps: 0, freebiesLeft: 0, vouchers: [] };
 
-    const extras = Constants?.expoConfig?.extra || Constants?.manifest?.extra || Constants?.manifestExtra || {};
-    const supabaseUrl =
-      process.env.EXPO_PUBLIC_SUPABASE_URL ||
-      process.env.SUPABASE_URL ||
-      extras.EXPO_PUBLIC_SUPABASE_URL ||
-      extras.SUPABASE_URL ||
-      '';
-    const base =
-      process.env.EXPO_PUBLIC_FUNCTIONS_URL ||
-      process.env.FUNCTIONS_URL ||
-      extras.EXPO_PUBLIC_FUNCTIONS_URL ||
-      extras.FUNCTIONS_URL ||
-      (supabaseUrl ? `${supabaseUrl}/functions/v1` : '');
-    if (!base) {
-      console.error('getMyStats failed: missing functions URL');
-      return { loyaltyStamps: 0, freebiesLeft: 0, vouchers: [] };
-    }
+    const base = getFunctionsUrl();
     const url = `${base.replace(/\/$/, '')}/me-stats`;
 
     const res = await fetch(url, {

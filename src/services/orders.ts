@@ -23,6 +23,7 @@ export async function saveReceiptForUser(userId: string, receipt: Receipt) {
     .insert([payload])
     .select('*')
     .single();
+
   if (error) throw error;
   return data;
 }
