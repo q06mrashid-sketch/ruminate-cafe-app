@@ -15,7 +15,7 @@ import { getMembershipSummary } from '../services/membership';
 
 export default function CartScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const { refreshStats } = useStats();
+  const { refreshStats } = useStats?.() || { refreshStats: async () => {} };
   const { setHasOrders, refreshOrdersPresence } = useOrdersPresence();
 
   const tabBarHeight = useTabBarHeight();
@@ -195,52 +195,45 @@ export default function CartScreen({ navigation }) {
                   }
                   try { await refreshOrdersPresence(); } catch {}
 
-
                   const add = countStampsFromReceipt(receipt);
-                  console.log(`[LOYALTY] awarding +${add} stamps for order ${receipt.orderId}`);
-                  if (add > 0) {
-                    const { data: beforeRow } = await supabase
-                      .from('profiles')
-                      .select('loyalty_stamps, free_drinks')
-                      .eq('id', userId)
-                      .single();
-                    const { error: awardErr } = await supabase.rpc('award_stamps', {
+                  console.log(
+                    `[LOYALTY] considering award for order ${receipt.orderId}: +${add} stamp(s)`
+                  );
+                  if (userId && add > 0) {
+                    const { data, error } = await supabase.rpc('award_stamps', {
+
                       p_user: userId,
                       p_order_id: receipt.orderId,
                       p_add: add,
                     });
 
-                    if (awardErr) {
-                      if (awardErr.message?.includes('duplicate key value')) {
-                        console.log('[LOYALTY] order already awarded, skipping');
-                      } else {
-                        console.warn('[LOYALTY] award_stamps failed', awardErr);
-                      }
+                    if (error) {
+                      console.warn('[LOYALTY] award_stamps failed:', error);
                     } else {
-                      const { data: afterRow, error: readErr } = await supabase
-                        .from('profiles')
-                        .select('loyalty_stamps, free_drinks')
-                        .eq('id', userId)
-                        .single();
-                      if (!readErr) {
-                        if (
-                          (beforeRow?.loyalty_stamps ?? 0) === (afterRow?.loyalty_stamps ?? 0) &&
-                          (beforeRow?.free_drinks ?? 0) === (afterRow?.free_drinks ?? 0)
-                        ) {
-                          console.log('[LOYALTY] order already awarded, skipping');
-                        } else {
-                          console.log(
-                            `[LOYALTY] updated → stamps: ${beforeRow?.loyalty_stamps ?? 0} → ${afterRow?.loyalty_stamps ?? 0}, freebies: ${beforeRow?.free_drinks ?? 0} → ${afterRow?.free_drinks ?? 0}`
-                          );
-                        }
-                      }
+                      const [row] = Array.isArray(data) ? data : [];
+                      const stampsNow = row?.updated_stamps ?? null;
+                      const freeNow = row?.updated_free_drinks ?? null;
+                      console.log(
+                        `[LOYALTY] awarded +${add}. Now → stamps: ${stampsNow}, free drinks: ${freeNow}`
+                      );
                     }
+                  } else {
+                    console.log('[LOYALTY] no stamps awarded (no user or zero qualifying items).');
+
                   }
                 }
               } catch {}
 
-              try { await refreshStats(); } catch {}
-              try { await getMembershipSummary(); } catch {}
+
+              try {
+                await refreshStats();
+              } catch (e) {
+                console.warn('[LOYALTY] refreshStats failed', e);
+              }
+              try {
+                await getMembershipSummary?.();
+              } catch {}
+
 
               Alert.alert('Order placed', `Pickup code: ${receipt.pickupCode}`);
               clear?.();

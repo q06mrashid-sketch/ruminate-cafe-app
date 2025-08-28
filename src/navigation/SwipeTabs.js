@@ -18,8 +18,6 @@ import { CartContext } from '../context/CartContext';
 import { TabBarHeightContext } from './TabBarHeightContext';
 import OrdersScreen from '../screens/OrdersScreen';
 import { useOrdersPresence } from '../context/OrdersContext';
-
-
 const Tab = createMaterialTopTabNavigator();
 
 function GlassTabBar({ state, descriptors, navigation, setHeight }) {
@@ -70,6 +68,7 @@ export default function SwipeTabs() {
   const [signedIn, setSignedIn] = useState(false);
   const { items } = useContext(CartContext);
   const [tabBarHeight, setTabBarHeight] = useState(0);
+  const { hasOrders } = useOrdersPresence();
 
   const { hasOrders } = useOrdersPresence();
 
@@ -123,7 +122,6 @@ export default function SwipeTabs() {
         component={CommunityScreen}
         options={{ title: 'Community', tabBarIcon: ({ color }) => <Ionicons name="people-outline" size={22} color={color} /> }}
       />
-
       <Tab.Screen
         name="Orders"
         component={OrdersScreen}
@@ -133,7 +131,6 @@ export default function SwipeTabs() {
           tabBarButton: hasOrders ? undefined : () => null,
         }}
       />
-
       {items.length > 0 && (
         <Tab.Screen
           name="Cart"
