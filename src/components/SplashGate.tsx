@@ -33,7 +33,8 @@ export default function SplashGate() {
 
   const [visible, setVisible] = useState(true);
   const [idx, setIdx] = useState(0);
-  const opacity = useRef(new Animated.Value(1)).current;
+  const opacity = useRef(new Animated.Value(1)).current; // rotating status line
+  const gateOpacity = useRef(new Animated.Value(1)).current; // whole splash fade-out
 
 
   useEffect(() => {
@@ -43,10 +44,16 @@ export default function SplashGate() {
     preloadMenuItems().finally(() => markLoaded('cms'));
 
     const unsub = subscribe((st) => {
-      if (st.auth && st.stamps && st.cms) setVisible(false);
+      if (st.auth && st.stamps && st.cms) {
+        Animated.timing(gateOpacity, { toValue: 0, duration: FADE_MS, useNativeDriver: true })
+          .start(() => setVisible(false));
+      }
     });
 
-    const tmr = setTimeout(() => setVisible(false), HARD_TIMEOUT_MS);
+    const tmr = setTimeout(() => {
+      Animated.timing(gateOpacity, { toValue: 0, duration: FADE_MS, useNativeDriver: true })
+        .start(() => setVisible(false));
+    }, HARD_TIMEOUT_MS);
 
     const rot = setInterval(() => {
       Animated.timing(opacity, { toValue: 0, duration: FADE_MS, useNativeDriver: true }).start(() => {
@@ -58,7 +65,10 @@ export default function SplashGate() {
 
     // If all are already ready (e.g. dev reload), hide immediately
     const s = getLoadingState();
-    if (s.auth && s.stamps && s.cms) setTimeout(() => setVisible(false), 0);
+    if (s.auth && s.stamps && s.cms) setTimeout(() => {
+      Animated.timing(gateOpacity, { toValue: 0, duration: FADE_MS, useNativeDriver: true })
+        .start(() => setVisible(false));
+    }, 0);
 
     return () => {
       unsub?.();
@@ -71,10 +81,12 @@ export default function SplashGate() {
 
   return (
 
-    <SafeAreaView style={styles.wrap} edges={["top", "bottom"]}>
-      <Image source={logo} style={styles.logo} />
-      <Animated.Text style={[styles.line, { opacity }]}>{LINES[idx]}</Animated.Text>
-    </SafeAreaView>
+    <Animated.View style={[styles.wrap, { opacity: gateOpacity }]}>
+      <SafeAreaView style={styles.sa} edges={["top", "bottom"]}>
+        <Image source={logo} style={styles.logo} />
+        <Animated.Text style={[styles.line, { opacity }]}>{LINES[idx]}</Animated.Text>
+      </SafeAreaView>
+    </Animated.View>
 
   );
 }
@@ -86,10 +98,13 @@ const styles = StyleSheet.create({
     left: 0, right: 0, top: 0, bottom: 0,
 
     backgroundColor: palette.cream,
-
+  },
+  sa: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
+    backgroundColor: 'transparent',
   },
   logo: { width: 156, height: 156, resizeMode: 'contain', marginBottom: 16 },
   line: {

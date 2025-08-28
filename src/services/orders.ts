@@ -33,6 +33,7 @@ export async function saveReceiptForUser(userId: string, receipt: Receipt) {
     receipt,
   }]);
   if (error) throw error;
+
   emitLocalOrdersChange();
 }
 

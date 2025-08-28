@@ -196,6 +196,7 @@ export default function CartScreen({ navigation }) {
                       p_order_id: receipt.orderId,
                       p_add: add,
                     });
+
                     if (awardErr) {
                       if (awardErr.message?.includes('duplicate key value')) {
                         console.log('[LOYALTY] order already awarded, skipping');
