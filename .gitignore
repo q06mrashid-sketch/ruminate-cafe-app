@@ -3,6 +3,8 @@ node_modules/
 .expo/
 .expo-shared/
 dist/
+__tests__/dist/
+build/
 .DS_Store
 
 # Native builds
