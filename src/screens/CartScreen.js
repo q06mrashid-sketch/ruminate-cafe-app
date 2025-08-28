@@ -176,11 +176,13 @@ export default function CartScreen({ navigation }) {
                 paymentMethod: 'test',
               });
               await sendReceiptToPOS(receipt);
+
               try {
                 const { data: session } = await supabase.auth.getSession();
                 const userId = session?.session?.user?.id;
                 if (userId) {
                   await saveReceiptForUser(userId, receipt);
+
                   const add = countStampsFromReceipt(receipt);
                   if (add > 0) {
                     const { error } = await supabase.rpc('award_stamps', {
@@ -193,6 +195,7 @@ export default function CartScreen({ navigation }) {
                   try { await refreshStats(); } catch {}
                 }
               } catch {}
+
               Alert.alert('Order placed', `Pickup code: ${receipt.pickupCode}`);
               clear?.();
               setTimeSlot(null);
