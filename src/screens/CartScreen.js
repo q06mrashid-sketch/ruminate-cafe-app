@@ -7,6 +7,7 @@ import { CartContext } from '../context/CartContext';
 import { palette } from '../design/theme';
 import { buildReceipt, sendReceiptToPOS } from '../utils/receipt';
 import { saveReceiptForUser } from '../services/orders';
+import { useOrdersPresence } from '../context/OrdersContext';
 import { supabase } from '../lib/supabase';
 import { countStampsFromReceipt } from '../utils/loyalty';
 import { useStats } from '../hooks/useStats';
@@ -15,6 +16,7 @@ import { getMembershipSummary } from '../services/membership';
 export default function CartScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { refreshStats } = useStats();
+  const { setHasOrders, refreshOrdersPresence } = useOrdersPresence();
 
   const tabBarHeight = useTabBarHeight();
   // Be defensive about what's available in CartContext
@@ -181,7 +183,18 @@ export default function CartScreen({ navigation }) {
                 const { data: session } = await supabase.auth.getSession();
                 const userId = session?.session?.user?.id;
                 if (userId) {
-                  await saveReceiptForUser(userId, receipt);
+                  const inserted = await saveReceiptForUser(userId, receipt);
+                  setHasOrders((v) => {
+                    if (!v) console.log('[ORDERS] hasOrders → true (first checkout)');
+                    return true;
+                  });
+                  if (inserted?.[0]?.id) {
+                    navigation.navigate('OrderDetail', { order: inserted[0] });
+                  } else {
+                    navigation.navigate('Orders');
+                  }
+                  try { await refreshOrdersPresence(); } catch {}
+
 
                   const add = countStampsFromReceipt(receipt);
                   console.log(`[LOYALTY] awarding +${add} stamps for order ${receipt.orderId}`);

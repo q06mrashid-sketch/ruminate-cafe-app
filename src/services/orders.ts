@@ -1,40 +1,29 @@
 import { supabase } from '../lib/supabase';
 import type { Receipt } from '../utils/receipt';
 
-type VoidFn = () => void;
-const listeners = new Set<VoidFn>();
-
-export function onLocalOrdersChange(fn: VoidFn) {
-  listeners.add(fn);
-  return () => listeners.delete(fn);
-}
-
-function emitLocalOrdersChange() {
-  listeners.forEach((fn) => {
-    try {
-      fn();
-    } catch {}
-  });
-}
 
 export async function saveReceiptForUser(userId: string, receipt: Receipt) {
   const grandTotalCents = Math.round((receipt?.totals?.grandTotal || 0) * 100);
-  const { error } = await supabase.from('orders').insert([{
-    user_id: userId,
-    order_id: receipt.orderId,
-    pickup_code: receipt.pickupCode,
-    status: 'pending',
-    totals_cents: grandTotalCents,
-    currency: receipt?.totals?.currency || 'GBP',
-    channel: receipt.channel,
-    payment_method: receipt.paymentMethod,
-    time_slot: receipt.timeSlot,
-    items: receipt.items,
-    receipt,
-  }]);
+  const { data, error } = await supabase
+    .from('orders')
+    .insert([
+      {
+        user_id: userId,
+        order_id: receipt.orderId,
+        pickup_code: receipt.pickupCode,
+        status: 'pending',
+        totals_cents: grandTotalCents,
+        currency: receipt?.totals?.currency || 'GBP',
+        channel: receipt.channel,
+        payment_method: receipt.paymentMethod,
+        time_slot: receipt.timeSlot,
+        items: receipt.items,
+        receipt,
+      },
+    ])
+    .select('*');
   if (error) throw error;
-
-  emitLocalOrdersChange();
+  return data;
 }
 
 export async function fetchUserOrders() {
@@ -51,13 +40,23 @@ export async function fetchUserOrders() {
 }
 
 export function subscribeUserOrders(onChange: () => void) {
-  const channel = supabase
-    .channel('orders-realtime')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => onChange())
-    .subscribe();
+
+  let channel: any;
+  supabase.auth.getSession().then(({ data }) => {
+    const uid = data?.session?.user?.id;
+    channel = supabase
+      .channel('orders-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders', filter: uid ? `user_id=eq.${uid}` : undefined },
+        () => onChange(),
+      )
+      .subscribe();
+  });
   return () => {
     try {
-      channel.unsubscribe();
+      channel?.unsubscribe();
+
     } catch {}
   };
 }
