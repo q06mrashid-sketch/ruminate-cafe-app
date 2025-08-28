@@ -1,13 +1,22 @@
 import React, { useContext, useMemo, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Swipeable } from 'react-native-gesture-handler';
 import { useTabBarHeight } from '../navigation/TabBarHeightContext';
 import { CartContext } from '../context/CartContext';
 import { palette } from '../design/theme';
+import { buildReceipt, sendReceiptToPOS } from '../utils/receipt';
+import { saveReceiptForUser } from '../services/orders';
+import { useOrdersPresence } from '../context/OrdersContext';
+import { supabase } from '../lib/supabase';
+import { countStampsFromReceipt } from '../utils/loyalty';
+import { useStats } from '../hooks/useStats';
+import { getMembershipSummary } from '../services/membership';
 
 export default function CartScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { refreshStats } = useStats();
+  const { setHasOrders, refreshOrdersPresence } = useOrdersPresence();
 
   const tabBarHeight = useTabBarHeight();
   // Be defensive about what's available in CartContext
@@ -21,6 +30,7 @@ export default function CartScreen({ navigation }) {
     removeItem,
     updateQuantity,
     clearItem, // some apps name it like this
+    clear,
   } = cart;
 
   const [timeSlot, setTimeSlot] = useState(null);
@@ -50,10 +60,14 @@ export default function CartScreen({ navigation }) {
     // If you already have a screen/modal, navigate there:
     // navigation?.navigate?.('PickTimeSlot', { onSelect: (slot) => setTimeSlot(slot) });
     // Minimal inline fallback for now:
-    const now = new Date();
-    const mm = String(now.getMinutes()).padStart(2, '0');
-    const hh = String(now.getHours()).padStart(2, '0');
-    setTimeSlot(`Today ${hh}:${mm}`);
+    const start = new Date();
+    const end = new Date(start.getTime() + 10 * 60 * 1000);
+    setTimeSlot({ start, end });
+  };
+
+  const formatSlotLabel = (slot) => {
+    const pad = (n) => String(n).padStart(2, '0');
+    return `Today ${pad(slot.start.getHours())}:${pad(slot.start.getMinutes())}`;
   };
 
   const renderItem = ({ item }) => (
@@ -148,15 +162,87 @@ export default function CartScreen({ navigation }) {
 
         <View style={styles.footerButtonsRow}>
           <TouchableOpacity style={styles.slotBtn} onPress={onPickTimeSlot}>
-            <Text style={styles.slotBtnText}>{timeSlot ? timeSlot : 'Pick time slot'}</Text>
+            <Text style={styles.slotBtnText}>{timeSlot ? formatSlotLabel(timeSlot) : 'Pick time slot'}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.applePayBtn, !timeSlot && styles.applePayBtnDisabled]}
             disabled={!timeSlot}
-            onPress={() => {
+            onPress={async () => {
               if (!timeSlot) return;
-              // hook up your Apple Pay flow here
+              const receipt = buildReceipt({
+                cartItems: items,
+                selectedTimeSlot: timeSlot,
+                customer: null,
+                pifContribution: 0,
+                vouchersApplied: 0,
+                paymentMethod: 'test',
+              });
+              await sendReceiptToPOS(receipt);
+              try {
+                const { data: session } = await supabase.auth.getSession();
+                const userId = session?.session?.user?.id;
+                if (userId) {
+                  const inserted = await saveReceiptForUser(userId, receipt);
+                  setHasOrders((v) => {
+                    if (!v) console.log('[ORDERS] hasOrders → true (first checkout)');
+                    return true;
+                  });
+                  if (inserted?.[0]?.id) {
+                    navigation.navigate('OrderDetail', { order: inserted[0] });
+                  } else {
+                    navigation.navigate('Orders');
+                  }
+                  try { await refreshOrdersPresence(); } catch {}
+
+                  const add = countStampsFromReceipt(receipt);
+                  console.log(`[LOYALTY] awarding +${add} stamps for order ${receipt.orderId}`);
+                  if (add > 0) {
+                    const { data: beforeRow } = await supabase
+                      .from('profiles')
+                      .select('loyalty_stamps, free_drinks')
+                      .eq('id', userId)
+                      .single();
+                    const { error: awardErr } = await supabase.rpc('award_stamps', {
+                      p_user: userId,
+                      p_order_id: receipt.orderId,
+                      p_add: add,
+                    });
+                    if (awardErr) {
+                      if (awardErr.message?.includes('duplicate key value')) {
+                        console.log('[LOYALTY] order already awarded, skipping');
+                      } else {
+                        console.warn('[LOYALTY] award_stamps failed', awardErr);
+                      }
+                    } else {
+                      const { data: afterRow, error: readErr } = await supabase
+                        .from('profiles')
+                        .select('loyalty_stamps, free_drinks')
+                        .eq('id', userId)
+                        .single();
+                      if (!readErr) {
+                        if (
+                          (beforeRow?.loyalty_stamps ?? 0) === (afterRow?.loyalty_stamps ?? 0) &&
+                          (beforeRow?.free_drinks ?? 0) === (afterRow?.free_drinks ?? 0)
+                        ) {
+                          console.log('[LOYALTY] order already awarded, skipping');
+                        } else {
+                          console.log(
+                            `[LOYALTY] updated → stamps: ${beforeRow?.loyalty_stamps ?? 0} → ${afterRow?.loyalty_stamps ?? 0}, freebies: ${beforeRow?.free_drinks ?? 0} → ${afterRow?.free_drinks ?? 0}`
+                          );
+                        }
+                      }
+                    }
+                  }
+                }
+              } catch {}
+
+              try { await refreshStats(); } catch {}
+              try { await getMembershipSummary(); } catch {}
+
+              Alert.alert('Order placed', `Pickup code: ${receipt.pickupCode}`);
+              clear?.();
+              setTimeSlot(null);
             }}
           >
             <Text style={styles.applePayText}> Pay</Text>
