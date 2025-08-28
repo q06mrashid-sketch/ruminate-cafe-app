@@ -8,6 +8,7 @@ import MembershipStartScreen from '../screens/MembershipStartScreen';
 import LoyaltyCardCreateScreen from '../screens/LoyaltyCardCreateScreen';
 import ManageSubscriptionScreen from '../screens/ManageSubscriptionScreen';
 import AccountDetailsScreen from '../screens/AccountDetailsScreen';
+import OrderDetailScreen from '../screens/OrderDetailScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -30,6 +31,7 @@ export default function Router() {
         <Stack.Screen name="AccountDetails" component={AccountDetailsScreen} />
         <Stack.Screen name="LoyaltyCardCreate" component={LoyaltyCardCreateScreen} />
         <Stack.Screen name="Community" component={CommunityScreen} />
+        <Stack.Screen name="OrderDetail" component={OrderDetailScreen} options={{ headerShown: true, title: 'Order' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

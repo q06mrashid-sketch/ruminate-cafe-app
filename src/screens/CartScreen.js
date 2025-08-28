@@ -6,6 +6,9 @@ import { useTabBarHeight } from '../navigation/TabBarHeightContext';
 import { CartContext } from '../context/CartContext';
 import { palette } from '../design/theme';
 import { buildReceipt, sendReceiptToPOS } from '../utils/receipt';
+import { saveReceiptForUser } from '../services/orders';
+import { supabase } from '../lib/supabase';
+
 
 export default function CartScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -171,6 +174,15 @@ export default function CartScreen({ navigation }) {
                 paymentMethod: 'test',
               });
               await sendReceiptToPOS(receipt);
+
+              try {
+                const { data: session } = await supabase.auth.getSession();
+                const userId = session?.session?.user?.id;
+                if (userId) {
+                  await saveReceiptForUser(userId, receipt);
+                }
+              } catch {}
+
               Alert.alert('Order placed', `Pickup code: ${receipt.pickupCode}`);
               clear?.();
               setTimeSlot(null);
