@@ -1,6 +1,36 @@
 import { supabase } from '../lib/supabase';
 import type { Receipt } from '../utils/receipt';
 
+type AllowedSource = 'app' | 'pos' | 'portal';
+const ALLOWED: AllowedSource[] = ['app', 'pos', 'portal'];
+
+function normalizeSource(input?: string) {
+  const raw = (input ?? '').trim();
+  const s = raw.toLowerCase();
+  if ((ALLOWED as string[]).includes(s)) {
+    return { source: s as AllowedSource, source_meta: null as string | null };
+  }
+  return { source: 'app' as AllowedSource, source_meta: raw || null };
+}
+
+export type OrdersInsert = {
+  user_id: string;
+  order_id: string;
+  pickup_code?: string | null;
+  status?: string;
+  totals_cents?: number;
+  currency?: string;
+  channel?: string;
+  source?: AllowedSource;
+  source_meta?: string | null;
+  time_slot?: any;
+  time_slot_start?: string | null;
+  time_slot_end?: string | null;
+  items?: any;
+  receipt?: any;
+  created_at?: string;
+};
+
 export function buildOrderRow({
   userId,
   orderId,
@@ -9,6 +39,8 @@ export function buildOrderRow({
   items,
   receipt,
   timeSlot,
+  source,
+  source_meta,
 }: {
   userId: string;
   orderId: string;
@@ -17,7 +49,9 @@ export function buildOrderRow({
   items: any;
   receipt: any;
   timeSlot?: any;
-}) {
+  source: AllowedSource;
+  source_meta: string | null;
+}): OrdersInsert {
   return {
     user_id: userId,
     order_id: orderId,
@@ -25,7 +59,8 @@ export function buildOrderRow({
     totals_cents: totalsCents,
     currency,
     channel: 'click_and_collect',
-    source: 'app',
+    source,
+    source_meta,
     payment_method: receipt?.paymentMethod ?? null,
     pickup_code: receipt?.pickupCode ?? null,
     time_slot: timeSlot ?? null,
@@ -36,6 +71,8 @@ export function buildOrderRow({
 
 export async function saveReceiptForUser(userId: string, receipt: Receipt) {
   const totalsCents = Math.round((receipt?.totals?.grandTotal || 0) * 100);
+  const { source, source_meta } = normalizeSource((receipt as any)?.source);
+  console.log('[ORDERS] normalizeSource in', (receipt as any)?.source, '→', source, source_meta);
 
   const row = buildOrderRow({
     userId,
@@ -45,20 +82,26 @@ export async function saveReceiptForUser(userId: string, receipt: Receipt) {
     items: receipt.items,
     receipt,
     timeSlot: receipt.timeSlot,
+    source,
+    source_meta,
   });
-
-  if (!row.source) {
-    console.error('[ORDERS] source missing before insert');
-    throw new Error('orders.source required');
-  }
 
   const { data, error } = await supabase
     .from('orders')
-    .insert([row])
+    .insert(row)
     .select('*')
     .single();
 
-  if (error) throw error;
+  if (error) {
+    console.warn('[ORDERS] insert failed', error);
+    throw error;
+  } else {
+    console.log('[ORDERS] saved', {
+      order_id: row.order_id,
+      source: row.source,
+      source_meta: row.source_meta,
+    });
+  }
   return data;
 }
 
