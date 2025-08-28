@@ -37,15 +37,114 @@ alter table public.orders
   add column if not exists receipt jsonb,
   add column if not exists created_at timestamptz default now();
 
-alter table public.orders
-  alter column user_id set not null,
-  alter column order_id set not null,
-  alter column status set not null,
-  alter column totals_cents set not null,
-  alter column currency set not null,
-  alter column channel set not null,
-  alter column source set not null,
-  alter column created_at set not null;
+
+-- 1a) Shadow table to preserve legacy orphaned rows (idempotent)
+do $$
+begin
+  if not exists (
+    select 1 from pg_tables where schemaname='public' and tablename='orders_orphaned'
+  ) then
+    execute $DDL$
+      create table public.orders_orphaned (
+        user_id uuid,
+        order_id text,
+        pickup_code text,
+        status text,
+        totals_cents int,
+        currency text,
+        channel text,
+        source text,
+        payment_method text,
+        time_slot jsonb,
+        time_slot_start timestamptz,
+        time_slot_end timestamptz,
+        items jsonb,
+        receipt jsonb,
+        created_at timestamptz,
+        moved_at timestamptz default now(),
+        reason text
+      )
+    $DDL$;
+  end if;
+end$$;
+
+-- 1b) Quarantine rows with NULL user_id (cannot satisfy FK/NOT NULL)
+with moved as (
+  delete from public.orders
+   where user_id is null
+   returning *
+)
+insert into public.orders_orphaned(
+  user_id, order_id, pickup_code, status, totals_cents, currency, channel, source,
+  payment_method, time_slot, time_slot_start, time_slot_end, items, receipt, created_at, reason
+)
+select user_id, order_id, pickup_code, status, totals_cents, currency, channel, source,
+       payment_method, time_slot, time_slot_start, time_slot_end, items, receipt, created_at,
+       'user_id was NULL'
+from moved;
+
+-- 1c) Backfill defaults for other required fields on remaining rows
+update public.orders
+   set order_id      = coalesce(order_id, 'legacy-' || gen_random_uuid()),
+       status        = coalesce(status, 'pending'),
+       totals_cents  = coalesce(totals_cents, 0),
+       currency      = coalesce(currency, 'GBP'),
+       channel       = coalesce(channel, 'click_and_collect'),
+       source        = coalesce(source, 'app'),
+       created_at    = coalesce(created_at, now());
+
+-- 2) Now it is safe to add NOT NULL constraints (idempotent)
+do $$
+begin
+  -- Guard: if any of these still have NULLs, skip raising and just don’t enforce
+  if exists (select 1 from public.orders where user_id is null) then
+    raise notice 'Skipping NOT NULL on user_id: legacy NULL rows remain.';
+  else
+    alter table public.orders alter column user_id set not null;
+  end if;
+
+  if exists (select 1 from public.orders where order_id is null) then
+    raise notice 'Skipping NOT NULL on order_id: legacy NULL rows remain.';
+  else
+    alter table public.orders alter column order_id set not null;
+  end if;
+
+  if exists (select 1 from public.orders where status is null) then
+    raise notice 'Skipping NOT NULL on status.';
+  else
+    alter table public.orders alter column status set not null;
+  end if;
+
+  if exists (select 1 from public.orders where totals_cents is null) then
+    raise notice 'Skipping NOT NULL on totals_cents.';
+  else
+    alter table public.orders alter column totals_cents set not null;
+  end if;
+
+  if exists (select 1 from public.orders where currency is null) then
+    raise notice 'Skipping NOT NULL on currency.';
+  else
+    alter table public.orders alter column currency set not null;
+  end if;
+
+  if exists (select 1 from public.orders where channel is null) then
+    raise notice 'Skipping NOT NULL on channel.';
+  else
+    alter table public.orders alter column channel set not null;
+  end if;
+
+  if exists (select 1 from public.orders where source is null) then
+    raise notice 'Skipping NOT NULL on source.';
+  else
+    alter table public.orders alter column source set not null;
+  end if;
+
+  if exists (select 1 from public.orders where created_at is null) then
+    raise notice 'Skipping NOT NULL on created_at.';
+  else
+    alter table public.orders alter column created_at set not null;
+  end if;
+end$$;
 
 alter table public.orders
   alter column status set default 'pending',
