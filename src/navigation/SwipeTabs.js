@@ -18,6 +18,7 @@ import { CartContext } from '../context/CartContext';
 import { TabBarHeightContext } from './TabBarHeightContext';
 import OrdersScreen from '../screens/OrdersScreen';
 import { useOrdersPresence } from '../context/OrdersContext';
+
 const Tab = createMaterialTopTabNavigator();
 
 function GlassTabBar({ state, descriptors, navigation, setHeight }) {
@@ -70,7 +71,6 @@ export default function SwipeTabs() {
   const [tabBarHeight, setTabBarHeight] = useState(0);
   const { hasOrders } = useOrdersPresence();
 
-  const { hasOrders } = useOrdersPresence();
 
   useEffect(() => {
     let active = true;

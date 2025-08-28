@@ -1,25 +1,29 @@
 import { supabase } from '../lib/supabase';
 import type { Receipt } from '../utils/receipt';
+
 export async function saveReceiptForUser(userId: string, receipt: Receipt) {
-  const grandTotalCents = Math.round((receipt?.totals?.grandTotal || 0) * 100);
+  const totalsCents = Math.round((receipt?.totals?.grandTotal || 0) * 100);
+
+  const payload = {
+    user_id: userId,
+    order_id: receipt.orderId,
+    pickup_code: receipt.pickupCode,
+    status: 'pending',
+    totals_cents: totalsCents,
+    currency: receipt?.totals?.currency || 'GBP',
+    channel: receipt.channel,
+    payment_method: receipt.paymentMethod,
+    time_slot: receipt.timeSlot,
+    items: receipt.items,
+    receipt,
+  };
+
   const { data, error } = await supabase
     .from('orders')
-    .insert([
-      {
-        user_id: userId,
-        order_id: receipt.orderId,
-        pickup_code: receipt.pickupCode,
-        status: 'pending',
-        totals_cents: grandTotalCents,
-        currency: receipt?.totals?.currency || 'GBP',
-        channel: receipt.channel,
-        payment_method: receipt.paymentMethod,
-        time_slot: receipt.timeSlot,
-        items: receipt.items,
-        receipt,
-      },
-    ])
-    .select('*');
+    .insert([payload])
+    .select('*')
+    .single();
+
   if (error) throw error;
   return data;
 }

@@ -5,7 +5,7 @@ import { Swipeable } from 'react-native-gesture-handler';
 import { useTabBarHeight } from '../navigation/TabBarHeightContext';
 import { CartContext } from '../context/CartContext';
 import { palette } from '../design/theme';
-import { buildReceipt, sendReceiptToPOS } from '../utils/receipt';
+import { buildReceipt, sendReceiptToPOS, printReceiptToConsole } from '../utils/receipt';
 import { saveReceiptForUser } from '../services/orders';
 import { useOrdersPresence } from '../context/OrdersContext';
 import { supabase } from '../lib/supabase';
@@ -178,51 +178,48 @@ export default function CartScreen({ navigation }) {
                 vouchersApplied: 0,
                 paymentMethod: 'test',
               });
-              await sendReceiptToPOS(receipt);
-              try {
-                const { data: session } = await supabase.auth.getSession();
-                const userId = session?.session?.user?.id;
-                if (userId) {
-                  const inserted = await saveReceiptForUser(userId, receipt);
-                  setHasOrders((v) => {
-                    if (!v) console.log('[ORDERS] hasOrders → true (first checkout)');
-                    return true;
-                  });
-                  if (inserted?.[0]?.id) {
-                    navigation.navigate('OrderDetail', { order: inserted[0] });
-                  } else {
-                    navigation.navigate('Orders');
-                  }
+
+              const canonical = JSON.parse(JSON.stringify(receipt));
+              printReceiptToConsole(canonical);
+              await sendReceiptToPOS(canonical);
+              let inserted;
+              const { data: session } = await supabase.auth.getSession();
+              const userId = session?.session?.user?.id;
+              if (userId) {
+                try {
+                  inserted = await saveReceiptForUser(userId, canonical);
+                  console.log('[ORDERS] saved →', inserted?.id, inserted?.order_id);
+                  setHasOrders(true);
                   try { await refreshOrdersPresence(); } catch {}
-
-                  const add = countStampsFromReceipt(receipt);
-                  console.log(
-                    `[LOYALTY] considering award for order ${receipt.orderId}: +${add} stamp(s)`
-                  );
-                  if (userId && add > 0) {
-                    const { data, error } = await supabase.rpc('award_stamps', {
-
-                      p_user: userId,
-                      p_order_id: receipt.orderId,
-                      p_add: add,
-                    });
-
-                    if (error) {
-                      console.warn('[LOYALTY] award_stamps failed:', error);
-                    } else {
-                      const [row] = Array.isArray(data) ? data : [];
-                      const stampsNow = row?.updated_stamps ?? null;
-                      const freeNow = row?.updated_free_drinks ?? null;
-                      console.log(
-                        `[LOYALTY] awarded +${add}. Now → stamps: ${stampsNow}, free drinks: ${freeNow}`
-                      );
-                    }
-                  } else {
-                    console.log('[LOYALTY] no stamps awarded (no user or zero qualifying items).');
-
-                  }
+                  navigation.navigate('OrderDetail', { order: inserted });
+                } catch (e) {
+                  console.warn('[ORDERS] save failed', e);
                 }
-              } catch {}
+              }
+
+              const add = countStampsFromReceipt(canonical);
+              console.log(
+                `[LOYALTY] considering award for order ${canonical.orderId}: +${add} stamp(s)`
+              );
+              if (userId && add > 0) {
+                const { data, error } = await supabase.rpc('award_stamps', {
+                  p_user: userId,
+                  p_order_id: canonical.orderId,
+                  p_add: add,
+                });
+                if (error) {
+                  console.warn('[LOYALTY] award_stamps failed:', error);
+                } else {
+                  const [row] = Array.isArray(data) ? data : [];
+                  const stampsNow = row?.updated_stamps ?? null;
+                  const freeNow = row?.updated_free_drinks ?? null;
+                  console.log(
+                    `[LOYALTY] awarded +${add}. Now → stamps: ${stampsNow}, free drinks: ${freeNow}`
+                  );
+                }
+              } else {
+                console.log('[LOYALTY] no stamps awarded (no user or zero qualifying items).');
+              }
 
 
               try {
@@ -235,7 +232,8 @@ export default function CartScreen({ navigation }) {
               } catch {}
 
 
-              Alert.alert('Order placed', `Pickup code: ${receipt.pickupCode}`);
+              Alert.alert('Order placed', `Pickup code: ${canonical.pickupCode}`);
+
               clear?.();
               setTimeSlot(null);
             }}

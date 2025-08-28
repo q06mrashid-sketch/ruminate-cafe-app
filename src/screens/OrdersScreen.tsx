@@ -12,16 +12,19 @@ export default function OrdersScreen({ navigation }) {
   }, []);
 
   useFocusEffect(useCallback(() => {
-    let off = subscribeUserOrders(load);
+    const unsubscribe = subscribeUserOrders(load);
     load();
-    return () => { off?.(); };
+    return () => { unsubscribe?.(); };
   }, [load]));
 
   const renderItem = ({ item }) => {
-    const total = (item.totals_cents ?? 0) / 100;
-    const when = new Date(item.created_at);
-    const subtitle = (item.items?.[0]?.name || 'Order') +
-      (item.items?.length > 1 ? ` + ${item.items.length - 1} more` : '');
+    const r = item.receipt || {};
+    const total = (item.totals_cents ?? Math.round((r?.totals?.grandTotal || 0) * 100)) / 100;
+    const when = new Date(item.created_at || r?.createdAt || Date.now());
+    const lineItems = r?.items ?? item.items ?? [];
+    const subtitle = (lineItems?.[0]?.name || 'Order') +
+      (lineItems?.length > 1 ? ` + ${lineItems.length - 1} more` : '');
+
     return (
       <Pressable style={styles.card} onPress={() => navigation.navigate('OrderDetail', { order: item })}>
         <View style={styles.rowBetween}>
