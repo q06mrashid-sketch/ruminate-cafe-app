@@ -1,15 +1,11 @@
 
 import { useState, useEffect } from 'react';
 import { fetchUserOrders, subscribeUserOrders, onLocalOrdersChange } from '../services/orders';
-
-
 /**
  * Track whether the current user has any orders.
  */
 export default function useHasOrders() {
   const [hasOrders, setHasOrders] = useState(false);
-
-
   useEffect(() => {
     let active = true;
 
@@ -29,7 +25,6 @@ export default function useHasOrders() {
       try { offLocal?.(); } catch {}
     };
   }, []);
-
 
   return hasOrders;
 }

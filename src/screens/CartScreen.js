@@ -10,6 +10,7 @@ import { saveReceiptForUser } from '../services/orders';
 import { supabase } from '../lib/supabase';
 import { countStampsFromReceipt } from '../utils/loyalty';
 import { useStats } from '../hooks/useStats';
+import { getMembershipSummary } from '../services/membership';
 
 export default function CartScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -181,18 +182,53 @@ export default function CartScreen({ navigation }) {
                 const userId = session?.session?.user?.id;
                 if (userId) {
                   await saveReceiptForUser(userId, receipt);
+
                   const add = countStampsFromReceipt(receipt);
+                  console.log(`[LOYALTY] awarding +${add} stamps for order ${receipt.orderId}`);
                   if (add > 0) {
-                    const { error } = await supabase.rpc('award_stamps', {
+                    const { data: beforeRow } = await supabase
+                      .from('profiles')
+                      .select('loyalty_stamps, free_drinks')
+                      .eq('id', userId)
+                      .single();
+                    const { error: awardErr } = await supabase.rpc('award_stamps', {
                       p_user: userId,
                       p_order_id: receipt.orderId,
                       p_add: add,
                     });
-                    if (error) console.warn('[LOYALTY] award_stamps failed', error);
+
+                    if (awardErr) {
+                      if (awardErr.message?.includes('duplicate key value')) {
+                        console.log('[LOYALTY] order already awarded, skipping');
+                      } else {
+                        console.warn('[LOYALTY] award_stamps failed', awardErr);
+                      }
+                    } else {
+                      const { data: afterRow, error: readErr } = await supabase
+                        .from('profiles')
+                        .select('loyalty_stamps, free_drinks')
+                        .eq('id', userId)
+                        .single();
+                      if (!readErr) {
+                        if (
+                          (beforeRow?.loyalty_stamps ?? 0) === (afterRow?.loyalty_stamps ?? 0) &&
+                          (beforeRow?.free_drinks ?? 0) === (afterRow?.free_drinks ?? 0)
+                        ) {
+                          console.log('[LOYALTY] order already awarded, skipping');
+                        } else {
+                          console.log(
+                            `[LOYALTY] updated → stamps: ${beforeRow?.loyalty_stamps ?? 0} → ${afterRow?.loyalty_stamps ?? 0}, freebies: ${beforeRow?.free_drinks ?? 0} → ${afterRow?.free_drinks ?? 0}`
+                          );
+                        }
+                      }
+                    }
                   }
-                  try { await refreshStats(); } catch {}
                 }
               } catch {}
+
+              try { await refreshStats(); } catch {}
+              try { await getMembershipSummary(); } catch {}
+
               Alert.alert('Order placed', `Pickup code: ${receipt.pickupCode}`);
               clear?.();
               setTimeSlot(null);
