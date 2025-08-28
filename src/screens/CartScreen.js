@@ -67,21 +67,18 @@ export default function CartScreen({ navigation }) {
   };
 
   const buildSlots = () => {
-
     const intervals = todayHours?.intervals?.length
       ? todayHours.intervals
       : (todayHours?.open && todayHours?.close
         ? [{ open: todayHours.open, close: todayHours.close }]
         : []);
     if (!intervals.length) return [];
-
     const toMins = (s) => {
       const [h, m] = s.split(':').map(Number);
       return h * 60 + m;
     };
     const now = new Date();
     const current = now.getHours() * 60 + now.getMinutes();
-
     const maxFuture = current + 30;
     const nextQuarter = Math.ceil(current / 15) * 15;
     const out = [];
@@ -96,7 +93,6 @@ export default function CartScreen({ navigation }) {
         const end = new Date(start.getTime() + 15 * 60 * 1000);
         out.push({ start, end });
       }
-
     }
     return out;
   };
@@ -209,13 +205,16 @@ export default function CartScreen({ navigation }) {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.applePayBtn, !timeSlot && styles.applePayBtnDisabled]}
-            disabled={!timeSlot}
+            style={styles.applePayBtn}
             onPress={async () => {
-              if (!timeSlot) return;
+              const slot =
+                timeSlot || {
+                  start: new Date(),
+                  end: new Date(Date.now() + 15 * 60 * 1000),
+                };
               const receipt = buildReceipt({
                 cartItems: items,
-                selectedTimeSlot: timeSlot,
+                selectedTimeSlot: slot,
                 customer: null,
                 pifContribution: 0,
                 vouchersApplied: 0,
@@ -305,7 +304,6 @@ export default function CartScreen({ navigation }) {
             >
               <Text style={styles.pickerOptionText}>ASAP</Text>
             </Pressable>
-
             {availableSlots.map((slot, i) => (
               <Pressable
                 key={i}
@@ -517,9 +515,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  applePayBtnDisabled: {
-    opacity: 0.45,
   },
   applePayText: {
     color: '#fff',
