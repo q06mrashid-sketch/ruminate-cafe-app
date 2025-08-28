@@ -67,25 +67,36 @@ export default function CartScreen({ navigation }) {
   };
 
   const buildSlots = () => {
-    if (!todayHours?.open || !todayHours?.close) return [];
+
+    const intervals = todayHours?.intervals?.length
+      ? todayHours.intervals
+      : (todayHours?.open && todayHours?.close
+        ? [{ open: todayHours.open, close: todayHours.close }]
+        : []);
+    if (!intervals.length) return [];
+
     const toMins = (s) => {
       const [h, m] = s.split(':').map(Number);
       return h * 60 + m;
     };
     const now = new Date();
     const current = now.getHours() * 60 + now.getMinutes();
-    const open = toMins(todayHours.open);
-    const close = toMins(todayHours.close);
-    const startMins = Math.max(open, Math.ceil(current / 15) * 15);
-    const maxFuture = current + 30;
-    const lastStart = Math.min(close - 30, maxFuture);
 
+    const maxFuture = current + 30;
+    const nextQuarter = Math.ceil(current / 15) * 15;
     const out = [];
-    for (let m = startMins; m <= lastStart; m += 15) {
-      const start = new Date();
-      start.setHours(Math.floor(m / 60), m % 60, 0, 0);
-      const end = new Date(start.getTime() + 15 * 60 * 1000);
-      out.push({ start, end });
+    for (const iv of intervals) {
+      const open = toMins(iv.open);
+      const close = toMins(iv.close);
+      const startMins = Math.max(open, nextQuarter);
+      const lastStart = Math.min(close - 30, maxFuture);
+      for (let m = startMins; m <= lastStart; m += 15) {
+        const start = new Date();
+        start.setHours(Math.floor(m / 60), m % 60, 0, 0);
+        const end = new Date(start.getTime() + 15 * 60 * 1000);
+        out.push({ start, end });
+      }
+
     }
     return out;
   };
