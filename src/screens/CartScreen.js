@@ -201,10 +201,12 @@ export default function CartScreen({ navigation }) {
                   );
                   if (userId && add > 0) {
                     const { data, error } = await supabase.rpc('award_stamps', {
+
                       p_user: userId,
                       p_order_id: receipt.orderId,
                       p_add: add,
                     });
+
                     if (error) {
                       console.warn('[LOYALTY] award_stamps failed:', error);
                     } else {
@@ -217,9 +219,11 @@ export default function CartScreen({ navigation }) {
                     }
                   } else {
                     console.log('[LOYALTY] no stamps awarded (no user or zero qualifying items).');
+
                   }
                 }
               } catch {}
+
 
               try {
                 await refreshStats();
@@ -229,6 +233,7 @@ export default function CartScreen({ navigation }) {
               try {
                 await getMembershipSummary?.();
               } catch {}
+
 
               Alert.alert('Order placed', `Pickup code: ${receipt.pickupCode}`);
               clear?.();
