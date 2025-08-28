@@ -2,10 +2,13 @@ import { supabase } from '../lib/supabase';
 import type { Receipt } from '../utils/receipt';
 import { buildOrderRow, normalizeSource } from './order-row';
 
+
 export async function saveReceiptForUser(userId: string, receipt: Receipt) {
   const totalsCents = Math.round((receipt?.totals?.grandTotal || 0) * 100);
   const { source, source_meta } = normalizeSource((receipt as any)?.source);
+
   console.log('[ORDERS] normalizeSource', (receipt as any)?.source, '→', source, source_meta);
+
 
   const row = buildOrderRow({
     userId,
