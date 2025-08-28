@@ -79,6 +79,7 @@ export default function CartScreen({ navigation }) {
     const startMins = Math.max(open, Math.ceil(current / 15) * 15);
     const maxFuture = current + 30;
     const lastStart = Math.min(close - 30, maxFuture);
+
     const out = [];
     for (let m = startMins; m <= lastStart; m += 15) {
       const start = new Date();
@@ -293,6 +294,7 @@ export default function CartScreen({ navigation }) {
             >
               <Text style={styles.pickerOptionText}>ASAP</Text>
             </Pressable>
+
             {availableSlots.map((slot, i) => (
               <Pressable
                 key={i}

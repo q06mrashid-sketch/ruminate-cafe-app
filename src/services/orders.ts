@@ -11,7 +11,8 @@ export async function saveReceiptForUser(userId: string, receipt: Receipt) {
     status: 'pending',
     totals_cents: totalsCents,
     currency: receipt?.totals?.currency || 'GBP',
-    channel: receipt.channel,
+    channel: receipt.channel || 'click_and_collect',
+
     source: 'app',
     payment_method: receipt.paymentMethod,
     time_slot: receipt.timeSlot,
