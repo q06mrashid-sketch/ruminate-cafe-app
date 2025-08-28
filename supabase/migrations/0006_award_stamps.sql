@@ -37,46 +37,15 @@ alter table public.orders
   add column if not exists receipt jsonb,
   add column if not exists created_at timestamptz default now();
 
-
--- === Preflight: repair legacy NULLs in public.orders ===
-DO $$
-DECLARE
-  n_user_null int := 0;
-BEGIN
-  -- Try to backfill user_id from receipt JSON if present
-  UPDATE public.orders o
-     SET user_id = COALESCE(
-       NULLIF(o.receipt->>'user_id','')::uuid,
-       NULLIF(o.receipt->'user'->>'id','')::uuid
-     )
-   WHERE user_id IS NULL
-     AND (
-       (o.receipt ? 'user_id' AND (o.receipt->>'user_id') ~* '^[0-9a-f-]{8}-[0-9a-f-]{4}-[0-9a-f-]{4}-[0-9a-f-]{4}-[0-9a-f-]{12}$')
-       OR (o.receipt ? 'user' AND (o.receipt->'user'->>'id') ~* '^[0-9a-f-]{8}-[0-9a-f-]{4}-[0-9a-f-]{4}-[0-9a-f-]{4}-[0-9a-f-]{12}$')
-     );
-
-  -- Count remaining offenders
-  SELECT count(*) INTO n_user_null FROM public.orders WHERE user_id IS NULL;
-
-  -- Dev/test safety valve: delete truly orphaned legacy rows so NOT NULL can be enforced.
-  -- If you must preserve every row, comment this DELETE and manually backfill instead.
-  IF n_user_null > 0 THEN
-    RAISE NOTICE '[orders preflight] deleting % legacy rows with NULL user_id', n_user_null;
-    DELETE FROM public.orders WHERE user_id IS NULL;
-  END IF;
-END$$;
-
-
--- Now it’s safe to enforce NOT NULLs (idempotent if already set)
 alter table public.orders
-  alter column user_id      set not null,
-  alter column order_id     set not null,
-  alter column status       set not null,
+  alter column user_id set not null,
+  alter column order_id set not null,
+  alter column status set not null,
   alter column totals_cents set not null,
-  alter column currency     set not null,
-  alter column channel      set not null,
-  alter column source       set not null,
-  alter column created_at   set not null;
+  alter column currency set not null,
+  alter column channel set not null,
+  alter column source set not null,
+  alter column created_at set not null;
 
 alter table public.orders
   alter column status set default 'pending',
@@ -120,6 +89,7 @@ begin
     alter table public.orders drop constraint orders_source_check;
   end if;
   alter table public.orders add constraint orders_source_check check (lower(source) in ('app','pos','portal'));
+
 end$$;
 
 -- 2. Profiles columns
@@ -132,6 +102,7 @@ alter table public.profiles enable row level security;
 do $$
 declare pk text;
 begin
+
   if exists (
     select 1 from information_schema.columns
     where table_schema='public' and table_name='profiles' and column_name='user_id'
@@ -143,6 +114,7 @@ begin
   ) then
     pk := 'id';
   else
+
     raise exception 'profiles identifier column not found';
   end if;
 
@@ -156,6 +128,7 @@ end$$;
 do $$
 declare pk text;
 begin
+
   if exists (
     select 1 from information_schema.columns
     where table_schema='public' and table_name='profiles' and column_name='user_id'
@@ -167,6 +140,7 @@ begin
   ) then
     pk := 'id';
   else
+
     raise exception 'profiles identifier column not found';
   end if;
 
@@ -207,6 +181,7 @@ declare
   cur_stamps int;
   cur_free int;
 begin
+
   if exists (
     select 1 from information_schema.columns
     where table_schema='public' and table_name='profiles' and column_name='user_id'
@@ -218,6 +193,7 @@ begin
   ) then
     pk := 'id';
   else
+
     raise exception 'profiles identifier column not found';
   end if;
 
@@ -283,6 +259,7 @@ DECLARE u uuid := gen_random_uuid();
        cnt int;
        pk text;
 BEGIN
+
   IF EXISTS (
     SELECT 1 FROM information_schema.columns
     WHERE table_schema='public' AND table_name='profiles' AND column_name='user_id'
