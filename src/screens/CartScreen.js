@@ -77,7 +77,9 @@ export default function CartScreen({ navigation }) {
     const open = toMins(todayHours.open);
     const close = toMins(todayHours.close);
     const startMins = Math.max(open, Math.ceil(current / 15) * 15);
-    const lastStart = close - 30;
+    const maxFuture = current + 30;
+    const lastStart = Math.min(close - 30, maxFuture);
+
     const out = [];
     for (let m = startMins; m <= lastStart; m += 15) {
       const start = new Date();
@@ -90,10 +92,6 @@ export default function CartScreen({ navigation }) {
 
   const onPickTimeSlot = () => {
     const slots = buildSlots();
-    if (!slots.length) {
-      Alert.alert('No slots available right now');
-      return;
-    }
     setAvailableSlots(slots);
     setSlotPickerVisible(true);
   };
@@ -196,7 +194,7 @@ export default function CartScreen({ navigation }) {
 
         <View style={styles.footerButtonsRow}>
           <TouchableOpacity style={styles.slotBtn} onPress={onPickTimeSlot}>
-            <Text style={styles.slotBtnText}>{timeSlot ? formatSlotLabel(timeSlot) : 'Pick time slot'}</Text>
+            <Text style={styles.slotBtnText}>{timeSlot ? formatSlotLabel(timeSlot) : 'ASAP'}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -287,6 +285,16 @@ export default function CartScreen({ navigation }) {
       <View style={styles.pickerOverlay}>
         <View style={styles.pickerContent}>
           <ScrollView>
+            <Pressable
+              style={styles.pickerOption}
+              onPress={() => {
+                setTimeSlot(null);
+                setSlotPickerVisible(false);
+              }}
+            >
+              <Text style={styles.pickerOptionText}>ASAP</Text>
+            </Pressable>
+
             {availableSlots.map((slot, i) => (
               <Pressable
                 key={i}
