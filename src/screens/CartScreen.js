@@ -1,13 +1,19 @@
 import React, { useContext, useMemo, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Swipeable } from 'react-native-gesture-handler';
 import { useTabBarHeight } from '../navigation/TabBarHeightContext';
 import { CartContext } from '../context/CartContext';
 import { palette } from '../design/theme';
+import { buildReceipt, sendReceiptToPOS } from '../utils/receipt';
+import { saveReceiptForUser } from '../services/orders';
+import { supabase } from '../lib/supabase';
+import { countStampsFromReceipt } from '../utils/loyalty';
+import { useStats } from '../hooks/useStats';
 
 export default function CartScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { refreshStats } = useStats();
 
   const tabBarHeight = useTabBarHeight();
   // Be defensive about what's available in CartContext
@@ -21,6 +27,7 @@ export default function CartScreen({ navigation }) {
     removeItem,
     updateQuantity,
     clearItem, // some apps name it like this
+    clear,
   } = cart;
 
   const [timeSlot, setTimeSlot] = useState(null);
@@ -50,10 +57,14 @@ export default function CartScreen({ navigation }) {
     // If you already have a screen/modal, navigate there:
     // navigation?.navigate?.('PickTimeSlot', { onSelect: (slot) => setTimeSlot(slot) });
     // Minimal inline fallback for now:
-    const now = new Date();
-    const mm = String(now.getMinutes()).padStart(2, '0');
-    const hh = String(now.getHours()).padStart(2, '0');
-    setTimeSlot(`Today ${hh}:${mm}`);
+    const start = new Date();
+    const end = new Date(start.getTime() + 10 * 60 * 1000);
+    setTimeSlot({ start, end });
+  };
+
+  const formatSlotLabel = (slot) => {
+    const pad = (n) => String(n).padStart(2, '0');
+    return `Today ${pad(slot.start.getHours())}:${pad(slot.start.getMinutes())}`;
   };
 
   const renderItem = ({ item }) => (
@@ -148,15 +159,43 @@ export default function CartScreen({ navigation }) {
 
         <View style={styles.footerButtonsRow}>
           <TouchableOpacity style={styles.slotBtn} onPress={onPickTimeSlot}>
-            <Text style={styles.slotBtnText}>{timeSlot ? timeSlot : 'Pick time slot'}</Text>
+            <Text style={styles.slotBtnText}>{timeSlot ? formatSlotLabel(timeSlot) : 'Pick time slot'}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.applePayBtn, !timeSlot && styles.applePayBtnDisabled]}
             disabled={!timeSlot}
-            onPress={() => {
+            onPress={async () => {
               if (!timeSlot) return;
-              // hook up your Apple Pay flow here
+              const receipt = buildReceipt({
+                cartItems: items,
+                selectedTimeSlot: timeSlot,
+                customer: null,
+                pifContribution: 0,
+                vouchersApplied: 0,
+                paymentMethod: 'test',
+              });
+              await sendReceiptToPOS(receipt);
+              try {
+                const { data: session } = await supabase.auth.getSession();
+                const userId = session?.session?.user?.id;
+                if (userId) {
+                  await saveReceiptForUser(userId, receipt);
+                  const add = countStampsFromReceipt(receipt);
+                  if (add > 0) {
+                    const { error } = await supabase.rpc('award_stamps', {
+                      p_user: userId,
+                      p_order_id: receipt.orderId,
+                      p_add: add,
+                    });
+                    if (error) console.warn('[LOYALTY] award_stamps failed', error);
+                  }
+                  try { await refreshStats(); } catch {}
+                }
+              } catch {}
+              Alert.alert('Order placed', `Pickup code: ${receipt.pickupCode}`);
+              clear?.();
+              setTimeSlot(null);
             }}
           >
             <Text style={styles.applePayText}> Pay</Text>
