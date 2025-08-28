@@ -11,6 +11,7 @@ begin
 exception when undefined_table then null;
 end$$;
 
+
 -- Backfill legacy rows so constraints can be applied safely
 update public.orders
   set source = coalesce(nullif(lower(source), ''), 'app')
@@ -34,15 +35,18 @@ alter table public.orders
   alter column channel set not null,
   alter column order_id set not null;
 
+
 do $$
 begin
   alter table public.orders
+
     add constraint orders_source_check check (lower(source) in ('app','pos','portal'));
 exception when duplicate_object then null;
 end$$;
 
 -- Normalize future values
 update public.orders set source = lower(source);
+
 
 -- Ledger for idempotent loyalty awards
 create table if not exists public.loyalty_awards (
