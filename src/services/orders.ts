@@ -1,27 +1,59 @@
 import { supabase } from '../lib/supabase';
 import type { Receipt } from '../utils/receipt';
 
+export function buildOrderRow({
+  userId,
+  orderId,
+  totalsCents,
+  currency = 'GBP',
+  items,
+  receipt,
+  timeSlot,
+}: {
+  userId: string;
+  orderId: string;
+  totalsCents: number;
+  currency?: string;
+  items: any;
+  receipt: any;
+  timeSlot?: any;
+}) {
+  return {
+    user_id: userId,
+    order_id: orderId,
+    status: 'pending',
+    totals_cents: totalsCents,
+    currency,
+    channel: 'click_and_collect',
+    source: 'app',
+    payment_method: receipt?.paymentMethod ?? null,
+    time_slot: timeSlot ?? null,
+    items,
+    receipt,
+  };
+}
+
 export async function saveReceiptForUser(userId: string, receipt: Receipt) {
   const totalsCents = Math.round((receipt?.totals?.grandTotal || 0) * 100);
 
-  const payload = {
-    user_id: userId,
-    order_id: receipt.orderId,
-    pickup_code: receipt.pickupCode,
-    status: 'pending',
-    totals_cents: totalsCents,
+  const row = buildOrderRow({
+    userId,
+    orderId: receipt.orderId,
+    totalsCents,
     currency: receipt?.totals?.currency || 'GBP',
-    channel: receipt.channel || 'click_and_collect',
-    source: 'app',
-    payment_method: receipt.paymentMethod,
-    time_slot: receipt.timeSlot,
     items: receipt.items,
     receipt,
-  };
+    timeSlot: receipt.timeSlot,
+  });
+
+  if (!row.source) {
+    console.error('[ORDERS] source missing before insert');
+    throw new Error('orders.source required');
+  }
 
   const { data, error } = await supabase
     .from('orders')
-    .insert([payload])
+    .insert([row])
     .select('*')
     .single();
 

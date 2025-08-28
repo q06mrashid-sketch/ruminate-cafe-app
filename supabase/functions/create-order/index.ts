@@ -87,7 +87,14 @@ serve(async (req) => {
 
   const { data: order, error: orderErr } = await admin
     .from("orders")
-    .insert({ user_id: user.id, total_cents: total, collection_code, timeslot })
+    .insert({
+      user_id: user.id,
+      total_cents: total,
+      collection_code,
+      timeslot,
+      source: 'app',
+      channel: 'click_and_collect',
+    })
     .select("id")
     .single();
   if (orderErr) {

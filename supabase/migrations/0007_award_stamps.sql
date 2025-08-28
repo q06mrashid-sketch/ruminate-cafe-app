@@ -37,7 +37,6 @@ alter table public.orders
   add column if not exists receipt jsonb,
   add column if not exists created_at timestamptz default now();
 
-
 -- === Preflight: repair legacy NULLs in public.orders ===
 DO $$
 DECLARE
@@ -65,7 +64,6 @@ BEGIN
     DELETE FROM public.orders WHERE user_id IS NULL;
   END IF;
 END$$;
-
 
 -- Now it’s safe to enforce NOT NULLs (idempotent if already set)
 alter table public.orders

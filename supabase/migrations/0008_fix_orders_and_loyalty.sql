@@ -11,22 +11,42 @@ begin
 exception when undefined_table then null;
 end$$;
 
+
+-- Backfill legacy rows so constraints can be applied safely
+update public.orders
+  set source = coalesce(nullif(lower(source), ''), 'app')
+  where source is null or source = '';
+
+update public.orders
+  set channel = coalesce(nullif(lower(channel), ''), 'click_and_collect')
+  where channel is null or channel = '';
+
+update public.orders
+  set order_id = 'legacy-' || encode(gen_random_bytes(6), 'hex')
+  where order_id is null or order_id = '';
+
 alter table public.orders
   add column if not exists channel text,
+  alter column source  set default 'app',
   alter column channel set default 'click_and_collect';
 
-update public.orders set channel = coalesce(channel, 'click_and_collect') where channel is null;
-
 alter table public.orders
+  alter column source set not null,
   alter column channel set not null,
-  alter column source  set default 'app';
+  alter column order_id set not null;
+
 
 do $$
 begin
   alter table public.orders
-    add constraint orders_source_check check (source in ('app','pos','portal'));
+
+    add constraint orders_source_check check (lower(source) in ('app','pos','portal'));
 exception when duplicate_object then null;
 end$$;
+
+-- Normalize future values
+update public.orders set source = lower(source);
+
 
 -- Ledger for idempotent loyalty awards
 create table if not exists public.loyalty_awards (
