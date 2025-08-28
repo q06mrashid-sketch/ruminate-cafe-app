@@ -88,7 +88,8 @@ begin
   if exists (select 1 from pg_constraint where conname = 'orders_source_check') then
     alter table public.orders drop constraint orders_source_check;
   end if;
-  alter table public.orders add constraint orders_source_check check (source in ('app','pos','portal'));
+  alter table public.orders add constraint orders_source_check check (lower(source) in ('app','pos','portal'));
+
 end$$;
 
 -- 2. Profiles columns
@@ -101,13 +102,19 @@ alter table public.profiles enable row level security;
 do $$
 declare pk text;
 begin
-  select column_name into pk
-  from information_schema.columns
-  where table_schema='public' and table_name='profiles' and column_name in ('id','user_id')
-  order by column_name='id' desc
-  limit 1;
 
-  if pk is null then
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='profiles' and column_name='user_id'
+  ) then
+    pk := 'user_id';
+  elsif exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='profiles' and column_name='id'
+  ) then
+    pk := 'id';
+  else
+
     raise exception 'profiles identifier column not found';
   end if;
 
@@ -121,13 +128,19 @@ end$$;
 do $$
 declare pk text;
 begin
-  select column_name into pk
-  from information_schema.columns
-  where table_schema='public' and table_name='profiles' and column_name in ('id','user_id')
-  order by column_name='id' desc
-  limit 1;
 
-  if pk is null then
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='profiles' and column_name='user_id'
+  ) then
+    pk := 'user_id';
+  elsif exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='profiles' and column_name='id'
+  ) then
+    pk := 'id';
+  else
+
     raise exception 'profiles identifier column not found';
   end if;
 
@@ -168,13 +181,19 @@ declare
   cur_stamps int;
   cur_free int;
 begin
-  select column_name into pk
-  from information_schema.columns
-  where table_schema='public' and table_name='profiles' and column_name in ('id','user_id')
-  order by column_name='id' desc
-  limit 1;
 
-  if pk is null then
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='profiles' and column_name='user_id'
+  ) then
+    pk := 'user_id';
+  elsif exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='profiles' and column_name='id'
+  ) then
+    pk := 'id';
+  else
+
     raise exception 'profiles identifier column not found';
   end if;
 
@@ -240,11 +259,20 @@ DECLARE u uuid := gen_random_uuid();
        cnt int;
        pk text;
 BEGIN
-  SELECT column_name INTO pk
-  FROM information_schema.columns
-  WHERE table_schema='public' AND table_name='profiles' AND column_name IN ('id','user_id')
-  ORDER BY column_name='id' DESC
-  LIMIT 1;
+
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='profiles' AND column_name='user_id'
+  ) THEN
+    pk := 'user_id';
+  ELSIF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='profiles' AND column_name='id'
+  ) THEN
+    pk := 'id';
+  ELSE
+    RAISE EXCEPTION 'profiles identifier column not found';
+  END IF;
 
   EXECUTE format('INSERT INTO public.profiles(%I, loyalty_stamps, free_drinks) VALUES ($1,5,1)', pk) USING u;
 

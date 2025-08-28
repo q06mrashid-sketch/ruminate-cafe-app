@@ -67,18 +67,21 @@ export default function CartScreen({ navigation }) {
   };
 
   const buildSlots = () => {
+
     const intervals = todayHours?.intervals?.length
       ? todayHours.intervals
       : (todayHours?.open && todayHours?.close
         ? [{ open: todayHours.open, close: todayHours.close }]
         : []);
     if (!intervals.length) return [];
+
     const toMins = (s) => {
       const [h, m] = s.split(':').map(Number);
       return h * 60 + m;
     };
     const now = new Date();
     const current = now.getHours() * 60 + now.getMinutes();
+
     const maxFuture = current + 30;
     const nextQuarter = Math.ceil(current / 15) * 15;
     const out = [];
@@ -93,6 +96,7 @@ export default function CartScreen({ navigation }) {
         const end = new Date(start.getTime() + 15 * 60 * 1000);
         out.push({ start, end });
       }
+
     }
     return out;
   };
@@ -301,6 +305,7 @@ export default function CartScreen({ navigation }) {
             >
               <Text style={styles.pickerOptionText}>ASAP</Text>
             </Pressable>
+
             {availableSlots.map((slot, i) => (
               <Pressable
                 key={i}
