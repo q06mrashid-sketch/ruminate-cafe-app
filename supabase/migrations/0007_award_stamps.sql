@@ -296,7 +296,6 @@ END$$;
 -- award_stamps with zero addition
 SELECT * FROM public.award_stamps(gen_random_uuid(), 'order-xyz', 0);
 
--- roll stamps into free drink
 DO $$
 DECLARE u uuid := gen_random_uuid();
        ls int;
@@ -318,7 +317,11 @@ BEGIN
     RAISE EXCEPTION 'profiles identifier column not found';
   END IF;
 
-  EXECUTE format('INSERT INTO public.profiles(%I, loyalty_stamps, free_drinks) VALUES ($1,5,1)', pk) USING u;
+  -- create a throwaway auth user so profiles FK passes
+  INSERT INTO auth.users(id, email)
+    VALUES (u, 'awards-test@example.com');
+  EXECUTE format('INSERT INTO public.profiles(%I, loyalty_stamps, free_drinks) VALUES ($1,5,1)', pk)
+    USING u;
 
   SELECT loyalty_stamps, free_drinks INTO ls, fd FROM public.award_stamps(u, 'o1', 3);
   IF ls <> 0 OR fd <> 2 THEN
@@ -332,4 +335,5 @@ BEGIN
 
   DELETE FROM public.loyalty_awards WHERE order_id='o1';
   EXECUTE format('DELETE FROM public.profiles WHERE %I=$1', pk) USING u;
+  DELETE FROM auth.users WHERE id = u;
 END$$;
