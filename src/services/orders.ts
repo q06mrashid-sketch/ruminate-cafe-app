@@ -27,6 +27,7 @@ export function buildOrderRow({
     channel: 'click_and_collect',
     source: 'app',
     payment_method: receipt?.paymentMethod ?? null,
+    pickup_code: receipt?.pickupCode ?? null,
     time_slot: timeSlot ?? null,
     items,
     receipt,
