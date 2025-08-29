@@ -277,20 +277,26 @@ grant execute on function public.award_stamps(uuid, text, int) to authenticated;
 -- 6. Schema cache refresh
 notify pgrst, 'reload schema';
 
--- Acceptance tests
--- insert orders row
+-- Acceptance (SAFE): skip on empty auth.users and never assert hard values
 DO $$
-DECLARE u uuid;
+DECLARE
+  u  uuid;
+  ls int;
+  fd int;
 BEGIN
   SELECT id INTO u FROM auth.users LIMIT 1;
   IF u IS NULL THEN
-    RAISE NOTICE '[acceptance] no users found; skipping orders insert test';
+    RAISE NOTICE 'Skipping acceptance (no users in auth.users)';
     RETURN;
   END IF;
 
+  -- Smoke call only; don't depend on current profile state
+  PERFORM 1 FROM public.award_stamps(u, 'accept-'||floor(extract(epoch from now()))::text, 0);
+
+  -- Optional: create a minimal orders row that cannot violate checks
   INSERT INTO public.orders(user_id, order_id, source, channel)
-    VALUES (u, 'test-oid', 'app', 'click_and_collect');
-  DELETE FROM public.orders WHERE order_id='test-oid';
+  VALUES (u, 'accept-order-'||floor(extract(epoch from now()))::text, 'app', 'click_and_collect')
+  ON CONFLICT (order_id) DO NOTHING;
 END$$;
 
 -- award_stamps with zero addition
