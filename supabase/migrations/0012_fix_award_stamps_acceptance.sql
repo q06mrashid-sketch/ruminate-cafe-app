@@ -83,7 +83,9 @@ DECLARE
   fd int;
   cnt int;
   pk text;
+
   oid text := 'o' || floor(extract(epoch from now()))::text;
+
 BEGIN
   -- Use an existing auth user; if none, skip test
   SELECT id INTO u FROM auth.users LIMIT 1;
@@ -122,6 +124,7 @@ BEGIN
           free_drinks    = EXCLUDED.free_drinks;
   END IF;
 
+
   -- Call function and read OUT columns via alias to avoid ambiguity
   SELECT s.loyalty_stamps, s.free_drinks
     INTO ls, fd
@@ -133,13 +136,17 @@ BEGIN
   END IF;
 
   -- One log row should exist for this order id
+
   SELECT count(*) INTO cnt FROM public.loyalty_awards WHERE order_id = oid;
+
   IF cnt <> 1 THEN
     RAISE EXCEPTION 'loyalty_awards count %', cnt;
   END IF;
 
   -- Cleanup
+
   DELETE FROM public.loyalty_awards WHERE order_id = oid;
+
   IF pk = 'user_id' THEN
     DELETE FROM public.profiles WHERE user_id = u;
   ELSE
@@ -156,7 +163,9 @@ WHERE proname = 'award_stamps';
 DO $$
 DECLARE u uuid;
        ls int; fd int;
+
        oid text := 'test-accept-' || floor(extract(epoch from now()))::text;
+
 BEGIN
   SELECT id INTO u FROM auth.users LIMIT 1;
   IF u IS NOT NULL THEN
@@ -165,10 +174,12 @@ BEGIN
     VALUES (u, 0, 0)
     ON CONFLICT (user_id) DO NOTHING;
 
+
     SELECT s.loyalty_stamps, s.free_drinks INTO ls, fd
     FROM public.award_stamps(u, oid, 1) AS s;
     RAISE NOTICE 'award_stamps returned ls=%, fd=%', ls, fd;
     DELETE FROM public.loyalty_awards WHERE order_id=oid;
+
   END IF;
 END $$;
 
