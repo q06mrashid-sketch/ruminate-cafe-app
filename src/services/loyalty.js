@@ -10,3 +10,17 @@ export async function redeemLoyaltyReward() {
     return false;
   }
 }
+
+export async function checkoutLoyalty(p_user, p_order_id, p_add_stamps, p_redeem) {
+  if (!hasSupabase || !supabase) return { data: null, error: new Error('no supabase') };
+  try {
+    return await supabase.rpc('checkout_loyalty', {
+      p_user,
+      p_order_id,
+      p_add_stamps,
+      p_redeem,
+    });
+  } catch (error) {
+    return { data: null, error };
+  }
+}

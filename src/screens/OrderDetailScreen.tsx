@@ -24,6 +24,9 @@ export default function OrderDetailScreen({ route }) {
       ))}
       <View style={{ height:8 }} />
       <Text>Subtotal: £{r?.totals?.subtotal?.toFixed(2) ?? (order.totals_cents/100).toFixed(2)}</Text>
+      { (order?.free_drinks_redeemed || r?.freeDrinksUsed) ? (
+        <Text>Free drinks redeemed: {order?.free_drinks_redeemed || r?.freeDrinksUsed}</Text>
+      ) : null }
       <Text>Tax: £{r?.totals?.tax?.toFixed(2) ?? '0.00'}</Text>
       <Text style={{ fontWeight:'700' }}>TOTAL: £{(order.totals_cents/100).toFixed(2)}</Text>
     </ScrollView>

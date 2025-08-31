@@ -3,7 +3,7 @@ import type { Receipt } from '../utils/receipt';
 import { buildOrderRow, normalizeSource } from './order-row';
 
 
-export async function saveReceiptForUser(userId: string, receipt: Receipt) {
+export async function saveReceiptForUser(userId: string, receipt: Receipt, freeDrinksRedeemed = 0) {
   const totalsCents = Math.round((receipt?.totals?.grandTotal || 0) * 100);
   const { source, source_meta } = normalizeSource((receipt as any)?.source);
 
@@ -17,10 +17,10 @@ export async function saveReceiptForUser(userId: string, receipt: Receipt) {
     currency: receipt?.totals?.currency || 'GBP',
     items: receipt.items,
     receipt,
-    timeSlot: receipt.timeSlot,
-    source,
-    source_meta,
-  });
+
+    free_drinks_redeemed: freeDrinksRedeemed,
+  };
+
 
   const { data, error } = await supabase
     .from('orders')
