@@ -25,12 +25,13 @@ $$;
 -- Acceptance test for award_stamps: only run if a user exists
 DO $$
 DECLARE
-  u  uuid;
-  ls int;
-  fd int;
-  cnt int;
 
+  u   uuid;
+  ls  int;
+  fd  int;
+  cnt int;
   oid text := 'o' || floor(extract(epoch from now()))::text;
+  r   record;
 
 BEGIN
   SELECT id INTO u FROM auth.users LIMIT 1;
@@ -46,9 +47,12 @@ BEGIN
     SET loyalty_stamps = EXCLUDED.loyalty_stamps,
         free_drinks    = EXCLUDED.free_drinks;
 
-  -- Call function; SELECT * avoids alias/OUT column errors
 
-  SELECT * INTO ls, fd FROM public.award_stamps(u, oid, 3);
+  -- Call function and capture OUT columns via record
+  SELECT * INTO r FROM public.award_stamps(u, oid, 3);
+  ls := r.loyalty_stamps;
+  fd := r.free_drinks;
+
 
   IF ls <> 0 OR fd <> 2 THEN
     RAISE EXCEPTION 'unexpected totals %, % (expected 0, 2)', ls, fd;

@@ -78,13 +78,14 @@ GRANT EXECUTE ON FUNCTION public.award_stamps(uuid, text, int) TO anon, authenti
 -- roll stamps into free drink
 DO $$
 DECLARE
-  u  uuid;
-  ls int;
-  fd int;
-  cnt int;
-  pk text;
 
-  oid text := 'o' || floor(extract(epoch from now()))::text;
+  u    uuid;
+  out_ls int;
+  out_fd int;
+  cnt  int;
+  pk   text;
+  oid  text := 'o' || floor(extract(epoch from now()))::text;
+  r    record;
 
 BEGIN
   -- Use an existing auth user; if none, skip test
@@ -125,18 +126,20 @@ BEGIN
   END IF;
 
 
-  -- Call function and read OUT columns via alias to avoid ambiguity
-  SELECT s.loyalty_stamps, s.free_drinks
-    INTO ls, fd
-  FROM public.award_stamps(u, oid, 3) AS s;
+  ----------------------------------------------------------------
+  -- Capture function result row to avoid ambiguity
+  ----------------------------------------------------------------
+  SELECT * INTO r
+  FROM public.award_stamps(u, oid, 3);
+  out_ls := r.loyalty_stamps;
+  out_fd := r.free_drinks;
 
-  -- Expect: 5 + 3 = 8 → rolls to 1 free drink, 0 stamps
-  IF ls <> 0 OR fd <> 2 THEN
-    RAISE EXCEPTION 'unexpected totals %, %', ls, fd;
+  -- Expect: 5 + 3 = 8 → rolls to 1 free drink, 0 stamps (totals 0,2)
+  IF out_ls <> 0 OR out_fd <> 2 THEN
+    RAISE EXCEPTION 'unexpected totals %, %', out_ls, out_fd;
   END IF;
 
   -- One log row should exist for this order id
-
   SELECT count(*) INTO cnt FROM public.loyalty_awards WHERE order_id = oid;
 
   IF cnt <> 1 THEN
@@ -162,8 +165,10 @@ WHERE proname = 'award_stamps';
 -- Quick runtime sanity (optional, guarded)
 DO $$
 DECLARE u uuid;
-       ls int; fd int;
 
+       r record;
+       ls int;
+       fd int;
        oid text := 'test-accept-' || floor(extract(epoch from now()))::text;
 
 BEGIN
@@ -175,8 +180,9 @@ BEGIN
     ON CONFLICT (user_id) DO NOTHING;
 
 
-    SELECT s.loyalty_stamps, s.free_drinks INTO ls, fd
-    FROM public.award_stamps(u, oid, 1) AS s;
+    SELECT * INTO r FROM public.award_stamps(u, oid, 1);
+    ls := r.loyalty_stamps;
+    fd := r.free_drinks;
     RAISE NOTICE 'award_stamps returned ls=%, fd=%', ls, fd;
     DELETE FROM public.loyalty_awards WHERE order_id=oid;
 
