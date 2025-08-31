@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert, Modal, Pressable, ScrollView } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert, Modal, Pressable, ScrollView, Platform, ToastAndroid } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Swipeable } from 'react-native-gesture-handler';
 import { useTabBarHeight } from '../navigation/TabBarHeightContext';
@@ -21,6 +21,14 @@ export default function CartScreen({ navigation }) {
     useStats?.() || { stats: { freebiesLeft: 0 }, refreshStats: async () => {} };
   const freeDrinks = stats?.freebiesLeft ?? 0;
   const { setHasOrders, refreshOrdersPresence } = useOrdersPresence();
+
+  const showToast = (msg) => {
+    if (Platform.OS === 'android') {
+      ToastAndroid.show(msg, ToastAndroid.SHORT);
+    } else {
+      Alert.alert(msg);
+    }
+  };
 
   const tabBarHeight = useTabBarHeight();
   // Be defensive about what's available in CartContext
@@ -319,9 +327,9 @@ export default function CartScreen({ navigation }) {
 
 
               try {
-                await refreshStats();
+                await refreshStats(true);
               } catch (e) {
-                console.warn('[LOYALTY] refreshStats failed', e);
+                showToast('Failed to refresh stats');
               }
               try {
                 await getMembershipSummary?.();

@@ -12,13 +12,13 @@ export async function syncVouchers() {
   }
 }
 
-export async function redeemVoucher(code) {
+export async function redeemVoucher(code, refreshStats) {
   if (!hasSupabase || !supabase) return false;
-  try {
-    const { data, error } = await supabase.functions.invoke('voucher-redeem', { body: { code } });
-    if (error) return false;
-    return data?.success ?? false;
-  } catch {
-    return false;
+  const { data, error } = await supabase.functions.invoke('voucher-redeem', { body: { code } });
+  if (error) return false;
+  const success = data?.success ?? false;
+  if (success && typeof refreshStats === 'function') {
+    await refreshStats(true);
   }
+  return success;
 }
