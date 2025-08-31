@@ -314,10 +314,14 @@ export default function CartScreen({ navigation }) {
                 if (error) {
                   console.warn('[LOYALTY] checkout_loyalty failed:', error);
                 } else {
-                  const [row] = Array.isArray(data) ? data : [];
+                  const row = Array.isArray(data) ? data[0] : data;
+                  const loyaltyStamps =
+                    row && row.loyalty_stamps != null ? row.loyalty_stamps : null;
+                  const freeDrinksTotal =
+                    row && row.free_drinks != null ? row.free_drinks : null;
 
                   console.log(
-                    `[LOYALTY] awarded ${stampsToAward}, redeemed ${redeemCount} → totals: stamps=${row?.loyalty_stamps}, free_drinks=${row?.free_drinks}`
+                    `[LOYALTY] awarded ${stampsToAward}, redeemed ${redeemCount} → totals: stamps=${loyaltyStamps}, free_drinks=${freeDrinksTotal}`
                   );
 
                 }
