@@ -42,6 +42,8 @@ DECLARE
   cur_free int;
   redeem_used int;
   inserted int;
+  total_stamps int;
+  vouchers_to_add int;
 BEGIN
   -- detect profiles pk (user_id or id)
   IF EXISTS (
@@ -70,13 +72,18 @@ BEGIN
     ON CONFLICT (order_id) DO NOTHING;
   GET DIAGNOSTICS inserted = ROW_COUNT;
 
-  EXECUTE format('SELECT loyalty_stamps, free_drinks FROM public.profiles WHERE %I=$1 FOR UPDATE', pk)
-    INTO cur_stamps, cur_free USING p_user;
+  -- lock profile row and count unredeemed vouchers
+  EXECUTE format('SELECT loyalty_stamps FROM public.profiles WHERE %I=$1 FOR UPDATE', pk)
+    INTO cur_stamps USING p_user;
+
+  SELECT COUNT(*) INTO cur_free
+    FROM public.drink_vouchers
+    WHERE user_id = p_user AND redeemed = FALSE
+    FOR UPDATE;
 
   IF inserted > 0 THEN
     -- consume existing free drinks
     redeem_used := LEAST(GREATEST(p_redeem,0), COALESCE(cur_free,0));
-    cur_free := COALESCE(cur_free,0) - redeem_used;
 
     IF redeem_used > 0 THEN
       UPDATE public.drink_vouchers SET redeemed = TRUE
@@ -94,15 +101,35 @@ BEGIN
         VALUES (p_user, GREATEST(p_add_stamps,0));
     END IF;
 
-    cur_stamps := COALESCE(cur_stamps,0) + GREATEST(p_add_stamps,0);
+    -- normalize rewards
+    SELECT COALESCE(SUM(stamps),0) INTO total_stamps
+      FROM public.loyalty_stamps
+      WHERE user_id = p_user
+      FOR UPDATE;
+
+    vouchers_to_add := total_stamps / 8;
+    cur_stamps := MOD(total_stamps, 8);
+
+    IF vouchers_to_add > 0 THEN
+      INSERT INTO public.drink_vouchers(user_id, code)
+        SELECT p_user, gen_random_uuid()::text FROM generate_series(1, vouchers_to_add);
+    END IF;
+
+    DELETE FROM public.loyalty_stamps WHERE user_id = p_user;
+    IF cur_stamps > 0 THEN
+      INSERT INTO public.loyalty_stamps(user_id, stamps) VALUES (p_user, cur_stamps);
+    END IF;
+
+    SELECT COUNT(*) INTO cur_free
+      FROM public.drink_vouchers
+      WHERE user_id = p_user AND redeemed = FALSE;
+
     EXECUTE format('UPDATE public.profiles SET loyalty_stamps=$1, free_drinks=$2 WHERE %I=$3', pk)
-      USING MOD(cur_stamps, 8), cur_free + (cur_stamps / 8), p_user;
+      USING cur_stamps, cur_free, p_user;
   END IF;
 
-  EXECUTE format('SELECT loyalty_stamps, free_drinks FROM public.profiles WHERE %I=$1', pk)
-    INTO loyalty_stamps, free_drinks
-    USING p_user;
-
+  loyalty_stamps := COALESCE(cur_stamps,0);
+  free_drinks := COALESCE(cur_free,0);
   RETURN;
 END;
 $$;
@@ -119,6 +146,7 @@ DECLARE
   pk text;
   oid text := 'o' || floor(extract(epoch from now()))::text;
   vid text := 'v' || floor(extract(epoch from now()))::text;
+  cnt int;
 BEGIN
   SELECT id INTO u FROM auth.users LIMIT 1;
   IF u IS NULL THEN
@@ -136,11 +164,21 @@ BEGIN
 
   EXECUTE format('INSERT INTO public.profiles(%1$I, loyalty_stamps, free_drinks) VALUES ($1,7,1) ON CONFLICT (%1$I) DO UPDATE SET loyalty_stamps=7, free_drinks=1', pk)
     USING u;
+  INSERT INTO public.loyalty_stamps(user_id, stamps) VALUES (u,7);
   INSERT INTO public.drink_vouchers(user_id, code) VALUES (u, vid);
 
   SELECT * INTO r FROM public.checkout_loyalty(u, oid, 2, 1);
   IF r.loyalty_stamps <> 1 OR r.free_drinks <> 1 THEN
     RAISE EXCEPTION 'checkout_loyalty mismatch: % %', r.loyalty_stamps, r.free_drinks;
+  END IF;
+
+  IF EXISTS (SELECT 1 FROM public.drink_vouchers WHERE code = vid AND redeemed = FALSE) THEN
+    RAISE EXCEPTION 'voucher not redeemed';
+  END IF;
+
+  SELECT COUNT(*) INTO cnt FROM public.drink_vouchers WHERE user_id = u AND redeemed = FALSE;
+  IF cnt <> 1 THEN
+    RAISE EXCEPTION 'unredeemed vouchers mismatch: %', cnt;
   END IF;
 
   DELETE FROM public.loyalty_tx WHERE order_id = oid;
