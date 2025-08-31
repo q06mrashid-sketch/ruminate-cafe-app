@@ -8,20 +8,19 @@ export async function saveReceiptForUser(userId: string, receipt: Receipt, freeD
   const { source, source_meta } = normalizeSource((receipt as any)?.source);
 
   console.log('[ORDERS] normalizeSource', (receipt as any)?.source, '→', source, source_meta);
-
-
-  const row = buildOrderRow({
-    userId,
-    orderId: receipt.orderId,
-    totalsCents,
-    currency: receipt?.totals?.currency || 'GBP',
-    items: receipt.items,
-    receipt,
-
+  const row = {
+    ...buildOrderRow({
+      userId,
+      orderId: receipt.orderId,
+      totalsCents,
+      currency: receipt?.totals?.currency || 'GBP',
+      items: receipt.items,
+      receipt,
+      source,
+      source_meta,
+    }),
     free_drinks_redeemed: freeDrinksRedeemed,
-  },
-
-
+  };
   const { data, error } = await supabase
     .from('orders')
     .insert(row)
