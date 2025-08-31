@@ -1,32 +1,43 @@
 import { supabase } from '../lib/supabase';
 import type { Receipt } from '../utils/receipt';
+import { buildOrderRow, normalizeSource } from './order-row';
+
 
 export async function saveReceiptForUser(userId: string, receipt: Receipt, freeDrinksRedeemed = 0) {
   const totalsCents = Math.round((receipt?.totals?.grandTotal || 0) * 100);
+  const { source, source_meta } = normalizeSource((receipt as any)?.source);
 
-  const payload = {
-    user_id: userId,
-    order_id: receipt.orderId,
-    pickup_code: receipt.pickupCode,
-    status: 'pending',
-    totals_cents: totalsCents,
+  console.log('[ORDERS] normalizeSource', (receipt as any)?.source, '→', source, source_meta);
+
+
+  const row = buildOrderRow({
+    userId,
+    orderId: receipt.orderId,
+    totalsCents,
     currency: receipt?.totals?.currency || 'GBP',
-    channel: receipt.channel || 'click_and_collect',
-    source: 'app',
-    payment_method: receipt.paymentMethod,
-    time_slot: receipt.timeSlot,
     items: receipt.items,
     receipt,
+
     free_drinks_redeemed: freeDrinksRedeemed,
   };
 
+
   const { data, error } = await supabase
     .from('orders')
-    .insert([payload])
+    .insert(row)
     .select('*')
     .single();
 
-  if (error) throw error;
+  if (error) {
+    console.warn('[ORDERS] insert failed', error);
+    throw error;
+  } else {
+    console.log('[ORDERS] saved', {
+      order_id: row.order_id,
+      source: row.source,
+      source_meta: row.source_meta,
+    });
+  }
   return data;
 }
 

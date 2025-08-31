@@ -78,16 +78,24 @@ serve(async (req) => {
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
-  let collection_code = "";
+  let pickup_code = "";
   while (true) {
-    collection_code = Math.floor(Math.random() * 100000).toString().padStart(5, "0");
-    const { data: existing } = await admin.from("orders").select("id").eq("collection_code", collection_code).maybeSingle();
+    pickup_code = Math.floor(Math.random() * 100000).toString().padStart(5, "0");
+    const { data: existing } = await admin.from("orders").select("id").eq("pickup_code", pickup_code).maybeSingle();
     if (!existing) break;
   }
 
   const { data: order, error: orderErr } = await admin
     .from("orders")
-    .insert({ user_id: user.id, total_cents: total, collection_code, timeslot })
+    .insert({
+      user_id: user.id,
+      total_cents: total,
+      pickup_code,
+      timeslot,
+      source: 'app',
+      source_meta: null,
+      channel: 'click_and_collect',
+    })
     .select("id")
     .single();
   if (orderErr) {
@@ -128,7 +136,7 @@ serve(async (req) => {
     await admin.from("loyalty_stamps").insert({ user_id: user.id, stamps: hotCount });
   }
 
-  return new Response(JSON.stringify({ orderId, collection_code, total_cents: total }), {
+  return new Response(JSON.stringify({ orderId, pickup_code, total_cents: total }), {
     status: 200,
     headers: { ...cors(), "content-type": "application/json" },
   });

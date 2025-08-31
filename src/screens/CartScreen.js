@@ -289,6 +289,7 @@ export default function CartScreen({ navigation }) {
                 }
               }
 
+
               const stampsToAward = Math.max(0, drinkCount - redeemCount);
               console.log(
                 `[CHECKOUT] drinkCount=${drinkCount}, redeemCount=${redeemCount}, stampsToAward=${stampsToAward}`
@@ -300,13 +301,16 @@ export default function CartScreen({ navigation }) {
                   stampsToAward,
                   redeemCount
                 );
+
                 if (error) {
                   console.warn('[LOYALTY] checkout_loyalty failed:', error);
                 } else {
                   const [row] = Array.isArray(data) ? data : [];
+
                   console.log(
                     `[LOYALTY] awarded ${stampsToAward}, redeemed ${redeemCount} → totals: stamps=${row?.loyalty_stamps}, free_drinks=${row?.free_drinks}`
                   );
+
                 }
               } else {
                 console.log('[LOYALTY] no stamps awarded (no user).');
