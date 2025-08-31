@@ -1,11 +1,13 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, FlatList, Pressable, StyleSheet } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fetchUserOrders, subscribeUserOrders } from '../services/orders';
 import { palette } from '../design/theme';
 
 export default function OrdersScreen({ navigation }) {
   const [orders, setOrders] = useState<any[]>([]);
+  const insets = useSafeAreaInsets();
 
   const load = useCallback(async () => {
     try { setOrders(await fetchUserOrders()); } catch {}
@@ -46,13 +48,18 @@ export default function OrdersScreen({ navigation }) {
   };
 
   return (
-    <FlatList
-      contentContainerStyle={styles.content}
-      data={orders}
-      keyExtractor={(o) => o.id}
-      renderItem={renderItem}
-      ListEmptyComponent={<Text style={styles.empty}>No orders yet.</Text>}
-    />
+    <SafeAreaView style={styles.safe} edges={['left', 'right']}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
+        <Text style={styles.headerTitle}>Orders</Text>
+      </View>
+      <FlatList
+        contentContainerStyle={styles.content}
+        data={orders}
+        keyExtractor={(o) => o.id}
+        renderItem={renderItem}
+        ListEmptyComponent={<Text style={styles.empty}>No orders yet.</Text>}
+      />
+    </SafeAreaView>
   );
 }
 
@@ -64,7 +71,21 @@ const badgeStyle = (status: string) => ({
 });
 
 const styles = StyleSheet.create({
-  content: { padding: 16, paddingBottom: 24 },
+  safe: { flex: 1, backgroundColor: 'transparent' },
+  header: {
+    backgroundColor: palette.cream,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 4,
+    zIndex: 10,
+  },
+  headerTitle: { fontSize: 20, color: '#3E2723', fontFamily: 'Fraunces_700Bold' },
+  content: { padding: 16, paddingBottom: 120 },
   card: { backgroundColor: palette.paper, borderColor: palette.border, borderWidth: 1, borderRadius: 14, padding: 16, marginBottom: 14 },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   title: { fontSize: 16, color: palette.coffee, fontFamily: 'Fraunces_700Bold' },
