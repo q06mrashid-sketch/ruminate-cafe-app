@@ -38,7 +38,13 @@ export function patchConsoleForLoadingSignals() {
 
 export function subscribe(fn: Listener) {
   listeners.add(fn);
-  const t = setTimeout(() => fn({ ...state }), 0);
+  const t = setTimeout(() => {
+    if (typeof InteractionManager?.runAfterInteractions === 'function') {
+      InteractionManager.runAfterInteractions(() => fn({ ...state }));
+    } else {
+      fn({ ...state });
+    }
+  }, 0);
   return () => {
     listeners.delete(fn);
     clearTimeout(t);
