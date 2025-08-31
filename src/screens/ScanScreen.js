@@ -1,7 +1,17 @@
 
 import React from 'react';
-import { View, Text, Button } from 'react-native';
+import { View, Text, Button, Platform, ToastAndroid, Alert } from 'react-native';
 import { supabase } from '../lib/supabase';
+import { redeemVoucher } from '../services/vouchers';
+import { useStats } from '../hooks/useStats';
+
+function showToast(msg) {
+  if (Platform.OS === 'android') {
+    ToastAndroid.show(msg, ToastAndroid.SHORT);
+  } else {
+    Alert.alert(msg);
+  }
+}
 
 async function loadScanner() {
   try { const m = await import('expo-barcode-scanner'); return m.BarCodeScanner; }
@@ -13,6 +23,7 @@ async function loadScanner() {
     const [status,setStatus]=React.useState(null);
     const [loading,setLoading]=React.useState(true);
     const [info,setInfo]=React.useState(null);
+    const { refreshStats } = useStats();
 
   React.useEffect(()=>{
     let on=true;
@@ -45,8 +56,17 @@ async function loadScanner() {
                   setInfo(res);
                 } else if(content.startsWith('voucher:')){
                   const voucher_code=content.slice('voucher:'.length);
-                  const { data: res } = await supabase.functions.invoke('member-lookup',{ body:{ voucher_code } });
-                  setInfo(res);
+                  try {
+                    const ok = await redeemVoucher(voucher_code, refreshStats);
+                    if (!ok) {
+                      showToast('Invalid voucher');
+                      return;
+                    }
+                    const { data: res } = await supabase.functions.invoke('member-lookup',{ body:{ voucher_code } });
+                    setInfo(res);
+                  } catch {
+                    showToast('Failed to refresh stats');
+                  }
                 }
               } catch(err){ console.log('lookup failed', err); }
             }}
