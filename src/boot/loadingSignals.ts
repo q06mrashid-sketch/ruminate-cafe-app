@@ -1,3 +1,5 @@
+import { InteractionManager } from 'react-native';
+
 type Keys = 'auth' | 'stamps' | 'cms';
 type Listener = (state: Record<Keys, boolean>) => void;
 
@@ -52,13 +54,14 @@ function notify() {
 }
 
 function scheduleNotify() {
-  if (typeof requestAnimationFrame === 'function') {
-    // Delay until next frame so React isn't mid-insertion effect when listeners update state
-    requestAnimationFrame(() => notify());
-  } else {
-    setTimeout(notify, 0);
-  }
-
+  // Defer until after commit so React isn't mid-insertion effect when listeners update state
+  setTimeout(() => {
+    if (typeof InteractionManager?.runAfterInteractions === 'function') {
+      InteractionManager.runAfterInteractions(() => notify());
+    } else {
+      notify();
+    }
+  }, 0);
 }
 
 // Optional: for manual marking from code instead of console text
