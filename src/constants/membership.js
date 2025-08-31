@@ -1,7 +1,9 @@
+import formatCurrency from '../utils/formatCurrency';
+
 export const MEMBERSHIP = {
-  price: "£20/month",
+  price: `${formatCurrency(20)}/month`,
   perks: [
-    "3 free drinks each month (~£13.50 value)",
+    `3 free drinks each month (~${formatCurrency(13.5)} value)`,
     "10% discount on everything else",
     "Equal share of the 5% Member Pool (dividends when there's net profit)",
     "A community voice: collective vote on select issues"

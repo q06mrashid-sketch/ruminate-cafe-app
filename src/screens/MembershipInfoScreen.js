@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScrollView, View, Text, StyleSheet } from 'react-native';
 import { palette } from '../design/theme';
 import GlowingGlassButton from '../components/GlowingGlassButton';
+import formatCurrency from '../utils/formatCurrency';
 
 export default function MembershipInfoScreen({ navigation }) {
   const scrollRef = useRef(null);
@@ -33,7 +34,7 @@ export default function MembershipInfoScreen({ navigation }) {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.tierTitle}>Member — £20/month</Text>
+          <Text style={styles.tierTitle}>Member — {formatCurrency(20)}/month</Text>
           <Text style={styles.desc}>• 3 free drinks every month.</Text>
           <Text style={styles.desc}>• 10% discount after free drinks are used.</Text>
           <Text style={styles.desc}>• Share of 5% “Member Pool” (periodic dividends*)</Text>

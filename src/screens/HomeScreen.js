@@ -5,6 +5,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable, Image, Animated, Touchab
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { palette } from '../design/theme';
+import formatCurrency from '../utils/formatCurrency';
 import GlowingGlassButton from '../components/GlowingGlassButton';
 import LoyaltyStampTile from '../components/LoyaltyStampTile';
 import FreeDrinksCounter from '../components/FreeDrinksCounter';
@@ -235,8 +236,8 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.cardTitle}>Community fund (this month)</Text>
             <ProgressBar value={fund?.total_cents || 0} max={(fund?.goal_cents || 0) || 1} />
             <Text style={styles.muted}>
-              £{((fund?.total_cents || 0) / 100).toFixed(2)}
-              {(fund?.goal_cents || 0) ? ` / £${((fund?.goal_cents || 0) / 100).toFixed(2)}` : ''}
+              {formatCurrency((fund?.total_cents || 0) / 100)}
+              {(fund?.goal_cents || 0) ? ` / ${formatCurrency((fund?.goal_cents || 0) / 100)}` : ''}
             </Text>
           </Pressable>
         </View>

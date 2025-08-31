@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Modal, View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import { palette } from '../design/theme';
 import { computeItemTotal } from '../services/menuData.js';
+import formatCurrency from '../utils/formatCurrency';
 
 export default function MenuItemDetail({ item, options, visible, onClose, onAdd }) {
   const [altMilk, setAltMilk] = useState(null);
@@ -104,7 +105,7 @@ export default function MenuItemDetail({ item, options, visible, onClose, onAdd 
               </View>
             )}
           </ScrollView>
-          <Text style={styles.price}>£{total.toFixed(2)}</Text>
+          <Text style={styles.price}>{formatCurrency(total)}</Text>
           <Pressable style={styles.addBtn} onPress={add}><Text style={styles.addTxt}>Add to cart</Text></Pressable>
           <Pressable style={styles.closeBtn} onPress={onClose}><Text style={styles.closeTxt}>Close</Text></Pressable>
         </View>
