@@ -7,10 +7,17 @@ import { palette } from '../design/theme';
 
 export default function OrdersScreen({ navigation }) {
   const [orders, setOrders] = useState<any[]>([]);
+  const [errorCount, setErrorCount] = useState(0);
   const insets = useSafeAreaInsets();
 
   const load = useCallback(async () => {
-    try { setOrders(await fetchUserOrders()); } catch {}
+    try {
+      setOrders(await fetchUserOrders());
+      setErrorCount(0);
+    } catch (e) {
+      console.error(e);
+      setErrorCount((c) => c + 1);
+    }
   }, []);
 
   useFocusEffect(useCallback(() => {
@@ -57,7 +64,11 @@ export default function OrdersScreen({ navigation }) {
         data={orders}
         keyExtractor={(o) => o.id}
         renderItem={renderItem}
-        ListEmptyComponent={<Text style={styles.empty}>No orders yet.</Text>}
+        ListEmptyComponent={
+          <Text style={styles.empty}>
+            {errorCount > 2 ? 'Unable to load orders. Please try again later.' : 'No orders yet.'}
+          </Text>
+        }
       />
     </SafeAreaView>
   );
