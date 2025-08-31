@@ -1,263 +1,301 @@
-Here’s a clean, copy-pasteable AGENTS.md you can drop into the repo root. It’s tailored to your Ruminate Café app, with specific guidance for the loyalty stamps → vouchers logic and the QR carousel.
+updates-agents.md
+
+Guidelines for anyone updating the Ruminate project (SQL, React Native app, and the HTML CMS editor). The goals: keep migrations safe, keep the app stable, and ensure the CMS contract stays consistent.
 
 ⸻
 
-AGENTS.md — Ruminate Café App
-
-Purpose: This document gives coding agents (and humans!) a compact, precise playbook for working on the Ruminate Café mobile app. It defines objectives, invariants, API contracts, data flows, and acceptance tests—especially for the loyalty stamps ↔ free drink vouchers logic and the QR carousel.
-
-0) One-liner
-
-Cross-platform membership + loyalty app (Expo/React Native) for Ruminate Café. Free tier (stamps → free drink on 8), paid tier (monthly drink credits). Shows hours, Instagram, community features.
-
-⸻
-
-1) Architecture quick map
-	•	Client: Expo + React Native. Screens of interest:
-	•	src/screens/HomeScreen.js (shows hours, IG, loyalty tile, free drinks tile)
-	•	src/screens/MembershipScreen.js (QR carousel + counters)
-	•	UI components:
-	•	src/components/LoyaltyStampTile.js – 8 beans visual, shows count (stamps remainder 0..7).
-	•	src/components/FreeDrinksCounter.js – circular counter for freebiesLeft.
-	•	Data/Services:
-	•	src/services/stats.js → getMyStats() returns { freebiesLeft, loyaltyStamps, dividendsPending, ... }
-	•	src/services/homeData.js → hours + IG post helpers
-	•	scripts/*.js admin utilities (grant/reset rewards)
-	•	Backend: Supabase (Postgres, Auth, RLS, Edge Functions):
-	•	Edge functions (TypeScript): supabase/functions/*
-	•	me-stats → returns per-user counts for client
-	•	vouchers-sync → server-side normalization (convert every 8 stamps → 1 voucher)
-	•	voucher-redeem → mark voucher as redeemed (and decrease freebiesLeft)
-	•	member-lookup, me-membership (membership metadata)
-	•	State helpers: some screens stash counts to globalThis.freebiesLeft / globalThis.loyaltyStamps for quick reuse between screens.
-
-Invariant: Server is the source of truth. Client may render optimistically but must refresh from me-stats after any mutation.
+1) Project scope & context
+	•	App: React Native (RN 0.7x+), react-native-gesture-handler, react-native-safe-area-context.
+	•	Backend: Supabase Postgres. Migrations live in supabase/migrations/*.sql.
+	•	Currency: GBP. Store prices as integer cents; display with “£”.
+	•	CMS-driven menu & modifiers: keys such as:
+	•	menu.<category>.<suffix>, price.<category>.<suffix>, desc.<category>.<suffix>
+	•	image.<category>.<suffix>, image.<category>.<suffix>.name
+	•	Categories: coffee, not-coffee, pif, specials.
 
 ⸻
 
-2) Environment & config (must-know)
+2) Golden rules (apply to all work)
+	1.	Never break supabase db push. Migrations must be idempotent, re-runnable, and tolerant of empty datasets (e.g. no users in auth.users).
+	2.	Guard everything in SQL:
+	•	Constraints/indexes/policies: check existence via pg_constraint, pg_indexes, pg_policies before drop/create.
+	•	Functions: if signature changes, DROP FUNCTION IF EXISTS ... with the exact signature first, then CREATE FUNCTION.
+	3.	Acceptance blocks: If auth.users is empty, RAISE NOTICE and RETURN (skip the test). Use time/random order IDs like:
 
-See README.md for full list. Critical:
-	•	Client:
-	•	EXPO_PUBLIC_SUPABASE_URL
-	•	EXPO_PUBLIC_SUPABASE_ANON_KEY
-	•	EXPO_PUBLIC_FUNCTIONS_URL
-	•	Scripts/functions:
-	•	SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (server role)
-	•	FUNCTIONS_URL (Edge functions base URL)
+oid text := 'o' || floor(extract(epoch from now()))::text;
 
-Never ship SERVICE_ROLE_KEY to the client.
 
-⸻
+	4.	OUT params (critical): When selecting from functions that RETURN TABLE(...) (or use OUT params), capture into a record to avoid 42702 ambiguous column.
 
-3) Data model (conceptual)
+DECLARE r record;
+SELECT * INTO r FROM public.the_function(...);
+-- use r.col1, r.col2
 
-Table names may differ; use your actual schema. The contracts below must hold.
 
-	•	users (auth)
-	•	id, email, …
-	•	loyalty_stamps
-	•	id, user_id, created_at
-	•	drink_vouchers
-	•	id, user_id, code (uuid/short), redeemed (boolean), created_at, redeemed_at
-	•	memberships
-	•	user_id, tier (‘free’ | ‘paid’), next_billing_at, …
-
-RLS policies (enforced):
-	•	select/insert/update/delete only where auth.uid() = user_id (or service role keys).
-	•	Edge functions that consolidate/adjust balances run with Service Role.
+	5.	Orders invariants:
+	•	source ∈ {'app','pos','portal'} (lowercase). If client sends other, normalize to allowed value and stash original in nullable source_meta.
+	•	Always persist pickup_code.
+	•	RLS: users can insert/select their own rows.
+	6.	Loyalty logic:
+	•	+1 stamp per base drink item only (exclude addons: syrups, extra shots, alt milks).
+	•	8 stamps → +1 free drink. Redeemed vouchers reduce resulting stamp awards appropriately for an order.
+	•	On purchase, console log:
+[LOYALTY] awarding: +<n> stamp(s); new free drinks: <m>
+	7.	UI safety:
+	•	App root wrapped once with GestureHandlerRootView.
+	•	Screens in SafeAreaView with edges={['top','bottom','left','right']} and enough bottom padding to avoid overlapping the tab bar.
 
 ⸻
 
-4) API contracts (must not break)
+3) SQL migration playbook
 
-4.1 getMyStats() (client → me-stats)
+3.1 Safe function replacement (example: award_stamps)
 
-Returns (for signed-in user):
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname='public'
+      AND p.proname='award_stamps'
+      AND pg_get_function_identity_arguments(p.oid) = 'uuid, text, integer'
+  ) THEN
+    EXECUTE 'DROP FUNCTION public.award_stamps(uuid, text, integer)';
+  END IF;
+END $$;
 
-{
-  "freebiesLeft": number,       // count of unredeemed drink_vouchers
-  "loyaltyStamps": number,      // current remainder stamps 0..7 (after any conversion)
-  "dividendsPending": number,   // optional, for members
-  "payItForwardContrib": number,
-  "communityContrib": number
+CREATE FUNCTION public.award_stamps(p_user uuid, p_order_id text, p_add int)
+RETURNS TABLE(loyalty_stamps int, free_drinks int)
+LANGUAGE plpgsql
+AS $$
+-- Body: ignore addons for stamp calc, log into public.loyalty_awards,
+-- update profiles.{loyalty_stamps, free_drinks}, return new totals.
+$$;
+
+GRANT EXECUTE ON FUNCTION public.award_stamps(uuid, text, integer)
+  TO anon, authenticated, service_role;
+
+3.2 Acceptance block pattern (tolerant & non-ambiguous)
+
+DO $$
+DECLARE
+  u uuid;
+  r record;
+  ls int; fd int; cnt int;
+  pk text;
+  oid text := 'o' || floor(extract(epoch from now()))::text;
+BEGIN
+  SELECT id INTO u FROM auth.users LIMIT 1;
+  IF u IS NULL THEN
+    RAISE NOTICE 'Skipping loyalty acceptance test: no rows in auth.users.';
+    RETURN;
+  END IF;
+
+  -- Detect profiles PK column (user_id vs id)
+  IF EXISTS (SELECT 1 FROM information_schema.columns
+             WHERE table_schema='public' AND table_name='profiles' AND column_name='user_id') THEN
+    pk := 'user_id';
+  ELSIF EXISTS (SELECT 1 FROM information_schema.columns
+                WHERE table_schema='public' AND table_name='profiles' AND column_name='id') THEN
+    pk := 'id';
+  ELSE
+    RAISE EXCEPTION 'profiles identifier column not found';
+  END IF;
+
+  -- Baseline profile
+  IF pk = 'user_id' THEN
+    INSERT INTO public.profiles(user_id, loyalty_stamps, free_drinks)
+    VALUES (u, 5, 1)
+    ON CONFLICT (user_id) DO UPDATE
+      SET loyalty_stamps = EXCLUDED.loyalty_stamps,
+          free_drinks    = EXCLUDED.free_drinks;
+  ELSE
+    INSERT INTO public.profiles(id, loyalty_stamps, free_drinks)
+    VALUES (u, 5, 1)
+    ON CONFLICT (id) DO UPDATE
+      SET loyalty_stamps = EXCLUDED.loyalty_stamps,
+          free_drinks    = EXCLUDED.free_drinks;
+  END IF;
+
+  -- ✅ Capture OUT params into a record
+  SELECT * INTO r FROM public.award_stamps(u, oid, 3);
+  ls := r.loyalty_stamps; fd := r.free_drinks;
+
+  -- Expect: 5 + 3 = 8 → +1 free drink → totals: stamps=0, free_drinks=2
+  IF ls <> 0 OR fd <> 2 THEN
+    RAISE EXCEPTION 'unexpected totals %, %', ls, fd;
+  END IF;
+
+  SELECT count(*) INTO cnt FROM public.loyalty_awards WHERE order_id = oid;
+  IF cnt <> 1 THEN
+    RAISE EXCEPTION 'loyalty_awards count %', cnt;
+  END IF;
+
+  -- Cleanup
+  DELETE FROM public.loyalty_awards WHERE order_id = oid;
+  IF pk = 'user_id' THEN DELETE FROM public.profiles WHERE user_id = u;
+  ELSE DELETE FROM public.profiles WHERE id = u;
+  END IF;
+END $$;
+
+3.3 Orders constraints & RLS (safe re-apply)
+
+-- Recreate source check safely
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname='orders_source_check') THEN
+    ALTER TABLE public.orders DROP CONSTRAINT orders_source_check;
+  END IF;
+  ALTER TABLE public.orders
+    ADD CONSTRAINT orders_source_check
+    CHECK (lower(source) IN ('app','pos','portal'));
+END $$;
+
+-- Unique index on order_id
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_indexes
+    WHERE schemaname='public' AND tablename='orders' AND indexname='orders_order_id_key'
+  ) THEN
+    CREATE UNIQUE INDEX orders_order_id_key ON public.orders(order_id);
+  END IF;
+END $$;
+
+-- RLS
+ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname='public' AND tablename='orders' AND policyname='orders_select_own'
+  ) THEN
+    CREATE POLICY orders_select_own ON public.orders
+      FOR SELECT USING (auth.uid() = user_id);
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname='public' AND tablename='orders' AND policyname='orders_insert_own'
+  ) THEN
+    CREATE POLICY orders_insert_own ON public.orders
+      FOR INSERT WITH CHECK (auth.uid() = user_id);
+  END IF;
+END $$;
+
+
+⸻
+
+4) App code requirements
+
+4.1 Normalize order source (TypeScript)
+
+type AllowedSource = 'app'|'pos'|'portal';
+const ALLOWED: AllowedSource[] = ['app','pos','portal'];
+
+export function normalizeSource(input?: string) {
+  const raw = (input ?? '').trim();
+  const s = raw.toLowerCase();
+  if (ALLOWED.includes(s as AllowedSource)) {
+    return { source: s as AllowedSource, source_meta: null as string | null };
+  }
+  return { source: 'app' as AllowedSource, source_meta: raw || null };
 }
 
-Behavior rules:
-	•	Before computing counts, server must normalize:
-vouchers += floor(total_stamps / 8) and remainder = total_stamps % 8.
-Then persist: create vouchers (if any), and either record full total_stamps or store only remainder—but always return remainder in loyaltyStamps.
-	•	freebiesLeft == number of vouchers with redeemed = false.
-	•	The server should be idempotent if called repeatedly.
+4.2 Insert order (persist pickup code + normalized source)
 
-4.2 voucher-redeem (client → server)
+const { source, source_meta } = normalizeSource(receipt?.source);
 
-Input: { code: string }
-Effect: mark voucher as redeemed = true, set redeemed_at, return updated { freebiesLeft }.
+await supabase.from('orders').insert({
+  user_id,
+  order_id: receipt.id,
+  pickup_code: receipt.pickupCode,
+  status: 'pending',
+  totals_cents: receipt.totalCents,
+  currency: 'GBP',
+  channel: 'click_and_collect',
+  source,
+  source_meta,
+  items: receipt.items,   // JSON
+  receipt: receipt,       // JSON
+});
 
-On client: optimistically remove voucher from carousel, then refresh getMyStats().
+4.3 UI invariants (RN)
+	•	Root:
 
-4.3 vouchers-sync (server/internal)
-
-Given a user_id, convert stamps to vouchers. Create one voucher per 8 stamps. Safe to call repeatedly.
-
-⸻
-
-5) UI/Logic: loyalty stamps & QR carousel
-
-5.1 Stamps → Voucher algorithm (server canonical)
-
-// Pseudocode executed inside me-stats or vouchers-sync
-const totalStamps = await count(loyalty_stamps where user_id=:uid);
-const vouchersOpen = await count(drink_vouchers where user_id=:uid and redeemed=false);
-
-const toMint = Math.floor(totalStamps / 8);
-const remainder = totalStamps % 8;
-
-if (toMint > 0) {
-  // create `toMint` vouchers (with secure random codes)
-  await insert to drink_vouchers (user_id, code, redeemed=false) x toMint;
-  // (Option A) keep all stamp rows (audit) and compute remainder logically
-  // (Option B) move/mark 8*toMint stamps as "consumed". Either is fine if consistent.
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+export default function App(){
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Navigation />
+    </GestureHandlerRootView>
+  );
 }
 
-return {
-  freebiesLeft: vouchersOpen + toMint,
-  loyaltyStamps: remainder,
-  ...
-}
 
-Agent guardrail: Do not do this conversion on the client. Do not show loyaltyStamps >= 8—it should never happen after a successful me-stats.
+	•	Screen wrapper:
 
-5.2 LoyaltyStampTile (client visual)
-	•	Props: count is remainder 0..7.
-	•	Always render 8 beans: first count beans filled, the rest outline.
-	•	If the remainder from getMyStats() equals 0 and freebiesLeft increased since last render, you may trigger a “free drink earned” toast (but do not attempt conversion here).
+<SafeAreaView style={{ flex:1, backgroundColor: palette.cream }}
+              edges={['top','bottom','left','right']}>
+  <ScrollView contentContainerStyle={{ padding:16, paddingBottom:120 }}>
+    {/* content */}
+  </ScrollView>
+</SafeAreaView>
 
-Acceptance:
-	•	When stamps increment from 7 → (server converts) → remainder 0 and freebiesLeft +1. UI shows 0 filled beans and counter increments.
 
-5.3 QR carousel (client)
-	•	Uses react-native-pager-view.
-	•	Page 0: Membership QR payload ruminate:<user.id> (fallback: ruminate:member signed-out).
-	•	Pages 1..N: One page per unredeemed voucher code (drink_vouchers.redeemed=false), newest first.
-	•	Key each page stably (code/ID). Avoid re-render flicker: keep codes state sorted descending by created_at.
-	•	On “Redeemed” action (if present), call voucher-redeem, optimistically remove the page, then refresh getMyStats().
-
-Acceptance:
-	•	If freebiesLeft = 0 → only membership QR page.
-	•	If freebiesLeft = 2 → membership QR + 2 voucher pages.
-	•	Swiping dots must match page count.
+	•	Cart specifics: rounded item tiles; qty +/-; remove; prices in £. “Pick time slot” button; Apple Pay disabled={!selectedTimeSlot}. Voucher selector capped by min(drinkCount, availableVouchers).
 
 ⸻
 
-6) Screen data flow (reference)
+5) HTML CMS editor playbook
 
-HomeScreen
-	•	On focus: call getMyStats(), getToday(), getLatestInstagramPost().
-	•	Set:
-	•	loyalty.current = stats.loyaltyStamps
-	•	freebiesLeft = stats.freebiesLeft
-	•	(Optional) cache to globalThis as currently implemented
-	•	Render:
-	•	LoyaltyStampTile count={loyalty.current}
-	•	If paid: FreeDrinksCounter count={freebiesLeft}
+5.1 Categories
 
-MembershipScreen
-	•	On focus: call getMembershipSummary(), getMyStats(), supabase.auth.getUser().
-	•	Build vouchers array from freebiesLeft via API call that returns codes (preferred: extend me-stats to include voucherCodes[]). If only counts are available, call a vouchers-list function. Avoid client-side random codes.
-	•	Compose carousel pages as in §5.3.
+Ensure editor supports: coffee, not-coffee, pif, specials.
 
-⸻
+5.2 Keys written on save
+	•	menu.<category>.<suffix> → item name
+	•	price.<category>.<suffix> → price string (e.g. 2.99)
+	•	desc.<category>.<suffix> → description
+	•	image.<category>.<suffix> → base64
+	•	image.<category>.<suffix>.name → original filename
 
-7) Error handling & retries
-	•	If Supabase auth/session is unavailable → treat as signed out (summary.signedIn=false), show join buttons.
-	•	For network/API errors:
-	•	Show non-blocking toast; keep last known values.
-	•	Retry on focus or pull-to-refresh.
-	•	IG tile: fall back to app icon + “Unable to load latest post.”
+5.3 Item eligibility flags (checkboxes on each row)
 
-⸻
+Ticking should append tokens in the UI and persist flags:
+	•	Syrups → add syrups (UI token) and persist menu.<category>.<suffix>.syrups-on = "true"
+	•	Coffee blend → add coffee (UI token) and persist menu.<category>.<suffix>.coffee-on = "true"
+	•	Extra shot → add extra (UI token)
+	•	Alt milks → add alt (UI token)
 
-8) RLS & security checklist
-	•	Ensure RLS ON for drink_vouchers, loyalty_stamps with policies:
-	•	select: using (auth.uid() = user_id)
-	•	insert: with check (auth.uid() = user_id)
-	•	update/delete: using (auth.uid() = user_id)
-	•	Edge Functions that convert stamps or redeem vouchers must use Service Role.
-	•	Client never uses Service Role; only anon key + user JWT.
+App reads *-on flags to decide visibility of selectors; global lists provide options.
+
+5.4 Global lists (tables)
+	•	Coffee blends: keys coffee.<label> (value = display name). Add/remove/persist.
+	•	Syrups: keys syrups.<label> (value = display name). Add/remove/persist.
+	•	Alt milks: continue to use .alt. (free) as in current app logic.
+
+5.5 Robustness
+	•	Use existing apiGetAll / apiUpsert; show errors via showError.
+	•	Removing an item clears menu/price/desc/image/image.name keys; then loadAll().
+	•	All operations idempotent; safe on repeat.
 
 ⸻
 
-9) Dev scripts (admin)
-	•	npm run grant-rewards <email> <freeDrinks> <loyaltyStamps>
-	•	Requires SUPABASE_SERVICE_ROLE_KEY.
-	•	Locates user by email, inserts stamps and/or vouchers accordingly. Prefer stamps insertion and then call vouchers-sync to stay consistent.
-	•	npm run reset-rewards <email>
-	•	Deletes (or marks) user stamps and unredeemed vouchers.
-
-Guardrail: Scripts must tolerate:
-	•	user not found
-	•	RLS (must use service role client)
-	•	idempotent runs
+6) Validation checklist (before you finish)
+	•	supabase db push succeeds on a clean database with zero users.
+	•	No 42702 ambiguous column, no “cannot change return type of existing function”, no FK violations in acceptance blocks.
+	•	Orders insert without violating orders_source_check; pickup_code is persisted.
+	•	Acceptance test skips if auth.users is empty.
+	•	Loyalty acceptance: captures OUT params into a record; assertions pass; cleanup runs.
+	•	App: Orders tab appears after first order; receipts load from Supabase.
+	•	Cart: voucher selector caps correctly; Apple Pay disabled until time slot; prices show “£”.
+	•	CMS: can add/edit/remove across coffee/not-coffee/pif/specials; can toggle syrups/coffee/extra/alt; Coffee & Syrups lists persist and are removable.
 
 ⸻
 
-10) Definition of Done (DoD)
-
-A change that touches loyalty or vouchers is done when:
-	1.	getMyStats() returns remainder stamps (0..7) and correct freebiesLeft.
-	2.	Earning the 8th stamp creates a voucher (server), remainder resets to 0, and freebiesLeft increments by 1.
-	3.	QR carousel shows membership QR + one page per unredeemed voucher.
-	4.	Redeeming a voucher removes it from the carousel and freebiesLeft decrements after refresh.
-	5.	All code paths handle signed-out state and transient network errors.
-	6.	No Service Role key in client bundle.
-
-⸻
-
-11) Test scenarios (manual)
-	1.	Accrue 0→7 stamps:
-	•	loyaltyStamps increments, freebiesLeft unchanged.
-	2.	Grant 1 stamp when at 7:
-	•	Server converts to voucher; loyaltyStamps=0, freebiesLeft+1.
-	•	Carousel adds one voucher page.
-	3.	Redeem a voucher:
-	•	Call voucher-redeem → carousel removes that voucher page; freebiesLeft-1.
-	4.	Multiple vouchers (2+):
-	•	Carousel shows membership QR + N vouchers; dots = N+1.
-	5.	Signed out:
-	•	Only onboarding buttons; IG + hours still visible.
-	6.	Network error during me-stats:
-	•	UI shows last known values; error toast; recovers on refocus.
-
-⸻
-
-12) Common pitfalls & fixes
-	•	Client-generated voucher codes: ❌ Don’t. Always from server/db.
-	•	loyaltyStamps ever ≥ 8 on client: bug—server conversion missing. Fix in me-stats.
-	•	PagerView flicker: missing stable keys or re-sorting; use code or id, keep array stable.
-	•	RLS blocks reads: add select policy auth.uid() = user_id.
-	•	Auth not ready: guard supabase.auth.getSession()/getUser() and render signed-out placeholders.
-
-⸻
-
-13) Coding style & commit guidance
-	•	Keep network calls in src/services/*.
-	•	Keep UI pure & declarative; props carry already-normalized values.
-	•	Atomize commits: “feat(loyalty): server converts 8 stamps to voucher in me-stats”
-	•	If touching both server and client, land server first (backward compatible), then client.
-
-⸻
-
-14) Open questions (leave TODOs, not hacks)
-	•	Should me-stats also return voucherCodes[]? Recommended to stop guessing pages from counts.
-	•	Do we persist “consumed” stamps or leave as audit trail? Decide and document; both are fine if consistent.
-
-⸻
-
-Contact / Maintainers:
-Add names/emails/Slack channel here.
-
-⸻
-
-End of AGENTS.md.
+7) What to output in PRs
+	•	SQL: one new migration per logical change. Do not write to supabase_migrations.schema_migrations.
+	•	TS/RN/HTML: full file replacements or tight diffs, with file paths.
+	•	A short “Why” note for each change and how it respects these rules.
