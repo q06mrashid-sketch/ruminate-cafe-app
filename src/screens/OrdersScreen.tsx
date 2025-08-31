@@ -4,6 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fetchUserOrders, subscribeUserOrders } from '../services/orders';
 import { palette } from '../design/theme';
+import formatCurrency from '../utils/formatCurrency';
 
 export default function OrdersScreen({ navigation }) {
   const [orders, setOrders] = useState<any[]>([]);
@@ -31,7 +32,7 @@ export default function OrdersScreen({ navigation }) {
       <Pressable style={styles.card} onPress={() => navigation.navigate('OrderDetail', { order: item })}>
         <View style={styles.rowBetween}>
           <Text style={styles.title}>{subtitle}</Text>
-          <Text style={styles.total}>{`£${total.toFixed(2)}`}</Text>
+          <Text style={styles.total}>{formatCurrency(total)}</Text>
         </View>
         <View style={styles.rowBetween}>
           <Text style={styles.muted}>{when.toLocaleString()}</Text>

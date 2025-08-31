@@ -8,6 +8,7 @@ import GlowingGlassButton from '../components/GlowingGlassButton';
 import { supabase, hasSupabase } from '../lib/supabase';
 import { useNavigation } from '@react-navigation/native';
 import { redeemReferral } from '../services/referral';
+import formatCurrency from '../utils/formatCurrency';
 
 const Seg = ({ value, setValue }) => (
   <View style={styles.segWrap}>
@@ -27,7 +28,7 @@ const TierToggle = ({ tier, setTier }) => (
   <View style={styles.tierWrap}>
     {[
       { key: 'free', label: 'Loyalty card (Free)' },
-      { key: 'paid', label: 'Member (£20/mo)' },
+      { key: 'paid', label: `Member (${formatCurrency(20)}/mo)` },
     ].map(({ key, label }) => {
       const active = tier === key;
       return (
@@ -139,7 +140,7 @@ export default function MembershipStartScreen() {
               ) : (
                 <>
                   <View style={styles.priceRow}>
-                    <Text style={styles.priceValue}>£20</Text>
+                    <Text style={styles.priceValue}>{formatCurrency(20)}</Text>
                     <Text style={styles.perMonth}>/month</Text>
                   </View>
                   <Text style={styles.perkTitle}>What you get</Text>

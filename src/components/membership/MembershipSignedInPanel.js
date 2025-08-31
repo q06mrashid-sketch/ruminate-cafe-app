@@ -6,6 +6,7 @@ import { palette } from '../../design/theme';
 import { supabase } from '../../lib/supabase';
 import { useNavigation } from '@react-navigation/native';
 import { getMemberQRCodes } from '../../services/qr';
+import formatCurrency from '../../utils/formatCurrency';
 
 function Stat({ label, value, prefix='', suffix='' }) {
   return (
@@ -56,12 +57,12 @@ export default function MembershipSignedInPanel({ summary, stats, user }) {
       {isPaid && (
         <View style={styles.gridRow}>
           <Stat label="Free drinks left" value={stats.freebiesLeft} />
-          <Stat label="Dividends pending" value={Number(stats.dividendsPending).toFixed(2)} prefix="£" />
+          <Stat label="Dividends pending" value={formatCurrency(Number(stats.dividendsPending))} />
         </View>
       )}
       <View style={styles.gridRow}>
         <Stat label="Loyalty stamps" value={`${stats.loyaltyStamps}/8`} />
-        <Stat label="Pay-it-forward" value={Number(stats.payItForwardContrib || 0).toFixed(2)} prefix="£" />
+        <Stat label="Pay-it-forward" value={formatCurrency(Number(stats.payItForwardContrib || 0))} />
       </View>
     </>
   );
