@@ -1,14 +1,49 @@
 alter table public.orders
   add column if not exists free_drinks_redeemed int not null default 0;
 
-create table if not exists public.loyalty_tx (
-  order_id text primary key,
-  user_id uuid not null,
-  stamps_awarded int not null default 0 check (stamps_awarded >= 0),
-  vouchers_redeemed int not null default 0 check (vouchers_redeemed >= 0),
-  created_at timestamptz not null default now(),
-  foreign key (user_id) references public.profiles(id) on delete cascade
-);
+do $$
+declare
+  pk text;
+begin
+  -- detect pk (id or user_id)
+  if exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'profiles'
+      and column_name = 'user_id'
+  ) then
+    pk := 'user_id';
+  elsif exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'profiles'
+      and column_name = 'id'
+  ) then
+    pk := 'id';
+  else
+    raise exception 'profiles identifier column not found';
+  end if;
+
+  if not exists (
+    select 1
+    from information_schema.tables
+    where table_schema = 'public'
+      and table_name = 'loyalty_tx'
+  ) then
+    execute format($f$
+      create table public.loyalty_tx (
+        order_id text primary key,
+        user_id uuid not null,
+        stamps_awarded int not null default 0 check (stamps_awarded >= 0),
+        vouchers_redeemed int not null default 0 check (vouchers_redeemed >= 0),
+        created_at timestamptz not null default now(),
+        foreign key (user_id) references public.profiles(%I) on delete cascade
+      )
+    $f$, pk);
+  end if;
+end$$;
 alter table public.loyalty_tx enable row level security;
 
 -- RLS: user can read own rows / insert own
