@@ -1,9 +1,9 @@
 
-import React from 'react';
+import React, { useContext } from 'react';
 import { View, Text, Button, Platform, ToastAndroid, Alert } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { redeemVoucher } from '../services/vouchers';
-import { useStats } from '../hooks/useStats';
+import { StatsContext } from '../context/StatsContext';
 
 function showToast(msg) {
   if (Platform.OS === 'android') {
@@ -23,7 +23,7 @@ async function loadScanner() {
     const [status,setStatus]=React.useState(null);
     const [loading,setLoading]=React.useState(true);
     const [info,setInfo]=React.useState(null);
-    const { refreshStats } = useStats();
+    const { refreshStats } = useContext(StatsContext);
 
   React.useEffect(()=>{
     let on=true;

@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { CartProvider } from './src/context/CartContext';
 import { OrdersProvider } from './src/context/OrdersContext';
+import { StatsProvider } from './src/context/StatsContext';
 import Router from './src/navigation/Router';
 import { useFonts, Fraunces_600SemiBold, Fraunces_700Bold } from '@expo-google-fonts/fraunces';
 import appBgBase64 from './assets/appBgBase64';
@@ -46,7 +47,9 @@ export default function App() {
           <StatusBar barStyle="dark-content" />
           <CartProvider>
             <OrdersProvider>
-              <Router />
+              <StatsProvider>
+                <Router />
+              </StatsProvider>
             </OrdersProvider>
           </CartProvider>
           <SplashGate />

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useContext } from 'react';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScrollView, View, Text, StyleSheet, Share, Pressable, Alert, RefreshControl } from 'react-native';
 import * as Sharing from 'expo-sharing';
@@ -10,7 +10,7 @@ import PagerView from 'react-native-pager-view';
 import { palette } from '../design/theme';
 import { supabase } from '../lib/supabase';
 import { getMembershipSummary } from '../services/membership';
-import { useStats } from '../hooks/useStats';
+import { StatsContext } from '../context/StatsContext';
 import { getMemberQRCodes } from '../services/qr';
 import GlowingGlassButton from '../components/GlowingGlassButton';
 import { getPIFByEmail } from '../services/pif';
@@ -34,7 +34,7 @@ export default function MembershipScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const [summary, setSummary] = useState({ signedIn: false, tier: 'free', status: 'none', next_billing_at: null });
   const [pifSelfCents, setPifSelfCents] = useState(0);
-  const { stats, refreshStats } = useStats();
+  const { stats, refreshStats } = useContext(StatsContext);
   const [memberPayload, setMemberPayload] = useState('ruminate:member');
   const [page, setPage] = useState(0);
   const [user, setUser] = useState(null);

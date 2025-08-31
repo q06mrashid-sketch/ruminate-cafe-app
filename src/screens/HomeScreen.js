@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useContext } from 'react';
 import { getPIFStats } from '../services/pif';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, Animated, TouchableOpacity, RefreshControl } from 'react-native';
@@ -13,7 +13,7 @@ import { supabase } from '../lib/supabase';
 import { getMembershipSummary } from '../services/membership';
 import { getFundCurrent, getFundProgress } from '../services/community';
 import { getToday, openInstagramProfile, getWeeklyHours, getLatestInstagramPost, openInstagramUrl } from '../services/homeData';
-import { useStats } from '../hooks/useStats';
+import { StatsContext } from '../context/StatsContext';
 import { getCMS } from '../services/cms';
 import logo from '../../assets/logo.png';
 
@@ -42,7 +42,7 @@ export default function HomeScreen({ navigation }) {
   const [fund, setFund] = useState({ total_cents: 0, goal_cents: 0 });
   const [today, setToday] = useState({ openNow: false, until: '--:--', specials: [] });
   const [pif, setPif] = useState({ available: 0, contributed: 0 });
-  const { stats, refreshStats } = useStats();
+  const { stats, refreshStats } = useContext(StatsContext);
   const [rumiQuote, setRumiQuote] = useState(null);
   const [igPost, setIgPost] = useState({ image: null, caption: '', url: null });
   const [refreshing, setRefreshing] = useState(false);
