@@ -6,6 +6,7 @@ import { useTabBarHeight } from '../navigation/TabBarHeightContext';
 import { CartContext } from '../context/CartContext';
 import { palette } from '../design/theme';
 import { buildReceipt, sendReceiptToPOS, printReceiptToConsole } from '../utils/receipt';
+import formatCurrency from '../utils/formatCurrency';
 import { saveReceiptForUser } from '../services/orders';
 import { useOrdersPresence } from '../context/OrdersContext';
 import { supabase } from '../lib/supabase';
@@ -144,7 +145,7 @@ export default function CartScreen({ navigation }) {
       <View style={styles.card}>
         <View style={styles.rowBetween}>
           <Text style={styles.itemName}>{item.name}</Text>
-          <Text style={styles.itemPrice}>£{(item.price * item.quantity).toFixed(2)}</Text>
+          <Text style={styles.itemPrice}>{formatCurrency(item.price * item.quantity)}</Text>
         </View>
         {(() => {
           const parts = [];
@@ -220,7 +221,7 @@ export default function CartScreen({ navigation }) {
       >
         <View style={styles.footerTopRow}>
           <Text style={styles.subtotalLabel}>Subtotal</Text>
-          <Text style={styles.subtotalValue}>£{subtotal.toFixed(2)}</Text>
+          <Text style={styles.subtotalValue}>{formatCurrency(subtotal)}</Text>
         </View>
 
         <View style={styles.voucherPanel}>

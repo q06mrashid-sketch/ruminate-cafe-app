@@ -3,6 +3,7 @@ import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { palette } from '../design/theme';
 import { getFundProgress, getFundHistory } from '../services/community';
+import formatCurrency from '../utils/formatCurrency';
 
 export default function CommunityScreen() {
   const insets = useSafeAreaInsets();
@@ -44,7 +45,7 @@ export default function CommunityScreen() {
             <View style={[styles.progressBarInner, { width: `${pct}%` }]} />
           </View>
           <Text style={styles.progressLabel}>
-            £{(progress.total_cents/100).toFixed(2)} raised of £{(progress.goal_cents/100).toFixed(2)} ({pct}%)
+            {formatCurrency(progress.total_cents/100)} raised of {formatCurrency(progress.goal_cents/100)} ({pct}%)
           </Text>
         </View>
       </View>
@@ -63,8 +64,8 @@ export default function CommunityScreen() {
           return (
             <View key={idx} style={styles.tableRow}>
               <Text style={[styles.cell, styles.cellMonth]}>{row.month}</Text>
-              <Text style={[styles.cell, styles.cellAmt]}>£{(row.total_cents/100).toFixed(2)}</Text>
-              <Text style={[styles.cell, styles.cellAmt]}>£{(row.goal_cents/100).toFixed(2)}</Text>
+              <Text style={[styles.cell, styles.cellAmt]}>{formatCurrency(row.total_cents/100)}</Text>
+              <Text style={[styles.cell, styles.cellAmt]}>{formatCurrency(row.goal_cents/100)}</Text>
               <View style={[styles.cell, styles.cellBar]}>
                 <View style={styles.miniBarOuter}>
                   <View style={[styles.miniBarInner, { width: `${Math.round(p*100)}%` }]} />

@@ -2,12 +2,13 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { palette } from '../../design/theme';
+import formatCurrency from '../../utils/formatCurrency';
 
 export default function MembershipSignedOutPanel({ navigation }) {
   return (
     <>
       <View style={styles.infoCard}>
-        <Text style={styles.cardTitle}>Paid Membership — £20/month</Text>
+        <Text style={styles.cardTitle}>Paid Membership — {formatCurrency(20)}/month</Text>
         <Text style={styles.perk}>• Monthly free drinks allowance for members</Text>
         <Text style={styles.perk}>• Member dividends shared periodically</Text>
         <Text style={styles.perk}>• Continued loyalty stamps (9th drink free)</Text>

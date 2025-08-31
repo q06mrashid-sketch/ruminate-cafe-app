@@ -1,4 +1,6 @@
 
+import formatCurrency from './formatCurrency.js';
+
 export type ReceiptItemModifier =
   | { type: 'altMilk'; label: string; priceDelta: number }
   | { type: 'syrup'; label: string; priceDelta: number }
@@ -175,25 +177,25 @@ export function printReceiptToConsole(receipt: Receipt): void {
   lines.push(`When: ${formatTimeRange(receipt.timeSlot.startISO, receipt.timeSlot.endISO)}`);
   lines.push('');
   receipt.items.forEach((item) => {
-    lines.push(`${item.quantity} × ${item.name}  £${item.unitFinalPrice.toFixed(2)}`);
+    lines.push(`${item.quantity} × ${item.name}  ${formatCurrency(item.unitFinalPrice)}`);
     item.modifiers.forEach((m) => {
       if (m.type === 'altMilk') lines.push(`   • ${m.label}`);
-      if (m.type === 'syrup') lines.push(`   • ${m.label} (+£${m.priceDelta.toFixed(2)})`);
+      if (m.type === 'syrup') lines.push(`   • ${m.label} (+${formatCurrency(m.priceDelta)})`);
       if (m.type === 'coffeeBlend') lines.push(`   • ${m.label}`);
-      if (m.type === 'extraShot') lines.push(`   • +${m.count} shot${m.count > 1 ? 's' : ''} (+£${(m.priceDelta * m.count).toFixed(2)})`);
+      if (m.type === 'extraShot') lines.push(`   • +${m.count} shot${m.count > 1 ? 's' : ''} (+${formatCurrency(m.priceDelta * m.count)})`);
     });
-    lines.push(`   = £${item.lineTotal.toFixed(2)}`);
+    lines.push(`   = ${formatCurrency(item.lineTotal)}`);
     lines.push('');
   });
-  lines.push(`Subtotal: £${receipt.totals.subtotal.toFixed(2)}`);
+  lines.push(`Subtotal: ${formatCurrency(receipt.totals.subtotal)}`);
   if (receipt.vouchersRedeemed) {
-    lines.push(`Vouchers used: ${receipt.vouchersRedeemed} (−£${receipt.totals.discounts.toFixed(2)})`);
+    lines.push(`Vouchers used: ${receipt.vouchersRedeemed} (−${formatCurrency(receipt.totals.discounts)})`);
   }
   if (receipt.totals.pifContribution) {
-    lines.push(`PIF: £${receipt.totals.pifContribution.toFixed(2)}`);
+    lines.push(`PIF: ${formatCurrency(receipt.totals.pifContribution)}`);
   }
-  lines.push(`Tax: £${receipt.totals.tax.toFixed(2)}`);
-  lines.push(`TOTAL: £${receipt.totals.grandTotal.toFixed(2)}`);
+  lines.push(`Tax: ${formatCurrency(receipt.totals.tax)}`);
+  lines.push(`TOTAL: ${formatCurrency(receipt.totals.grandTotal)}`);
   console.log(lines.join('\n'));
   console.log('=== RECEIPT JSON ===');
   console.log(JSON.stringify(receipt, null, 2));

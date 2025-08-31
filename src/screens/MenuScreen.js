@@ -17,6 +17,7 @@ import { useCart } from '../context/CartContext';
 import { supabase } from '../lib/supabase';
 import { useNavigation } from '@react-navigation/native';
 import MenuItemDetail from '../components/MenuItemDetail';
+import formatCurrency from '../utils/formatCurrency';
 
 export default function MenuScreen() {
   const insets = useSafeAreaInsets();
@@ -76,7 +77,7 @@ export default function MenuScreen() {
   const renderItem = ({ item }) => (
     <Pressable style={styles.itemCard} onPress={() => setSelected(item)}>
       <Text style={styles.itemName}>{item.name}</Text>
-      <Text style={styles.itemPrice}>£{item.price?.toFixed(2)}</Text>
+      <Text style={styles.itemPrice}>{formatCurrency(item.price ?? 0)}</Text>
     </Pressable>
   );
 

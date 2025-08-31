@@ -19,6 +19,7 @@ import 'react-native-get-random-values';
 import FreeDrinksCounter from '../components/FreeDrinksCounter';
 import LoyaltyStampTile from '../components/LoyaltyStampTile';
 import { applyStampAccrual } from '../utils/rewards';
+import formatCurrency from '../utils/formatCurrency';
 
 function Stat({ label, value, prefix = '', suffix = '', style }) {
   return (
@@ -231,12 +232,12 @@ export default function MembershipScreen({ navigation }) {
 
             {summary.tier === 'paid' ? (
               <View style={styles.gridRow}>
-                <Stat label="Dividends pending" value={Number(stats?.dividendsPending || 0).toFixed(2)} prefix="£" />
-                <Stat label="Pay-it-forward" value={(pifSelfCents / 100).toFixed(2)} prefix="£" />
+                <Stat label="Dividends pending" value={formatCurrency(Number(stats?.dividendsPending || 0))} />
+                <Stat label="Pay-it-forward" value={formatCurrency(pifSelfCents / 100)} />
               </View>
             ) : (
               <View style={{ marginTop: 14 }}>
-                <Stat label="Pay-it-forward" value={(pifSelfCents / 100).toFixed(2)} prefix="£" style={{ marginRight: 0 }} />
+                <Stat label="Pay-it-forward" value={formatCurrency(pifSelfCents / 100)} style={{ marginRight: 0 }} />
               </View>
             )}
 
@@ -263,7 +264,7 @@ export default function MembershipScreen({ navigation }) {
         ) : (
           <>
             <View style={styles.infoCard}>
-              <Text style={styles.cardTitle}>Paid Membership — £20/month</Text>
+              <Text style={styles.cardTitle}>Paid Membership — {formatCurrency(20)}/month</Text>
               <Text style={styles.perk}>• Monthly free drinks allowance for members</Text>
               <Text style={styles.perk}>• Member dividends shared periodically</Text>
               <Text style={styles.perk}>• Continued loyalty stamps (9th drink free)</Text>
