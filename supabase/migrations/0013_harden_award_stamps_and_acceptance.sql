@@ -140,7 +140,9 @@ DECLARE
   ls int;
   fd int;
   oid text := 'accept-' || floor(extract(epoch from now()))::text;
+
   r  record;
+
 BEGIN
   SELECT id INTO u FROM auth.users LIMIT 1;
   IF u IS NULL THEN
@@ -149,9 +151,11 @@ BEGIN
   END IF;
 
   -- Smoke test the function; do NOT assert hard values.
+
   SELECT * INTO r FROM public.award_stamps(u, oid, 0);
   ls := r.loyalty_stamps;
   fd := r.free_drinks;
+
 
   -- Smoke an orders row insert (only required cols)
   INSERT INTO public.orders(user_id, order_id, source, channel)
