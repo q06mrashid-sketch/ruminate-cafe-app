@@ -19,7 +19,7 @@ export async function saveReceiptForUser(userId: string, receipt: Receipt, freeD
     receipt,
 
     free_drinks_redeemed: freeDrinksRedeemed,
-  };
+  },
 
 
   const { data, error } = await supabase
