@@ -73,38 +73,35 @@ BEGIN
   EXECUTE format('SELECT loyalty_stamps, free_drinks FROM public.profiles WHERE %I=$1 FOR UPDATE', pk)
     INTO cur_stamps, cur_free USING p_user;
 
-  IF inserted = 0 THEN
-    loyalty_stamps := COALESCE(cur_stamps,0);
-    free_drinks    := COALESCE(cur_free,0);
-    RETURN;
+  IF inserted > 0 THEN
+    -- consume existing free drinks
+    redeem_used := LEAST(GREATEST(p_redeem,0), COALESCE(cur_free,0));
+    cur_free := COALESCE(cur_free,0) - redeem_used;
+
+    IF redeem_used > 0 THEN
+      UPDATE public.drink_vouchers SET redeemed = TRUE
+        WHERE id IN (
+          SELECT id FROM public.drink_vouchers
+          WHERE user_id = p_user AND redeemed = FALSE
+          ORDER BY created_at
+          LIMIT redeem_used
+        );
+    END IF;
+
+    -- award stamps
+    IF GREATEST(p_add_stamps,0) > 0 THEN
+      INSERT INTO public.loyalty_stamps(user_id, stamps)
+        VALUES (p_user, GREATEST(p_add_stamps,0));
+    END IF;
+
+    cur_stamps := COALESCE(cur_stamps,0) + GREATEST(p_add_stamps,0);
+    EXECUTE format('UPDATE public.profiles SET loyalty_stamps=$1, free_drinks=$2 WHERE %I=$3', pk)
+      USING MOD(cur_stamps, 8), cur_free + (cur_stamps / 8), p_user;
   END IF;
 
-  -- consume existing free drinks
-  redeem_used := LEAST(GREATEST(p_redeem,0), COALESCE(cur_free,0));
-  cur_free := COALESCE(cur_free,0) - redeem_used;
-
-  IF redeem_used > 0 THEN
-    UPDATE public.drink_vouchers SET redeemed = TRUE
-      WHERE id IN (
-        SELECT id FROM public.drink_vouchers
-        WHERE user_id = p_user AND redeemed = FALSE
-        ORDER BY created_at
-        LIMIT redeem_used
-      );
-  END IF;
-
-  -- award stamps
-  IF GREATEST(p_add_stamps,0) > 0 THEN
-    INSERT INTO public.loyalty_stamps(user_id, stamps)
-      VALUES (p_user, GREATEST(p_add_stamps,0));
-  END IF;
-
-  cur_stamps := COALESCE(cur_stamps,0) + GREATEST(p_add_stamps,0);
-  free_drinks := cur_free + (cur_stamps / 8);
-  loyalty_stamps := MOD(cur_stamps, 8);
-
-  EXECUTE format('UPDATE public.profiles SET loyalty_stamps=$1, free_drinks=$2 WHERE %I=$3', pk)
-    USING loyalty_stamps, free_drinks, p_user;
+  EXECUTE format('SELECT loyalty_stamps, free_drinks FROM public.profiles WHERE %I=$1', pk)
+    INTO loyalty_stamps, free_drinks
+    USING p_user;
 
   RETURN;
 END;
