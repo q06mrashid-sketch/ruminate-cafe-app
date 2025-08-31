@@ -27,13 +27,21 @@ DECLARE
   ls int;
   fd int;
 BEGIN
-  -- Load current totals (profiles may use either user_id or id; prefer user_id if present)
-  SELECT COALESCE(p.loyalty_stamps,0), COALESCE(p.free_drinks,0)
-    INTO ls, fd
-  FROM public.profiles AS p
-  WHERE (p.user_id = p_user OR p.id = p_user)
-  ORDER BY CASE WHEN p.user_id = p_user THEN 0 ELSE 1 END
-  LIMIT 1;
+  -- Load current totals (profiles may use either user_id or id)
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='profiles' AND column_name='user_id'
+  ) THEN
+    SELECT COALESCE(p.loyalty_stamps,0), COALESCE(p.free_drinks,0)
+      INTO ls, fd
+    FROM public.profiles AS p
+    WHERE p.user_id = p_user;
+  ELSE
+    SELECT COALESCE(p.loyalty_stamps,0), COALESCE(p.free_drinks,0)
+      INTO ls, fd
+    FROM public.profiles AS p
+    WHERE p.id = p_user;
+  END IF;
 
   -- If no row found, start from zeros
   IF NOT FOUND THEN
