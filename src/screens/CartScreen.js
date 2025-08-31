@@ -9,14 +9,16 @@ import { buildReceipt, sendReceiptToPOS, printReceiptToConsole } from '../utils/
 import { saveReceiptForUser } from '../services/orders';
 import { useOrdersPresence } from '../context/OrdersContext';
 import { supabase } from '../lib/supabase';
-import { countStampsFromReceipt } from '../utils/loyalty';
 import { useStats } from '../hooks/useStats';
 import { getMembershipSummary } from '../services/membership';
 import { getToday } from '../services/homeData';
+import { checkoutLoyalty } from '../services/loyalty';
 
 export default function CartScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const { refreshStats } = useStats?.() || { refreshStats: async () => {} };
+  const { stats = { freebiesLeft: 0 }, refreshStats } =
+    useStats?.() || { stats: { freebiesLeft: 0 }, refreshStats: async () => {} };
+  const freeDrinks = stats?.freebiesLeft ?? 0;
   const { setHasOrders, refreshOrdersPresence } = useOrdersPresence();
 
   const tabBarHeight = useTabBarHeight();
@@ -33,6 +35,27 @@ export default function CartScreen({ navigation }) {
     clearItem, // some apps name it like this
     clear,
   } = cart;
+  const isDrinkItem = (item) => {
+    const key = (item?.cms_key || item?.id || '').toLowerCase();
+    if (key.includes('.drink')) return true;
+    const category = (item?.category || '').toLowerCase();
+    if (category === 'coffee') return true;
+    if (key.startsWith('coffee:')) return true;
+    return false;
+  };
+
+  const drinkCount = useMemo(
+    () => items.filter(isDrinkItem).reduce((sum, it) => sum + (it.quantity || 0), 0),
+    [items]
+  );
+  const maxRedeemable = Math.min(drinkCount, freeDrinks);
+  const [redeemCount, setRedeemCount] = useState(0);
+  useEffect(() => {
+    setRedeemCount((c) => {
+      if (!Number.isFinite(c) || c < 0) return 0;
+      return Math.min(c, maxRedeemable);
+    });
+  }, [maxRedeemable]);
 
   const [timeSlot, setTimeSlot] = useState(null);
   const [slotPickerVisible, setSlotPickerVisible] = useState(false);
@@ -42,8 +65,9 @@ export default function CartScreen({ navigation }) {
   useEffect(() => {
     (async () => {
       try { const t = await getToday(); setTodayHours(t); } catch {}
+      try { await refreshStats(); } catch {}
     })();
-  }, []);
+  }, [refreshStats]);
 
   const contentBottomPad = useMemo(
 
@@ -199,6 +223,31 @@ export default function CartScreen({ navigation }) {
           <Text style={styles.subtotalValue}>£{subtotal.toFixed(2)}</Text>
         </View>
 
+        <View style={styles.voucherPanel}>
+          <Text style={styles.voucherText}>Free drinks available: {freeDrinks}</Text>
+          <View style={styles.voucherRow}>
+            <Text style={styles.voucherText}>Redeem now:</Text>
+            <View style={styles.voucherCtrls}>
+              <TouchableOpacity
+                style={[styles.voucherBtn, redeemCount === 0 && styles.voucherBtnDisabled]}
+                disabled={redeemCount === 0}
+                onPress={() => setRedeemCount(Math.max(0, redeemCount - 1))}
+              >
+                <Text style={styles.voucherBtnText}>-</Text>
+              </TouchableOpacity>
+              <Text style={styles.voucherCount}>{redeemCount}</Text>
+              <TouchableOpacity
+                style={[styles.voucherBtn, redeemCount >= maxRedeemable && styles.voucherBtnDisabled]}
+                disabled={redeemCount >= maxRedeemable}
+                onPress={() => setRedeemCount(Math.min(maxRedeemable, redeemCount + 1))}
+              >
+                <Text style={styles.voucherBtnText}>+</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          <Text style={styles.voucherText}>Eligible drink items in cart: {drinkCount}</Text>
+        </View>
+
         <View style={styles.footerButtonsRow}>
           <TouchableOpacity style={styles.slotBtn} onPress={onPickTimeSlot}>
             <Text style={styles.slotBtnText}>{timeSlot ? formatSlotLabel(timeSlot) : 'ASAP'}</Text>
@@ -217,11 +266,12 @@ export default function CartScreen({ navigation }) {
                 selectedTimeSlot: slot,
                 customer: null,
                 pifContribution: 0,
-                vouchersApplied: 0,
+                vouchersApplied: redeemCount,
                 paymentMethod: 'test',
               });
 
               const canonical = JSON.parse(JSON.stringify(receipt));
+              canonical.freeDrinksUsed = redeemCount;
               printReceiptToConsole(canonical);
               await sendReceiptToPOS(canonical);
               let inserted;
@@ -229,7 +279,7 @@ export default function CartScreen({ navigation }) {
               const userId = session?.session?.user?.id;
               if (userId) {
                 try {
-                  inserted = await saveReceiptForUser(userId, canonical);
+                  inserted = await saveReceiptForUser(userId, canonical, redeemCount);
                   console.log('[ORDERS] saved →', inserted?.id, inserted?.order_id);
                   setHasOrders(true);
                   try { await refreshOrdersPresence(); } catch {}
@@ -239,28 +289,27 @@ export default function CartScreen({ navigation }) {
                 }
               }
 
-              const add = countStampsFromReceipt(canonical);
+              const stampsToAward = Math.max(0, drinkCount - redeemCount);
               console.log(
-                `[LOYALTY] considering award for order ${canonical.orderId}: +${add} stamp(s)`
+                `[CHECKOUT] drinkCount=${drinkCount}, redeemCount=${redeemCount}, stampsToAward=${stampsToAward}`
               );
-              if (userId && add > 0) {
-                const { data, error } = await supabase.rpc('award_stamps', {
-                  p_user: userId,
-                  p_order_id: canonical.orderId,
-                  p_add: add,
-                });
+              if (userId) {
+                const { data, error } = await checkoutLoyalty(
+                  userId,
+                  canonical.orderId,
+                  stampsToAward,
+                  redeemCount
+                );
                 if (error) {
-                  console.warn('[LOYALTY] award_stamps failed:', error);
+                  console.warn('[LOYALTY] checkout_loyalty failed:', error);
                 } else {
                   const [row] = Array.isArray(data) ? data : [];
-                  const stampsNow = row?.updated_stamps ?? null;
-                  const freeNow = row?.updated_free_drinks ?? null;
                   console.log(
-                    `[LOYALTY] awarded +${add}. Now → stamps: ${stampsNow}, free drinks: ${freeNow}`
+                    `[LOYALTY] awarded ${stampsToAward}, redeemed ${redeemCount} → totals: stamps=${row?.loyalty_stamps}, free_drinks=${row?.free_drinks}`
                   );
                 }
               } else {
-                console.log('[LOYALTY] no stamps awarded (no user or zero qualifying items).');
+                console.log('[LOYALTY] no stamps awarded (no user).');
               }
 
 
@@ -278,6 +327,7 @@ export default function CartScreen({ navigation }) {
 
               clear?.();
               setTimeSlot(null);
+              setRedeemCount(0);
             }}
           >
             <Text style={styles.applePayText}> Pay</Text>
@@ -490,6 +540,48 @@ const styles = StyleSheet.create({
   footerButtonsRow: {
     flexDirection: 'row',
     gap: 10,
+  },
+
+  voucherPanel: {
+    marginBottom: 10,
+  },
+  voucherText: {
+    color: palette.coffee,
+    fontFamily: 'Fraunces_600SemiBold',
+    marginBottom: 4,
+  },
+  voucherRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  voucherCtrls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  voucherBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: palette.cream,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  voucherBtnDisabled: {
+    opacity: 0.3,
+  },
+  voucherBtnText: {
+    fontSize: 18,
+    color: palette.coffee,
+    fontFamily: 'Fraunces_700Bold',
+  },
+  voucherCount: {
+    marginHorizontal: 8,
+    minWidth: 20,
+    textAlign: 'center',
+    fontFamily: 'Fraunces_700Bold',
+    color: palette.coffee,
   },
 
   slotBtn: {

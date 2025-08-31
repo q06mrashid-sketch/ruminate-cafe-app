@@ -38,6 +38,9 @@ export default function OrdersScreen({ navigation }) {
           </View>
         </View>
         <Text style={styles.code}>Code: {item.pickup_code}</Text>
+        {item?.free_drinks_redeemed > 0 && (
+          <Text style={styles.code}>Free drinks redeemed: {item.free_drinks_redeemed}</Text>
+        )}
       </Pressable>
     );
   };

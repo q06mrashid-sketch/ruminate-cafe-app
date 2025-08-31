@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabase';
 import type { Receipt } from '../utils/receipt';
 
-export async function saveReceiptForUser(userId: string, receipt: Receipt) {
+export async function saveReceiptForUser(userId: string, receipt: Receipt, freeDrinksRedeemed = 0) {
   const totalsCents = Math.round((receipt?.totals?.grandTotal || 0) * 100);
 
   const payload = {
@@ -17,6 +17,7 @@ export async function saveReceiptForUser(userId: string, receipt: Receipt) {
     time_slot: receipt.timeSlot,
     items: receipt.items,
     receipt,
+    free_drinks_redeemed: freeDrinksRedeemed,
   };
 
   const { data, error } = await supabase
