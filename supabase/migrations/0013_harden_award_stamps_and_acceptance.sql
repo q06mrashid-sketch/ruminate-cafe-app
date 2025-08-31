@@ -81,44 +81,44 @@ DECLARE
 BEGIN
   -- If this order already awarded, return current totals (idempotent call)
   IF EXISTS (SELECT 1 FROM public.loyalty_awards WHERE order_id = p_order_id) THEN
-    SELECT COALESCE(loyalty_stamps,0), COALESCE(free_drinks,0)
+    SELECT COALESCE(p.loyalty_stamps,0), COALESCE(p.free_drinks,0)
       INTO loyalty_stamps, free_drinks
-    FROM public.profiles
-    WHERE user_id = p_user;
+    FROM public.profiles AS p
+    WHERE p.user_id = p_user;
     loyalty_stamps := COALESCE(loyalty_stamps,0);
     free_drinks    := COALESCE(free_drinks,0);
     RETURN;
   END IF;
 
   -- Ensure a profile row exists
-  INSERT INTO public.profiles(user_id, loyalty_stamps, free_drinks)
+  INSERT INTO public.profiles AS p (user_id, loyalty_stamps, free_drinks)
   VALUES (p_user, 0, 0)
   ON CONFLICT (user_id) DO NOTHING;
 
   -- If no stamps to add, just read back totals
   IF COALESCE(p_add,0) <= 0 THEN
-    SELECT COALESCE(loyalty_stamps,0), COALESCE(free_drinks,0)
+    SELECT COALESCE(p.loyalty_stamps,0), COALESCE(p.free_drinks,0)
       INTO loyalty_stamps, free_drinks
-    FROM public.profiles
-    WHERE user_id = p_user;
+    FROM public.profiles AS p
+    WHERE p.user_id = p_user;
     RETURN;
   END IF;
 
   -- Add stamps
-  UPDATE public.profiles
-  SET loyalty_stamps = COALESCE(loyalty_stamps,0) + p_add
-  WHERE user_id = p_user
-  RETURNING loyalty_stamps, free_drinks
+  UPDATE public.profiles AS p
+  SET loyalty_stamps = COALESCE(p.loyalty_stamps,0) + p_add
+  WHERE p.user_id = p_user
+  RETURNING p.loyalty_stamps, p.free_drinks
   INTO cur_stamps, cur_free;
 
   -- Roll into free drinks (8 stamps = 1)
   cur_free   := COALESCE(cur_free,0) + (cur_stamps / 8);
   cur_stamps := cur_stamps % 8;
 
-  UPDATE public.profiles
+  UPDATE public.profiles AS p
   SET loyalty_stamps = cur_stamps,
       free_drinks    = cur_free
-  WHERE user_id = p_user;
+  WHERE p.user_id = p_user;
 
   INSERT INTO public.loyalty_awards(order_id, user_id, stamps_awarded)
   VALUES (p_order_id, p_user, p_add)

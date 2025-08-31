@@ -28,11 +28,11 @@ DECLARE
   fd int;
 BEGIN
   -- Load current totals (profiles may use either user_id or id; prefer user_id if present)
-  SELECT COALESCE(loyalty_stamps,0), COALESCE(free_drinks,0)
+  SELECT COALESCE(p.loyalty_stamps,0), COALESCE(p.free_drinks,0)
     INTO ls, fd
-  FROM public.profiles
-  WHERE (user_id = p_user OR id = p_user)
-  ORDER BY CASE WHEN user_id = p_user THEN 0 ELSE 1 END
+  FROM public.profiles AS p
+  WHERE (p.user_id = p_user OR p.id = p_user)
+  ORDER BY CASE WHEN p.user_id = p_user THEN 0 ELSE 1 END
   LIMIT 1;
 
   -- If no row found, start from zeros
@@ -48,13 +48,13 @@ BEGIN
   -- Upsert back into profiles
   IF EXISTS (SELECT 1 FROM information_schema.columns
              WHERE table_schema='public' AND table_name='profiles' AND column_name='user_id') THEN
-    INSERT INTO public.profiles(user_id, loyalty_stamps, free_drinks)
+    INSERT INTO public.profiles AS p (user_id, loyalty_stamps, free_drinks)
     VALUES (p_user, ls, fd)
     ON CONFLICT (user_id) DO UPDATE
       SET loyalty_stamps = EXCLUDED.loyalty_stamps,
           free_drinks    = EXCLUDED.free_drinks;
   ELSE
-    INSERT INTO public.profiles(id, loyalty_stamps, free_drinks)
+    INSERT INTO public.profiles AS p (id, loyalty_stamps, free_drinks)
     VALUES (p_user, ls, fd)
     ON CONFLICT (id) DO UPDATE
       SET loyalty_stamps = EXCLUDED.loyalty_stamps,
