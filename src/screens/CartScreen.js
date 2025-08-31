@@ -307,7 +307,9 @@ export default function CartScreen({ navigation }) {
                 `[CHECKOUT] drinkCount=${drinkCount}, redeemCount=${redeemCount}, stampsToAward=${stampsToAward}`
               );
               if (userId) {
-                const { data, error } = await checkoutLoyalty(
+                // checkoutLoyalty mutates server totals; getMyStats (via refreshStats)
+                // is the single source of truth for loyalty values
+                const { error } = await checkoutLoyalty(
                   userId,
                   canonical.orderId,
                   stampsToAward,
@@ -316,19 +318,12 @@ export default function CartScreen({ navigation }) {
 
                 if (error) {
                   console.warn('[LOYALTY] checkout_loyalty failed:', error);
-                } else {
-                  const row = Array.isArray(data) ? data[0] : data;
-                  const loyaltyStamps =
-                    row && row.loyalty_stamps != null ? row.loyalty_stamps : null;
-                  const freeDrinksTotal =
-                    row && row.free_drinks != null ? row.free_drinks : null;
-
+                } else if (__DEV__) {
                   console.log(
-                    `[LOYALTY] awarded ${stampsToAward}, redeemed ${redeemCount} → totals: stamps=${loyaltyStamps}, free_drinks=${freeDrinksTotal}`
+                    `[LOYALTY] awarded ${stampsToAward}, redeemed ${redeemCount}`
                   );
-
                 }
-              } else {
+              } else if (__DEV__) {
                 console.log('[LOYALTY] no stamps awarded (no user).');
               }
 
