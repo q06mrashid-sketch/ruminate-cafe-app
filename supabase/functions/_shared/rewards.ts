@@ -68,6 +68,30 @@ export async function normalizeRewards(admin: SupabaseClient, userId: string) {
     }
   }
 
+  // Sync aggregates to public.profiles.{loyalty_stamps, free_drinks}
+  let pk = "id";
+  const { error: userIdColErr } = await admin
+    .from("profiles")
+    .select("user_id")
+    .limit(1);
+  if (!userIdColErr) {
+    pk = "user_id";
+  } else {
+    const { error: idColErr } = await admin
+      .from("profiles")
+      .select("id")
+      .limit(1);
+    if (idColErr) throw idColErr;
+  }
+  const { error: profileErr } = await admin
+    .from("profiles")
+    .update({
+      loyalty_stamps: stampsRemainder,
+      free_drinks: unredeemed?.length ?? 0,
+    })
+    .eq(pk, userId);
+  if (profileErr) throw profileErr;
+
   console.log("[ME_STATS]", {
     totalStamps,
     vouchersEarned,
