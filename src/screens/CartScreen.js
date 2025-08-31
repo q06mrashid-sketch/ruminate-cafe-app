@@ -10,7 +10,7 @@ import formatCurrency from '../utils/formatCurrency';
 import { saveReceiptForUser } from '../services/orders';
 import { useOrdersPresence } from '../context/OrdersContext';
 import { supabase } from '../lib/supabase';
-import { useStats } from '../hooks/useStats';
+import { StatsContext } from '../context/StatsContext';
 import { getMembershipSummary } from '../services/membership';
 import { getToday } from '../services/homeData';
 import { checkoutLoyalty } from '../services/loyalty';
@@ -18,7 +18,10 @@ import { checkoutLoyalty } from '../services/loyalty';
 export default function CartScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { stats = { freebiesLeft: 0 }, refreshStats } =
-    useStats?.() || { stats: { freebiesLeft: 0 }, refreshStats: async () => {} };
+    useContext(StatsContext) || {
+      stats: { freebiesLeft: 0 },
+      refreshStats: async () => {},
+    };
   const freeDrinks = stats?.freebiesLeft ?? 0;
   const { setHasOrders, refreshOrdersPresence } = useOrdersPresence();
 
