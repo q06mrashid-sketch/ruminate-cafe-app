@@ -2,6 +2,7 @@ import React, { createContext, useState, useCallback, useMemo, useRef } from 're
 import { getMyStats } from '../services/stats';
 import { syncVouchers } from '../services/vouchers';
 import { applyStampAccrual } from '../utils/rewards';
+import { markLoaded } from '../boot/loadingSignals';
 
 export const StatsContext = createContext({
   stats: { loyaltyStamps: 0, freebiesLeft: 0, vouchers: [] },
@@ -50,11 +51,12 @@ export function StatsProvider({ children }) {
         }
       }
       applyStats(s);
-      console.log('loyalty stamps and free drinks have been received');
+      markLoaded('stamps');
       return s;
     } catch {
       const fallback = globalThis.preloaded?.stats || statsRef.current;
       applyStats(fallback);
+      markLoaded('stamps');
       return fallback;
     }
   }, [applyStats]);

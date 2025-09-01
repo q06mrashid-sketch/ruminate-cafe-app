@@ -1,17 +1,20 @@
 import { supabase, hasSupabase } from '../lib/supabase';
+import { markLoaded } from '../boot/loadingSignals';
 
 export async function getMembershipSummary() {
   if (!hasSupabase || !supabase) {
+    markLoaded('auth');
     return { signedIn: false, tier: 'free', status: 'none', next_billing_at: null };
   }
 
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session || !session.user) {
+      markLoaded('auth');
       return { signedIn: false, tier: 'free', status: 'none', next_billing_at: null };
     }
 
-    console.log('user is signed in');
+    markLoaded('auth');
 
     const meta = session.user.user_metadata || {};
     // For testing, force specific user email to be treated as paid tier
@@ -31,6 +34,7 @@ export async function getMembershipSummary() {
       next_billing_at: null,
     };
   } catch {
+    markLoaded('auth');
     return { signedIn: false, tier: 'free', status: 'none', next_billing_at: null };
   }
 }

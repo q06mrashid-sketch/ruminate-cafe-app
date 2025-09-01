@@ -1,16 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
 
-import { Image, StyleSheet, Animated } from 'react-native';
+import { Image, StyleSheet, Animated, InteractionManager } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { palette } from '../design/theme';
 import logo from '../../assets/logo.png';
-import {
-  patchConsoleForLoadingSignals,
-  subscribe,
-  getLoadingState,
-  markLoaded,
-} from '../boot/loadingSignals';
+import { subscribe, getLoadingState, markLoaded } from '../boot/loadingSignals';
 
 import { preloadMenuItems } from '../boot/preload';
 
@@ -38,15 +33,14 @@ export default function SplashGate() {
 
 
   useEffect(() => {
-    patchConsoleForLoadingSignals();
-
-
     preloadMenuItems().finally(() => markLoaded('cms'));
 
     const unsub = subscribe((st) => {
       if (st.auth && st.stamps && st.cms) {
-        Animated.timing(gateOpacity, { toValue: 0, duration: FADE_MS, useNativeDriver: true })
-          .start(() => setVisible(false));
+        InteractionManager.runAfterInteractions(() => {
+          Animated.timing(gateOpacity, { toValue: 0, duration: FADE_MS, useNativeDriver: true })
+            .start(() => setVisible(false));
+        });
       }
     });
 
@@ -65,10 +59,12 @@ export default function SplashGate() {
 
     // If all are already ready (e.g. dev reload), hide immediately
     const s = getLoadingState();
-    if (s.auth && s.stamps && s.cms) setTimeout(() => {
-      Animated.timing(gateOpacity, { toValue: 0, duration: FADE_MS, useNativeDriver: true })
-        .start(() => setVisible(false));
-    }, 0);
+    if (s.auth && s.stamps && s.cms) {
+      InteractionManager.runAfterInteractions(() => {
+        Animated.timing(gateOpacity, { toValue: 0, duration: FADE_MS, useNativeDriver: true })
+          .start(() => setVisible(false));
+      });
+    }
 
     return () => {
       unsub?.();
