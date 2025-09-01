@@ -13,7 +13,6 @@ import { supabase } from '../lib/supabase';
 import { StatsContext } from '../context/StatsContext';
 import { getMembershipSummary } from '../services/membership';
 import { getToday } from '../services/homeData';
-import { checkoutLoyalty } from '../services/loyalty';
 import { isDrinkItem } from '../utils/isDrinkItem';
 
 export default function CartScreen({ navigation }) {
@@ -301,18 +300,22 @@ export default function CartScreen({ navigation }) {
                 `[CHECKOUT] drinkCount=${drinkCount}, redeemCount=${redeemCount}, stampsToAward=${stampsToAward}`
               );
               if (userId) {
-                // checkoutLoyalty mutates server totals; getMyStats (via refreshStats)
-                // is the single source of truth for loyalty values
-                const { error } = await checkoutLoyalty(
-                  userId,
-                  canonical.orderId,
-                  stampsToAward,
-                  redeemCount,
-                );
+                const { data, error } = await supabase.rpc('award_stamps', {
+                  p_user: userId,
+                  p_order_id: canonical.orderId,
+                  p_add: stampsToAward,
+                });
 
                 if (error) {
-                  console.warn('[LOYALTY] checkout_loyalty failed:', error);
+                  console.warn('[LOYALTY] award_stamps failed:', error);
                 } else {
+                  const row = Array.isArray(data) ? data[0] : data;
+                  console.log(
+                    '[LOYALTY] awarded +%d stamp(s); new totals → stamps=%d, free_drinks=%d',
+                    stampsToAward,
+                    row?.o_loyalty_stamps ?? -1,
+                    row?.o_free_drinks ?? -1,
+                  );
                   const prevStats = stats;
                   try {
                     await refreshStats(true);
@@ -320,12 +323,6 @@ export default function CartScreen({ navigation }) {
                     console.warn('[LOYALTY] refreshStats failed:', e);
                     setStats(prevStats);
                     showToast('Failed to refresh stats');
-                  }
-
-                  if (__DEV__) {
-                    console.log(
-                      `[LOYALTY] awarded ${stampsToAward}, redeemed ${redeemCount}`,
-                    );
                   }
                 }
               } else if (__DEV__) {

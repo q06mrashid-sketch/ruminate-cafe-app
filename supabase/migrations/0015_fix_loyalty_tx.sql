@@ -72,14 +72,17 @@ BEGIN
     ON CONFLICT (order_id) DO NOTHING;
   GET DIAGNOSTICS inserted = ROW_COUNT;
 
-  -- lock profile row and count unredeemed vouchers
+  -- lock profile row and unredeemed vouchers, then count vouchers
   EXECUTE format('SELECT loyalty_stamps FROM public.profiles WHERE %I=$1 FOR UPDATE', pk)
     INTO cur_stamps USING p_user;
 
-  SELECT COUNT(*) INTO cur_free
-    FROM public.drink_vouchers
+  PERFORM 1 FROM public.drink_vouchers
     WHERE user_id = p_user AND redeemed = FALSE
     FOR UPDATE;
+
+  SELECT COUNT(*) INTO cur_free
+    FROM public.drink_vouchers
+    WHERE user_id = p_user AND redeemed = FALSE;
 
   IF inserted > 0 THEN
     -- consume existing free drinks
@@ -102,10 +105,13 @@ BEGIN
     END IF;
 
     -- normalize rewards
-    SELECT COALESCE(SUM(stamps),0) INTO total_stamps
-      FROM public.loyalty_stamps
+    PERFORM 1 FROM public.loyalty_stamps
       WHERE user_id = p_user
       FOR UPDATE;
+
+    SELECT COALESCE(SUM(stamps),0) INTO total_stamps
+      FROM public.loyalty_stamps
+      WHERE user_id = p_user;
 
     vouchers_to_add := total_stamps / 8;
     cur_stamps := MOD(total_stamps, 8);
