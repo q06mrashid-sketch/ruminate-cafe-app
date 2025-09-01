@@ -12,6 +12,7 @@ export const StatsContext = createContext({
 });
 
 export function StatsProvider({ children }) {
+
   const initialRaw = globalThis.preloaded?.stats || {
     loyaltyStamps: 0,
     vouchers: [],
@@ -23,10 +24,12 @@ export function StatsProvider({ children }) {
       : [],
   };
   initial.freebiesLeft = initial.vouchers.length;
+
   const [stats, setStatsState] = useState(initial);
   const statsRef = useRef(initial);
 
   const applyStats = useCallback((s) => {
+
     const vouchers = Array.isArray(s.vouchers) ? s.vouchers.filter(Boolean) : [];
     const next = {
       loyaltyStamps: Number(s.loyaltyStamps) || 0,
@@ -39,6 +42,7 @@ export function StatsProvider({ children }) {
     globalThis.loyaltyStamps = next.loyaltyStamps;
     globalThis.preloaded = globalThis.preloaded || {};
     globalThis.preloaded.stats = next;
+
   }, []);
 
   const refreshStats = useCallback(async () => {
@@ -67,7 +71,7 @@ export function StatsProvider({ children }) {
       markLoaded('stamps');
       return decorated;
     } catch {
-      const fallback = globalThis.preloaded?.stats || statsRef.current;
+      const fallback = statsRef.current;
       applyStats(fallback);
       markLoaded('stamps');
       return fallback;
