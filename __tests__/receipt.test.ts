@@ -59,3 +59,11 @@ test('currency rounds to 2dp', () => {
   assert.equal(receipt.items[0].unitFinalPrice, 1.34);
   assert.equal(receipt.totals.subtotal, 1.34);
 });
+
+test('buildReceipt sets source to app', () => {
+  const receipt = buildReceipt({
+    cartItems: [],
+    selectedTimeSlot: { start: new Date(0), end: new Date(600000) },
+  });
+  assert.equal(receipt.source, 'app');
+});
