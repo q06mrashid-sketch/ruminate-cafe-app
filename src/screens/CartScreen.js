@@ -15,6 +15,7 @@ import { getMembershipSummary } from '../services/membership';
 import { getToday } from '../services/homeData';
 import { checkoutLoyalty } from '../services/loyalty';
 import { syncVouchers } from '../services/vouchers';
+import { isDrinkItem } from '../utils/isDrinkItem';
 
 export default function CartScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -49,14 +50,6 @@ export default function CartScreen({ navigation }) {
     clearItem, // some apps name it like this
     clear,
   } = cart;
-  const isDrinkItem = (item) => {
-    const key = (item?.cms_key || item?.id || '').toLowerCase();
-    if (key.includes('.drink')) return true;
-    const category = (item?.category || '').toLowerCase();
-    if (category === 'coffee') return true;
-    if (key.startsWith('coffee:')) return true;
-    return false;
-  };
 
   const drinkCount = useMemo(
     () => items.filter(isDrinkItem).reduce((sum, it) => sum + (it.quantity || 0), 0),
