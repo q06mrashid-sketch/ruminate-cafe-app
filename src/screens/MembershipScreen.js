@@ -44,18 +44,16 @@ export default function MembershipScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
 
   const vouchers = React.useMemo(() => {
-    if (Array.isArray(stats?.vouchers) && stats.vouchers.length) {
-      return stats.vouchers.map(code => ({ id: code, code, used: false, expiresAt: null }));
+    if (Array.isArray(stats?.vouchers)) {
+      return stats.vouchers.map((code) => ({
+        id: code,
+        code,
+        used: false,
+        expiresAt: null,
+      }));
     }
-    const n = Math.max(0, Number(stats?.freebiesLeft || 0));
-    return Array.from({ length: n }, (_, i) => ({
-      id: `local-${i}`,
-      code: `FREE-${i + 1}`,
-      used: false,
-      expiresAt: null,
-      isLocal: true,
-    }));
-  }, [vouchersKey, stats?.freebiesLeft]);
+    return [];
+  }, [vouchersKey]);
 
   const isExpired = React.useCallback((iso) => {
     if (!iso) return false;
@@ -135,7 +133,7 @@ export default function MembershipScreen({ navigation }) {
 
   useEffect(() => {
     const prev = prevFreebies.current;
-    const curr = stats?.freebiesLeft ?? 0;
+    const curr = stats?.vouchers?.length ?? 0;
     if (curr - prev === 1) {
       Alert.alert('Free drink earned', 'A free drink voucher has been added to your account.');
       setNotice("You've earned a free drink!");
@@ -145,7 +143,7 @@ export default function MembershipScreen({ navigation }) {
     }
     prevFreebies.current = curr;
     if (curr === 0) setNotice('');
-  }, [stats?.freebiesLeft]);
+  }, [stats?.vouchers?.length]);
 
   const handleAddToWallet = useCallback(async () => {
     try {
@@ -163,7 +161,9 @@ export default function MembershipScreen({ navigation }) {
       <View style={[styles.header, { paddingTop: insets.top }]}><Text style={styles.headerTitle}>Membership</Text></View>
       <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />} contentContainerStyle={styles.content}>
         <Text style={styles.title}>Membership</Text>
-        {notice && (stats?.freebiesLeft ?? 0) > 0 ? <Text style={styles.notice}>{notice}</Text> : null}
+        {notice && (stats?.vouchers?.length ?? 0) > 0 ? (
+          <Text style={styles.notice}>{notice}</Text>
+        ) : null}
 
         {summary.signedIn ? (
           <>
@@ -222,7 +222,7 @@ export default function MembershipScreen({ navigation }) {
               )}
             </View>
 
-            {(summary.tier === 'paid' || (stats?.freebiesLeft ?? 0) > 0) && (
+            {(summary.tier === 'paid' || (stats?.vouchers?.length ?? 0) > 0) && (
               <View style={{ marginTop: 14 }}>
                 <FreeDrinksCounter />
               </View>

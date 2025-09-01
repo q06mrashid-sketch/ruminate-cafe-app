@@ -18,13 +18,13 @@ import { isDrinkItem } from '../utils/isDrinkItem';
 
 export default function CartScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const { stats = { freebiesLeft: 0 }, refreshStats, setStats } =
+  const { stats = { vouchers: [] }, refreshStats, setStats } =
     useContext(StatsContext) || {
-      stats: { freebiesLeft: 0 },
+      stats: { vouchers: [] },
       refreshStats: async () => {},
       setStats: () => {},
     };
-  const freeDrinks = stats?.freebiesLeft ?? 0;
+  const freeDrinks = stats?.vouchers?.length ?? 0;
   const { setHasOrders, refreshOrdersPresence } = useOrdersPresence();
 
   const showToast = (msg) => {
@@ -321,6 +321,12 @@ export default function CartScreen({ navigation }) {
                     setStats(prevStats);
                     showToast('Failed to refresh stats');
                   }
+
+                  setStats({
+                    loyaltyStamps: loyalty.loyalty_stamps,
+                    vouchers,
+                  });
+
                   if (__DEV__) {
                     console.log(
                       `[LOYALTY] awarded ${stampsToAward}, redeemed ${redeemCount}`,
