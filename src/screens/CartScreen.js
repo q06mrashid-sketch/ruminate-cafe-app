@@ -14,6 +14,7 @@ import { StatsContext } from '../context/StatsContext';
 import { getMembershipSummary } from '../services/membership';
 import { getToday } from '../services/homeData';
 import { isDrinkItem } from '../utils/isDrinkItem';
+import { checkoutLoyalty } from '../services/loyalty';
 
 export default function CartScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -300,22 +301,16 @@ export default function CartScreen({ navigation }) {
                 `[CHECKOUT] drinkCount=${drinkCount}, redeemCount=${redeemCount}, stampsToAward=${stampsToAward}`
               );
               if (userId) {
-                const { data, error } = await supabase.rpc('award_stamps', {
-                  p_user: userId,
-                  p_order_id: canonical.orderId,
-                  p_add: stampsToAward,
-                });
+                const { error } = await checkoutLoyalty(
+                  userId,
+                  canonical.orderId,
+                  stampsToAward,
+                  redeemCount,
+                );
 
                 if (error) {
-                  console.warn('[LOYALTY] award_stamps failed:', error);
+                  console.warn('[LOYALTY] checkout_loyalty failed:', error);
                 } else {
-                  const row = Array.isArray(data) ? data[0] : data;
-                  console.log(
-                    '[LOYALTY] awarded +%d stamp(s); new totals → stamps=%d, free_drinks=%d',
-                    stampsToAward,
-                    row?.o_loyalty_stamps ?? -1,
-                    row?.o_free_drinks ?? -1,
-                  );
                   const prevStats = stats;
                   try {
                     await refreshStats(true);
