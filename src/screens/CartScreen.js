@@ -313,7 +313,10 @@ export default function CartScreen({ navigation }) {
                 } else {
                   const prevStats = stats;
                   try {
-                    await refreshStats(true);
+                    const updated = await refreshStats(true);
+                    console.log(
+                      `[LOYALTY] post-checkout → stamps: ${updated.loyaltyStamps}, free drinks: ${updated.freebiesLeft}`
+                    );
                   } catch (e) {
                     console.warn('[LOYALTY] refreshStats failed:', e);
                     setStats(prevStats);

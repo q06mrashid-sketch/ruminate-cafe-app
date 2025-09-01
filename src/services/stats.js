@@ -26,11 +26,14 @@ export async function getMyStats() {
       console.error('me-stats error', res.status, json);
       return { loyaltyStamps: 0, vouchers: [] };
     }
-
-    return {
+    const result = {
       loyaltyStamps: Number(json?.loyaltyStamps ?? 0),
       vouchers: Array.isArray(json?.vouchers) ? json.vouchers.filter(Boolean) : [],
     };
+    console.log(
+      `[LOYALTY] stats received → stamps: ${result.loyaltyStamps}, free drinks: ${result.vouchers.length}`,
+    );
+    return result;
   } catch (e) {
     console.error('getMyStats failed', e);
     return { loyaltyStamps: 0, vouchers: [] };

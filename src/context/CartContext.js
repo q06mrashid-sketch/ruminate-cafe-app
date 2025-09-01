@@ -25,16 +25,19 @@ export function CartProvider({ children }) {
       }
       return [...prev, { ...item, quantity: item.quantity || 1 }];
     });
+    console.log(`[CART] add ${item.id} x${item.quantity || 1}`);
   };
 
   const removeItem = (id) => {
     setItems((prev) => prev.filter((i) => i.id !== id));
+    console.log(`[CART] remove ${id}`);
   };
 
   const incrementItem = (id) => {
     setItems((prev) =>
       prev.map((i) => (i.id === id ? { ...i, quantity: i.quantity + 1 } : i))
     );
+    console.log(`[CART] increment ${id}`);
   };
 
   const decrementItem = (id) => {
@@ -43,6 +46,7 @@ export function CartProvider({ children }) {
         i.id === id ? { ...i, quantity: Math.max(1, i.quantity - 1) } : i
       )
     );
+    console.log(`[CART] decrement ${id}`);
   };
 
   const updateQuantity = (id, delta) => {
@@ -55,10 +59,14 @@ export function CartProvider({ children }) {
             : i
         )
       );
+      console.log(`[CART] update ${id} delta ${delta}`);
     }
   };
 
-  const clear = () => setItems([]);
+  const clear = () => {
+    setItems([]);
+    console.log('[CART] clear');
+  };
 
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
   const subtotal = items.reduce((sum, i) => sum + (i.price || 0) * i.quantity, 0);

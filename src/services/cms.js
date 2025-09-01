@@ -22,6 +22,7 @@ export async function getCMS(force = false) {
     cached = data;
     globalThis.preloaded = globalThis.preloaded || {};
     globalThis.preloaded.cms = data;
+    console.log(`[CMS] received ${Object.keys(data || {}).length} keys`);
     markLoaded('cms');
     return data;
   } catch {
