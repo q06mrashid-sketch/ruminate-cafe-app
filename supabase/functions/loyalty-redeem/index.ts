@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { applyStampAccrual } from "../_shared/rewards.ts";
+import { applyStampAccrual, normalizeRewards } from "../_shared/rewards.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -48,13 +48,7 @@ serve(async (req: Request) => {
   }));
   await admin.from("drink_vouchers").insert(voucherRows);
 
-  const { data: profile } = await admin
-    .from("profiles")
-    .select("free_drinks")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  const freeDrinks = (profile?.free_drinks ?? 0) + vouchersEarned;
-  await admin.from("profiles").upsert({ user_id: user.id, free_drinks: freeDrinks });
+  await normalizeRewards(admin, user.id);
 
   return new Response(JSON.stringify({ success: true }), {
     status: 200,
