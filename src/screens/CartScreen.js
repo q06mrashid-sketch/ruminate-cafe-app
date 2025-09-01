@@ -19,13 +19,13 @@ import { isDrinkItem } from '../utils/isDrinkItem';
 
 export default function CartScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const { stats = { freebiesLeft: 0 }, refreshStats, setStats } =
+  const { stats = { vouchers: [] }, refreshStats, setStats } =
     useContext(StatsContext) || {
-      stats: { freebiesLeft: 0 },
+      stats: { vouchers: [] },
       refreshStats: async () => {},
       setStats: () => {},
     };
-  const freeDrinks = stats?.freebiesLeft ?? 0;
+  const freeDrinks = stats?.vouchers?.length ?? 0;
   const { setHasOrders, refreshOrdersPresence } = useOrdersPresence();
 
   const showToast = (msg) => {
@@ -321,13 +321,8 @@ export default function CartScreen({ navigation }) {
                   } catch {
                     vouchers = stats?.vouchers || [];
                   }
-                  const freebiesLeft = Math.max(
-                    0,
-                    loyalty.free_drinks - redeemCount,
-                  );
                   setStats({
                     loyaltyStamps: loyalty.loyalty_stamps,
-                    freebiesLeft,
                     vouchers,
                   });
                   if (__DEV__) {

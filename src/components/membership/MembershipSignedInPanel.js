@@ -56,8 +56,14 @@ export default function MembershipSignedInPanel({ summary, stats, user }) {
 
       {isPaid && (
         <View style={styles.gridRow}>
-          <Stat label="Free drinks left" value={stats.freebiesLeft} />
-          <Stat label="Dividends pending" value={formatCurrency(Number(stats.dividendsPending))} />
+          <Stat
+            label="Free drinks left"
+            value={stats.vouchers?.length ?? 0}
+          />
+          <Stat
+            label="Dividends pending"
+            value={formatCurrency(Number(stats.dividendsPending))}
+          />
         </View>
       )}
       <View style={styles.gridRow}>

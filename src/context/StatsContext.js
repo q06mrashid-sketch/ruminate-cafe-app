@@ -6,37 +6,46 @@ import { markLoaded } from '../boot/loadingSignals';
 import { supabase } from '../lib/supabase';
 
 export const StatsContext = createContext({
-  stats: { loyaltyStamps: 0, freebiesLeft: 0, vouchers: [] },
-  refreshStats: async () => ({ loyaltyStamps: 0, freebiesLeft: 0, vouchers: [] }),
+  stats: { loyaltyStamps: 0, vouchers: [], freebiesLeft: 0 },
+  refreshStats: async () => ({ loyaltyStamps: 0, vouchers: [], freebiesLeft: 0 }),
   setStats: () => {},
 });
 
 export function StatsProvider({ children }) {
-  const initial =
-    globalThis.preloaded?.stats || {
-      loyaltyStamps: 0,
-      freebiesLeft: 0,
-      vouchers: [],
-    };
+  const initialRaw = globalThis.preloaded?.stats || {
+    loyaltyStamps: 0,
+    vouchers: [],
+  };
+  const initial = {
+    loyaltyStamps: Number(initialRaw.loyaltyStamps) || 0,
+    vouchers: Array.isArray(initialRaw.vouchers)
+      ? initialRaw.vouchers.filter(Boolean)
+      : [],
+  };
+  initial.freebiesLeft = initial.vouchers.length;
   const [stats, setStatsState] = useState(initial);
   const statsRef = useRef(initial);
 
   const applyStats = useCallback((s) => {
-    statsRef.current = s;
-    setStatsState(s);
-    globalThis.freebiesLeft = s.freebiesLeft;
-    globalThis.loyaltyStamps = s.loyaltyStamps;
+    const vouchers = Array.isArray(s.vouchers) ? s.vouchers.filter(Boolean) : [];
+    const next = {
+      loyaltyStamps: Number(s.loyaltyStamps) || 0,
+      vouchers,
+      freebiesLeft: vouchers.length,
+    };
+    statsRef.current = next;
+    setStatsState(next);
+    globalThis.freebiesLeft = next.freebiesLeft;
+    globalThis.loyaltyStamps = next.loyaltyStamps;
     globalThis.preloaded = globalThis.preloaded || {};
-    globalThis.preloaded.stats = s;
+    globalThis.preloaded.stats = next;
   }, []);
 
   const refreshStats = useCallback(async () => {
     try {
       let s = await getMyStats();
-      const mismatch =
-        s.freebiesLeft !== (Array.isArray(s.vouchers) ? s.vouchers.length : 0);
       const outOfRange = s.loyaltyStamps < 0 || s.loyaltyStamps > 7;
-      if (mismatch || outOfRange) {
+      if (outOfRange) {
         await syncVouchers();
         s = await getMyStats();
       }
@@ -47,13 +56,16 @@ export function StatsProvider({ children }) {
         );
         s.loyaltyStamps = stampsRemainder;
         if (vouchersEarned > 0) {
-          s.freebiesLeft += vouchersEarned;
           s.vouchers = Array.isArray(s.vouchers) ? s.vouchers : [];
         }
       }
-      applyStats(s);
+      const decorated = {
+        ...s,
+        freebiesLeft: Array.isArray(s.vouchers) ? s.vouchers.length : 0,
+      };
+      applyStats(decorated);
       markLoaded('stamps');
-      return s;
+      return decorated;
     } catch {
       const fallback = globalThis.preloaded?.stats || statsRef.current;
       applyStats(fallback);
@@ -64,7 +76,7 @@ export function StatsProvider({ children }) {
 
   useEffect(() => {
     if (!supabase?.auth) return;
-    const zero = { loyaltyStamps: 0, freebiesLeft: 0, vouchers: [] };
+    const zero = { loyaltyStamps: 0, vouchers: [] };
     const sub = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!session?.user) {
         applyStats(zero);
@@ -75,7 +87,9 @@ export function StatsProvider({ children }) {
       try {
         const s = await refreshStats();
         const tag = event === 'INITIAL_SESSION' ? 'on boot' : 'auth';
-        console.log(`[LOYALTY] ${tag} → stamps: ${s.loyaltyStamps}, free drinks: ${s.freebiesLeft}`);
+        console.log(
+          `[LOYALTY] ${tag} → stamps: ${s.loyaltyStamps}, free drinks: ${s.freebiesLeft}`,
+        );
       } catch {}
     });
     return () => { try { sub?.data?.subscription?.unsubscribe?.(); } catch {} };
