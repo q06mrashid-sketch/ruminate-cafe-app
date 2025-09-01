@@ -27,11 +27,7 @@ export function StatsProvider({ children }) {
   }, []);
 
   const refreshStats = useCallback(
-    async (force = false) => {
-      if (!force && globalThis.preloaded?.stats) {
-        applyStats(globalThis.preloaded.stats);
-        return globalThis.preloaded.stats;
-      }
+    async () => {
       try {
         let s = await getMyStats();
         const mismatch =

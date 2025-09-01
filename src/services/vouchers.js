@@ -17,8 +17,9 @@ export async function redeemVoucher(code, refreshStats) {
   const { data, error } = await supabase.functions.invoke('voucher-redeem', { body: { code } });
   if (error) return false;
   const success = data?.success ?? false;
-  if (success && typeof refreshStats === 'function') {
-    await refreshStats(true);
+  if (success) {
+    // Loyalty values change after redemption; bypass any cached stats
+    await refreshStats?.(true);
   }
   return success;
 }
