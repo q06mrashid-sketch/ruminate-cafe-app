@@ -156,7 +156,9 @@ BEGIN
     RAISE EXCEPTION 'checkout_loyalty mismatch: % %', r.loyalty_stamps, r.free_drinks;
   END IF;
 
-  SELECT SUM(stamps) INTO stamps FROM public.loyalty_stamps WHERE user_id = u;
+  SELECT SUM(ls.stamps) INTO stamps
+    FROM public.loyalty_stamps ls
+    WHERE ls.user_id = u;
   IF stamps <> 1 THEN
     RAISE EXCEPTION 'loyalty_stamps not normalized: %', stamps;
   END IF;
