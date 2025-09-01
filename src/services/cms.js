@@ -14,7 +14,10 @@ export async function getCMS(force = false) {
       method: 'GET',
       headers: CMS_ANON ? { Authorization: `Bearer ${CMS_ANON}` } : {}
     });
-    if (!res.ok) return cached || {};
+    if (!res.ok) {
+      markLoaded('cms');
+      return cached || {};
+    }
     const data = await res.json();
     cached = data;
     globalThis.preloaded = globalThis.preloaded || {};
