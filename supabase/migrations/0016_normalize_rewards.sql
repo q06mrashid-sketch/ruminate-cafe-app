@@ -24,30 +24,32 @@ BEGIN
   END IF;
 
   CREATE TEMP TABLE tmp_norm AS
-  SELECT ls.user_id,
-         SUM(ls.stamps)::int AS total_stamps
-  FROM public.loyalty_stamps ls
-  GROUP BY ls.user_id;
+  WITH ls AS (
+    SELECT user_id, SUM(stamps)::int AS ls_stamps
+    FROM public.loyalty_stamps
+    GROUP BY user_id
+  ),
+  dv AS (
+    SELECT user_id, COUNT(*) AS existing_vouchers
+    FROM public.drink_vouchers
+    GROUP BY user_id
+  )
+  SELECT COALESCE(ls.user_id, dv.user_id) AS user_id,
+         COALESCE(ls.ls_stamps, 0) AS ls_stamps,
+         COALESCE(dv.existing_vouchers, 0) AS existing_vouchers,
+         COALESCE(ls.ls_stamps, 0) + COALESCE(dv.existing_vouchers,0) * 8 AS total_stamps
+  FROM ls
+  FULL JOIN dv ON dv.user_id = ls.user_id;
 
   ALTER TABLE tmp_norm
     ADD COLUMN vouchers_total int,
     ADD COLUMN remainder int,
-    ADD COLUMN existing_vouchers int DEFAULT 0,
     ADD COLUMN vouchers_to_add int;
 
   UPDATE tmp_norm
     SET vouchers_total = total_stamps / 8,
-        remainder = total_stamps % 8;
-
-  UPDATE tmp_norm t
-    SET existing_vouchers = dv.cnt
-    FROM (
-      SELECT user_id, COUNT(*) AS cnt FROM public.drink_vouchers GROUP BY user_id
-    ) dv
-    WHERE dv.user_id = t.user_id;
-
-  UPDATE tmp_norm
-    SET vouchers_to_add = vouchers_total - existing_vouchers;
+        remainder = total_stamps % 8,
+        vouchers_to_add = (total_stamps / 8) - existing_vouchers;
 
   -- insert missing vouchers
   INSERT INTO public.drink_vouchers(user_id, code)
@@ -72,7 +74,7 @@ BEGIN
     LEFT JOIN (
       SELECT user_id, COUNT(*) AS cnt FROM public.drink_vouchers GROUP BY user_id
     ) dv ON dv.user_id = t.user_id
-    WHERE COALESCE(dv.cnt,0) <> (t.total_stamps - t.remainder)/8
+    WHERE COALESCE(dv.cnt,0) <> t.vouchers_total
   ) THEN
     RAISE EXCEPTION 'normalize_rewards: voucher count mismatch';
   END IF;
