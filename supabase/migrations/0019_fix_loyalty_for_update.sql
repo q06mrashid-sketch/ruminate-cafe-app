@@ -1,4 +1,4 @@
--- 0014_fix_loyalty_for_update.sql
+-- 0019_fix_loyalty_for_update.sql
 
 -- redefine award_stamps and harden orders constraints/RLS
 
