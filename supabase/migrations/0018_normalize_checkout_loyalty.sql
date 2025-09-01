@@ -51,15 +51,19 @@ BEGIN
   GET DIAGNOSTICS inserted = ROW_COUNT;
 
   -- current ledger totals
-  SELECT COALESCE(SUM(stamps),0) INTO cur_stamps
-    FROM public.loyalty_stamps
-    WHERE user_id = p_user
-    FOR UPDATE;
+  SELECT COALESCE(SUM(stamps), 0) INTO cur_stamps
+    FROM (
+      SELECT stamps FROM public.loyalty_stamps
+      WHERE user_id = p_user
+      FOR UPDATE
+    ) s;
 
   SELECT COUNT(*) INTO cur_free
-    FROM public.drink_vouchers
-    WHERE user_id = p_user AND redeemed = FALSE
-    FOR UPDATE;
+    FROM (
+      SELECT 1 FROM public.drink_vouchers
+      WHERE user_id = p_user AND redeemed = FALSE
+      FOR UPDATE
+    ) v;
 
   IF inserted > 0 THEN
     -- consume existing free drinks
