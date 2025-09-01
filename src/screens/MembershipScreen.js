@@ -35,6 +35,7 @@ export default function MembershipScreen({ navigation }) {
   const [summary, setSummary] = useState({ signedIn: false, tier: 'free', status: 'none', next_billing_at: null });
   const [pifSelfCents, setPifSelfCents] = useState(0);
   const { stats, refreshStats } = useContext(StatsContext);
+  const vouchersKey = Array.isArray(stats?.vouchers) ? stats.vouchers.join(',') : '';
   const [memberPayload, setMemberPayload] = useState('ruminate:member');
   const [page, setPage] = useState(0);
   const [user, setUser] = useState(null);
@@ -54,7 +55,7 @@ export default function MembershipScreen({ navigation }) {
       expiresAt: null,
       isLocal: true,
     }));
-  }, [stats?.vouchers, stats?.freebiesLeft]);
+  }, [vouchersKey, stats?.freebiesLeft]);
 
   const isExpired = React.useCallback((iso) => {
     if (!iso) return false;
@@ -63,7 +64,7 @@ export default function MembershipScreen({ navigation }) {
 
   const visibleVouchers = React.useMemo(() =>
     vouchers.filter(v => !v.used && !isExpired(v.expiresAt))
-  , [vouchers, isExpired]);
+  , [vouchers, isExpired, vouchersKey]);
 
   const pageCount = 1 + visibleVouchers.length;
   const refresh = useCallback(async (force = false) => {
@@ -170,7 +171,7 @@ export default function MembershipScreen({ navigation }) {
               <PagerView
                 ref={pagerRef}
 
-                key={`pv-${visibleVouchers.length}`}
+                key={`pv-${vouchersKey}`}
 
                 style={{ height: 440, width: '100%' }}
                 initialPage={0}
