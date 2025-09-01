@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Svg, { Circle } from 'react-native-svg';
 import { palette } from '../design/theme';
+import { StatsContext } from '../context/StatsContext';
 
-export default function FreeDrinksCounter({ count = 0 }) {
+export default function FreeDrinksCounter() {
+  const { stats } = useContext(StatsContext);
+  const count = Math.max(0, Number(stats?.freebiesLeft || 0));
   const limit = 3;
   const ratio = Math.max(0, Math.min(1, count / limit));
   const size = 64;

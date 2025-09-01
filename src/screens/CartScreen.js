@@ -327,9 +327,13 @@ export default function CartScreen({ navigation }) {
                   } catch {
                     vouchers = stats?.vouchers || [];
                   }
+                  const freebiesLeft = Math.max(
+                    0,
+                    (data?.free_drinks ?? freeDrinks) - redeemCount,
+                  );
                   setStats({
                     loyaltyStamps: data?.loyalty_stamps ?? 0,
-                    freebiesLeft: data?.free_drinks ?? 0,
+                    freebiesLeft,
                     vouchers,
                   });
                   if (__DEV__) {

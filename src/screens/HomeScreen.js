@@ -138,7 +138,7 @@ export default function HomeScreen({ navigation }) {
 
             {(member?.tier === 'paid' || stats.freebiesLeft > 0) && (
                 <View style={{ marginTop: 16 }}>
-                  <FreeDrinksCounter count={stats.freebiesLeft} />
+                  <FreeDrinksCounter />
                 </View>
               )}
             </View>
