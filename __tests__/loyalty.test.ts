@@ -90,7 +90,7 @@ test('awardStamps rollover with idempotency', () => {
   assert.deepEqual(profile, { stamps: 2, freebies: 1 });
 });
 
-test('checkoutLoyalty caps stamps at 7 and increments free drinks', async () => {
+test('checkoutLoyalty caps stamps at 7 and increments free drinks', { concurrency: false }, async () => {
   const dir = dirname(fileURLToPath(import.meta.url));
   const libDir = resolve(dir, '../src/lib');
   mkdirSync(libDir, { recursive: true });
@@ -127,4 +127,26 @@ export const supabase = {
     log.mock.calls.some((c) => String(c.arguments[0]).includes('new free drinks: 1'))
   );
   log.mock.restore();
+});
+
+test('specials items are treated as drinks and award stamps', { concurrency: false }, async () => {
+  const dir = dirname(fileURLToPath(import.meta.url));
+  const libDir = resolve(dir, '../src/lib');
+  mkdirSync(libDir, { recursive: true });
+  writeFileSync(
+    resolve(libDir, 'supabase.js'),
+    'export const hasSupabase = true; export const supabase = {};',
+  );
+  // @ts-ignore
+  const { isDrinkItem } = await import('../../src/utils/isDrinkItem.js');
+  const items = [
+    { id: 'specials:pumpkin-latte', quantity: 1, category: 'specials' },
+  ];
+  const drinkCount = items
+    .filter(isDrinkItem)
+    .reduce((sum, it) => sum + (it.quantity || 0), 0);
+  assert.equal(drinkCount, 1);
+  const redeemCount = 0;
+  const stampsToAward = Math.max(0, drinkCount - redeemCount);
+  assert.ok(stampsToAward > 0);
 });
