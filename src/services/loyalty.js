@@ -14,15 +14,16 @@ export async function redeemLoyaltyReward() {
 export async function checkoutLoyalty(p_user, p_order_id, p_add_stamps, p_redeem) {
   if (!hasSupabase || !supabase) return { data: null, error: new Error('no supabase') };
   try {
-    const { data, error } = await supabase
+    const { data: rawData, error } = await supabase
       .rpc('checkout_loyalty', {
         p_user,
         p_order_id,
         p_add_stamps,
         p_redeem,
       })
-      .single();
-    if (data) {
+      .maybeSingle();
+    const data = rawData ?? { loyalty_stamps: 0, free_drinks: 0 };
+    if (!error) {
       console.log(
         `[LOYALTY] awarding: +${p_add_stamps} stamp(s); new free drinks: ${data.free_drinks}; loyalty stamps: ${data.loyalty_stamps}`
       );

@@ -310,6 +310,7 @@ export default function CartScreen({ navigation }) {
                   stampsToAward,
                   redeemCount,
                 );
+                const loyalty = data ?? { loyalty_stamps: 0, free_drinks: 0 };
 
                 if (error) {
                   console.warn('[LOYALTY] checkout_loyalty failed:', error);
@@ -322,10 +323,10 @@ export default function CartScreen({ navigation }) {
                   }
                   const freebiesLeft = Math.max(
                     0,
-                    (data?.free_drinks ?? freeDrinks) - redeemCount,
+                    loyalty.free_drinks - redeemCount,
                   );
                   setStats({
-                    loyaltyStamps: data?.loyalty_stamps ?? 0,
+                    loyaltyStamps: loyalty.loyalty_stamps,
                     freebiesLeft,
                     vouchers,
                   });

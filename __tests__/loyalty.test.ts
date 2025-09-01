@@ -104,7 +104,7 @@ export const supabase = {
     state.free += Math.floor(total / 8);
     state.stamps = total % 8;
     return {
-      single: async () => ({
+      maybeSingle: async () => ({
         data: { loyalty_stamps: state.stamps, free_drinks: state.free },
         error: null,
       }),
