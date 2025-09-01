@@ -160,12 +160,13 @@ BEGIN
     RAISE EXCEPTION 'first checkout mismatch: % %', r.loyalty_stamps, r.free_drinks;
   END IF;
 
+  -- release lock held by first checkout before fetching second result
+  PERFORM dblink_exec('conn1', 'COMMIT');
+
   SELECT * INTO r FROM dblink_get_result('conn2') AS t(loyalty_stamps int, free_drinks int);
   IF r.loyalty_stamps <> 2 OR r.free_drinks <> 1 THEN
     RAISE EXCEPTION 'second checkout mismatch: % %', r.loyalty_stamps, r.free_drinks;
   END IF;
-
-  PERFORM dblink_exec('conn1', 'COMMIT');
   PERFORM dblink_exec('conn2', 'COMMIT');
   PERFORM dblink_disconnect('conn1');
   PERFORM dblink_disconnect('conn2');
