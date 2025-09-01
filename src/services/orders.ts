@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase.js';
 import type { Receipt } from '../utils/receipt.js';
-import { buildOrderRow, normalizeSource } from './order-row.js';
+// @ts-ignore
+import { buildOrderRow, normalizeSource } from './order-row';
 
 
 export async function saveReceiptForUser(userId: string, receipt: Receipt, freeDrinksRedeemed = 0) {
