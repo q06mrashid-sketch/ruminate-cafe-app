@@ -63,7 +63,11 @@ export default function MembershipStartScreen() {
     if (!email || !password) { Alert.alert('Missing details', 'Email and password are required.'); return; }
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) Alert.alert('Sign in failed', error.message);
-    else { Alert.alert('Welcome back', 'Signed in successfully.'); navigation.navigate('Home'); }
+    else {
+      console.log(`[AUTH] signed in: ${email}`);
+      Alert.alert('Welcome back', 'Signed in successfully.');
+      navigation.navigate('Home');
+    }
   }
 
   async function handleForgot() {
