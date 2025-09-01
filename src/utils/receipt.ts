@@ -33,6 +33,7 @@ export type Receipt = {
   pickupCode: string;
   createdAt: string;
   channel: 'click_and_collect';
+  source?: 'app' | 'pos' | 'portal';
   paymentMethod: 'apple_pay' | 'card' | 'cash' | 'test';
   customer?: { id?: string; email?: string };
   timeSlot: { startISO: string; endISO: string };
@@ -142,6 +143,7 @@ export function buildReceipt({
     pickupCode,
     createdAt,
     channel: 'click_and_collect',
+    source: 'app',
     paymentMethod,
     customer: customer || undefined,
     timeSlot: {
