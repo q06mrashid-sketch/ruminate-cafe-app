@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import { markLoaded } from '../boot/loadingSignals';
 
 const extra = (Constants?.expoConfig?.extra) || (Constants?.manifest?.extra) || {};
 const FUNCTIONS_URL = extra.CMS_FUNCTIONS_URL || "https://eamewialuovzguldcdcf.functions.supabase.co";
@@ -18,9 +19,10 @@ export async function getCMS(force = false) {
     cached = data;
     globalThis.preloaded = globalThis.preloaded || {};
     globalThis.preloaded.cms = data;
-    console.log('CMS info has all been received');
+    markLoaded('cms');
     return data;
   } catch {
+    markLoaded('cms');
     return cached || {};
   }
 }
