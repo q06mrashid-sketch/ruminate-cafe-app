@@ -8,9 +8,9 @@ BEGIN
     JOIN pg_namespace n ON n.oid = p.pronamespace
     WHERE n.nspname = 'public'
       AND p.proname = 'checkout_loyalty'
-      AND pg_get_function_identity_arguments(p.oid) = 'uuid, text, int, int'
+      AND pg_get_function_identity_arguments(p.oid) = 'uuid, text, integer, integer'
   ) THEN
-    EXECUTE 'DROP FUNCTION public.checkout_loyalty(uuid, text, int, int)';
+    EXECUTE 'DROP FUNCTION public.checkout_loyalty(uuid, text, integer, integer)';
   END IF;
 END $$;
 
@@ -123,7 +123,7 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION public.checkout_loyalty(uuid, text, int, int) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.checkout_loyalty(uuid, text, integer, integer) TO authenticated;
 
 NOTIFY pgrst, 'reload schema';
 
