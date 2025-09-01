@@ -139,8 +139,8 @@ BEGIN
   ----------------------------------------------------------------
   SELECT * INTO r
   FROM public.award_stamps(u, oid, 3);
-  out_ls := r.loyalty_stamps;
-  out_fd := r.free_drinks;
+  out_ls := r.o_loyalty_stamps;
+  out_fd := r.o_free_drinks;
 
   -- Expect: 5 + 3 = 8 → rolls to 1 free drink, 0 stamps (totals 0,2)
   IF out_ls <> 0 OR out_fd <> 2 THEN
@@ -181,20 +181,23 @@ DECLARE u uuid;
 
 BEGIN
   SELECT id INTO u FROM auth.users LIMIT 1;
-  IF u IS NOT NULL THEN
-    -- Ensure a profile exists
-    INSERT INTO public.profiles(user_id, loyalty_stamps, free_drinks)
-    VALUES (u, 0, 0)
-    ON CONFLICT (user_id) DO NOTHING;
-
-
-    SELECT * INTO r FROM public.award_stamps(u, oid, 1);
-    ls := r.loyalty_stamps;
-    fd := r.free_drinks;
-    RAISE NOTICE 'award_stamps returned ls=%, fd=%', ls, fd;
-    DELETE FROM public.loyalty_awards WHERE order_id=oid;
-
+  IF u IS NULL THEN
+    RAISE NOTICE 'Skipping runtime sanity: no rows in auth.users.';
+    RETURN;
   END IF;
+
+  -- Ensure a profile exists
+  INSERT INTO public.profiles(user_id, loyalty_stamps, free_drinks)
+  VALUES (u, 0, 0)
+  ON CONFLICT (user_id) DO NOTHING;
+
+
+  SELECT * INTO r FROM public.award_stamps(u, oid, 1);
+  ls := r.o_loyalty_stamps;
+  fd := r.o_free_drinks;
+  RAISE NOTICE 'award_stamps returned ls=%, fd=%', ls, fd;
+  DELETE FROM public.loyalty_awards WHERE order_id = oid;
+
 END $$;
 
 -- Reload schema
