@@ -62,9 +62,10 @@ export default function MembershipScreen({ navigation }) {
     return new Date(iso).getTime() < Date.now();
   }, []);
 
-  const visibleVouchers = React.useMemo(() =>
-    vouchers.filter(v => !v.used && !isExpired(v.expiresAt))
-  , [vouchers, isExpired, vouchersKey]);
+  const visibleVouchers = React.useMemo(
+    () => vouchers.filter(v => !v.used && !isExpired(v.expiresAt)),
+    [vouchers, isExpired, vouchersKey]
+  );
 
   const pageCount = 1 + visibleVouchers.length;
   const refresh = useCallback(async (force = false) => {
