@@ -79,7 +79,7 @@ export default function CartScreen({ navigation }) {
   useEffect(() => {
     (async () => {
       try { const t = await getToday(); setTodayHours(t); } catch {}
-      try { await refreshStats(); } catch {}
+      try { await refreshStats(true); } catch {}
     })();
   }, [refreshStats]);
 
