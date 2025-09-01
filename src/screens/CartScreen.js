@@ -14,7 +14,6 @@ import { StatsContext } from '../context/StatsContext';
 import { getMembershipSummary } from '../services/membership';
 import { getToday } from '../services/homeData';
 import { checkoutLoyalty } from '../services/loyalty';
-import { syncVouchers } from '../services/vouchers';
 import { isDrinkItem } from '../utils/isDrinkItem';
 
 export default function CartScreen({ navigation }) {
@@ -304,32 +303,24 @@ export default function CartScreen({ navigation }) {
               if (userId) {
                 // checkoutLoyalty mutates server totals; getMyStats (via refreshStats)
                 // is the single source of truth for loyalty values
-                const { data, error } = await checkoutLoyalty(
+                const { error } = await checkoutLoyalty(
                   userId,
                   canonical.orderId,
                   stampsToAward,
                   redeemCount,
                 );
-                const loyalty = data ?? { loyalty_stamps: 0, free_drinks: 0 };
 
                 if (error) {
                   console.warn('[LOYALTY] checkout_loyalty failed:', error);
                 } else {
-                  let vouchers = [];
+                  const prevStats = stats;
                   try {
-                    vouchers = await syncVouchers();
-                  } catch {
-                    vouchers = stats?.vouchers || [];
+                    await refreshStats(true);
+                  } catch (e) {
+                    console.warn('[LOYALTY] refreshStats failed:', e);
+                    setStats(prevStats);
+                    showToast('Failed to refresh stats');
                   }
-                  const freebiesLeft = Math.max(
-                    0,
-                    loyalty.free_drinks - redeemCount,
-                  );
-                  setStats({
-                    loyaltyStamps: loyalty.loyalty_stamps,
-                    freebiesLeft,
-                    vouchers,
-                  });
                   if (__DEV__) {
                     console.log(
                       `[LOYALTY] awarded ${stampsToAward}, redeemed ${redeemCount}`,
@@ -338,13 +329,6 @@ export default function CartScreen({ navigation }) {
                 }
               } else if (__DEV__) {
                 console.log('[LOYALTY] no stamps awarded (no user).');
-              }
-
-
-              try {
-                await refreshStats(true);
-              } catch (e) {
-                showToast('Failed to refresh stats');
               }
               try {
                 await getMembershipSummary?.();
