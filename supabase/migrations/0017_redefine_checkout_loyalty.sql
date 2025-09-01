@@ -14,6 +14,8 @@ BEGIN
   END IF;
 END $$;
 
+DROP FUNCTION IF EXISTS public.checkout_loyalty(uuid, text, int, int);
+
 CREATE FUNCTION public.checkout_loyalty(
   p_user uuid,
   p_order_id text,
