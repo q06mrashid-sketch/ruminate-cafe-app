@@ -1,5 +1,8 @@
-import test from 'node:test';
+import test, { mock } from 'node:test';
 import assert from 'node:assert/strict';
+import { writeFileSync, mkdirSync, copyFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
 import { countStampsFromReceipt } from '../src/utils/loyalty.js';
 import type { Receipt } from '../src/utils/receipt.js';
 
@@ -85,4 +88,38 @@ test('awardStamps rollover with idempotency', () => {
   assert.deepEqual(profile, { stamps: 2, freebies: 1 });
   award('order1', 3);
   assert.deepEqual(profile, { stamps: 2, freebies: 1 });
+});
+
+test('checkoutLoyalty caps stamps at 7 and increments free drinks', async () => {
+  const dir = dirname(fileURLToPath(import.meta.url));
+  const libDir = resolve(dir, '../src/lib');
+  mkdirSync(libDir, { recursive: true });
+  writeFileSync(
+    resolve(libDir, 'supabase.js'),
+    `export const hasSupabase = true;
+const state = { stamps: 0, free: 0 };
+export const supabase = {
+  rpc: async (_fn, { p_add_stamps }) => {
+    const total = state.stamps + p_add_stamps;
+    state.free += Math.floor(total / 8);
+    state.stamps = total % 8;
+    return { data: { loyalty_stamps: state.stamps, free_drinks: state.free }, error: null };
+  },
+};`
+  );
+  const svcDir = resolve(dir, '../src/services');
+  mkdirSync(svcDir, { recursive: true });
+  copyFileSync(resolve(dir, '../../src/services/loyalty.js'), resolve(svcDir, 'loyalty.js'));
+  const { checkoutLoyalty } = await import('../src/services/loyalty.js');
+  const log = mock.method(console, 'log');
+  let res = await checkoutLoyalty('u1', 'o1', 5, 0);
+  assert.equal(res.data?.loyalty_stamps, 5);
+  assert.equal(res.data?.free_drinks, 0);
+  res = await checkoutLoyalty('u1', 'o2', 4, 0);
+  assert.equal(res.data?.loyalty_stamps, 1);
+  assert.equal(res.data?.free_drinks, 1);
+  assert.ok(
+    log.mock.calls.some((c) => String(c.arguments[0]).includes('new free drinks: 1'))
+  );
+  log.mock.restore();
 });
