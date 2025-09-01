@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { normalizeRewards } from "../_shared/rewards.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -135,6 +136,7 @@ serve(async (req) => {
   if (hotCount > 0) {
     await admin.from("loyalty_stamps").insert({ user_id: user.id, stamps: hotCount });
   }
+  await normalizeRewards(admin, user.id);
 
   return new Response(JSON.stringify({ orderId, pickup_code, total_cents: total }), {
     status: 200,
