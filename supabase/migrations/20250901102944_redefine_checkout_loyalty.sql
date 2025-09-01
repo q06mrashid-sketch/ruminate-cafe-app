@@ -18,6 +18,9 @@ DECLARE
   cur_free int;
   redeem_used int;
   inserted int;
+  total_stamps int;
+  vouchers_to_add int;
+  stamps_remainder int;
 BEGIN
   -- detect profiles pk (user_id or id)
   IF EXISTS (
@@ -77,6 +80,27 @@ BEGIN
       INSERT INTO public.loyalty_stamps(user_id, stamps)
         VALUES (p_user, GREATEST(p_add_stamps,0));
     END IF;
+
+    -- normalize rewards into vouchers and remainder stamps
+    total_stamps := cur_stamps;
+    vouchers_to_add := total_stamps / 8;
+    stamps_remainder := MOD(total_stamps, 8);
+
+    IF vouchers_to_add > 0 THEN
+      INSERT INTO public.drink_vouchers(user_id, code)
+        SELECT p_user, gen_random_uuid()::text FROM generate_series(1, vouchers_to_add);
+      cur_free := cur_free + vouchers_to_add;
+    END IF;
+
+    DELETE FROM public.loyalty_stamps WHERE user_id = p_user;
+    IF stamps_remainder > 0 THEN
+      INSERT INTO public.loyalty_stamps(user_id, stamps) VALUES (p_user, stamps_remainder);
+    END IF;
+
+    cur_stamps := stamps_remainder;
+
+    EXECUTE format('UPDATE public.profiles SET loyalty_stamps=$1, free_drinks=$2 WHERE %I=$3', pk)
+      USING cur_stamps, cur_free, p_user;
   END IF;
 
   loyalty_stamps := COALESCE(cur_stamps,0);
@@ -119,7 +143,7 @@ BEGIN
   INSERT INTO public.drink_vouchers(user_id, code) VALUES (u, vid);
 
   SELECT * INTO r FROM public.checkout_loyalty(u, oid, 2, 1);
-  IF r.loyalty_stamps <> 9 OR r.free_drinks <> 0 THEN
+  IF r.loyalty_stamps <> 1 OR r.free_drinks <> 1 THEN
     RAISE EXCEPTION 'checkout_loyalty mismatch: % %', r.loyalty_stamps, r.free_drinks;
   END IF;
 
@@ -128,8 +152,19 @@ BEGIN
   END IF;
 
   SELECT COUNT(*) INTO cnt FROM public.drink_vouchers WHERE user_id = u AND redeemed = FALSE;
-  IF cnt <> 0 THEN
+  IF cnt <> 1 THEN
     RAISE EXCEPTION 'unredeemed vouchers mismatch: %', cnt;
+  END IF;
+
+  SELECT COALESCE(SUM(stamps),0) INTO cnt FROM public.loyalty_stamps WHERE user_id = u;
+  IF cnt <> 1 THEN
+    RAISE EXCEPTION 'stamp ledger mismatch: %', cnt;
+  END IF;
+
+  EXECUTE format('SELECT loyalty_stamps, free_drinks FROM public.profiles WHERE %I=$1', pk)
+    INTO r USING u;
+  IF r.loyalty_stamps <> 1 OR r.free_drinks <> 1 THEN
+    RAISE EXCEPTION 'profile mismatch: % %', r.loyalty_stamps, r.free_drinks;
   END IF;
 
   DELETE FROM public.loyalty_tx WHERE order_id = oid;
