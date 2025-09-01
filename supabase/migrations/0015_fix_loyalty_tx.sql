@@ -130,7 +130,7 @@ BEGIN
 
   loyalty_stamps := COALESCE(cur_stamps,0);
   free_drinks := COALESCE(cur_free,0);
-  RETURN;
+  RETURN QUERY SELECT loyalty_stamps, free_drinks;
 END;
 $$;
 
