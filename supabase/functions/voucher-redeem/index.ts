@@ -30,13 +30,14 @@ serve(async (req: Request) => {
   }
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-  const { error } = await admin
+  const { data, error } = await admin
     .from("drink_vouchers")
     .update({ redeemed: true, redeemed_at: new Date().toISOString() })
     .eq("code", code)
     .eq("user_id", user.id)
-    .eq("redeemed", false);
+    .eq("redeemed", false)
+    .select("id");
 
-  const success = !error;
+  const success = !error && (data?.length ?? 0) > 0;
   return new Response(JSON.stringify({ success }), { status: success ? 200 : 400, headers: { ...cors(), "content-type": "application/json" } });
 });
