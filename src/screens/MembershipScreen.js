@@ -224,7 +224,7 @@ export default function MembershipScreen({ navigation }) {
 
             {(summary.tier === 'paid' || (stats?.freebiesLeft ?? 0) > 0) && (
               <View style={{ marginTop: 14 }}>
-                <FreeDrinksCounter count={stats?.freebiesLeft ?? 0} />
+                <FreeDrinksCounter />
               </View>
             )}
 
