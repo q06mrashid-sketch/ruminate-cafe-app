@@ -14,13 +14,15 @@ import { StatsContext } from '../context/StatsContext';
 import { getMembershipSummary } from '../services/membership';
 import { getToday } from '../services/homeData';
 import { checkoutLoyalty } from '../services/loyalty';
+import { syncVouchers } from '../services/vouchers';
 
 export default function CartScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const { stats = { freebiesLeft: 0 }, refreshStats } =
+  const { stats = { freebiesLeft: 0 }, refreshStats, setStats } =
     useContext(StatsContext) || {
       stats: { freebiesLeft: 0 },
       refreshStats: async () => {},
+      setStats: () => {},
     };
   const freeDrinks = stats?.freebiesLeft ?? 0;
   const { setHasOrders, refreshOrdersPresence } = useOrdersPresence();
@@ -309,19 +311,32 @@ export default function CartScreen({ navigation }) {
               if (userId) {
                 // checkoutLoyalty mutates server totals; getMyStats (via refreshStats)
                 // is the single source of truth for loyalty values
-                const { error } = await checkoutLoyalty(
+                const { data, error } = await checkoutLoyalty(
                   userId,
                   canonical.orderId,
                   stampsToAward,
-                  redeemCount
+                  redeemCount,
                 );
 
                 if (error) {
                   console.warn('[LOYALTY] checkout_loyalty failed:', error);
-                } else if (__DEV__) {
-                  console.log(
-                    `[LOYALTY] awarded ${stampsToAward}, redeemed ${redeemCount}`
-                  );
+                } else {
+                  let vouchers = [];
+                  try {
+                    vouchers = await syncVouchers();
+                  } catch {
+                    vouchers = stats?.vouchers || [];
+                  }
+                  setStats({
+                    loyaltyStamps: data?.loyalty_stamps ?? 0,
+                    freebiesLeft: data?.free_drinks ?? 0,
+                    vouchers,
+                  });
+                  if (__DEV__) {
+                    console.log(
+                      `[LOYALTY] awarded ${stampsToAward}, redeemed ${redeemCount}`,
+                    );
+                  }
                 }
               } else if (__DEV__) {
                 console.log('[LOYALTY] no stamps awarded (no user).');
