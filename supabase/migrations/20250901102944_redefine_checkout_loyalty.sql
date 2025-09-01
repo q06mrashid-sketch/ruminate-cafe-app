@@ -18,6 +18,9 @@ DECLARE
   cur_free int;
   redeem_used int;
   inserted int;
+  total_stamps int;
+  vouchers_to_add int;
+  stamps_remainder int;
 BEGIN
   -- detect profiles pk (user_id or id)
   IF EXISTS (
@@ -39,6 +42,10 @@ BEGIN
     'INSERT INTO public.profiles(%1$I, loyalty_stamps, free_drinks) VALUES ($1,0,0) ON CONFLICT (%1$I) DO NOTHING',
     pk
   ) USING p_user;
+
+  -- lock profile row to guard totals even when no stamps rows exist
+  EXECUTE format('SELECT 1 FROM public.profiles WHERE %1$I=$1 FOR UPDATE', pk)
+    USING p_user;
 
   -- idempotent ledger entry
   INSERT INTO public.loyalty_tx(order_id, user_id, stamps_awarded, vouchers_redeemed)
@@ -72,11 +79,29 @@ BEGIN
     cur_free := cur_free - redeem_used;
 
     -- award stamps
-    cur_stamps := cur_stamps + GREATEST(p_add_stamps,0);
     IF GREATEST(p_add_stamps,0) > 0 THEN
       INSERT INTO public.loyalty_stamps(user_id, stamps)
         VALUES (p_user, GREATEST(p_add_stamps,0));
     END IF;
+
+    -- normalize within same transaction
+    total_stamps := cur_stamps + GREATEST(p_add_stamps,0);
+    vouchers_to_add := total_stamps / 8;
+    stamps_remainder := total_stamps % 8;
+
+    IF vouchers_to_add > 0 THEN
+      INSERT INTO public.drink_vouchers(user_id, code)
+        SELECT p_user, gen_random_uuid()::text
+        FROM generate_series(1, vouchers_to_add);
+    END IF;
+    cur_free := cur_free + vouchers_to_add;
+
+    DELETE FROM public.loyalty_stamps WHERE user_id = p_user;
+    IF stamps_remainder > 0 THEN
+      INSERT INTO public.loyalty_stamps(user_id, stamps)
+        VALUES (p_user, stamps_remainder);
+    END IF;
+    cur_stamps := stamps_remainder;
   END IF;
 
   loyalty_stamps := COALESCE(cur_stamps,0);
@@ -89,19 +114,24 @@ GRANT EXECUTE ON FUNCTION public.checkout_loyalty(uuid, text, int, int) TO authe
 
 NOTIFY pgrst, 'reload schema';
 
--- Acceptance: award 2 stamps and redeem 1 without normalizing
+-- Acceptance: concurrent checkouts normalize stamps atomically
 DO $$
 DECLARE
   u uuid;
   r record;
   pk text;
-  oid text := 'o' || floor(extract(epoch from now()))::text;
-  vid text := 'v' || floor(extract(epoch from now()))::text;
+  oid1 text := 'o' || floor(extract(epoch from now()))::text || '_1';
+  oid2 text := 'o' || floor(extract(epoch from now()))::text || '_2';
   cnt int;
 BEGIN
   SELECT id INTO u FROM auth.users LIMIT 1;
   IF u IS NULL THEN
     RAISE NOTICE 'Skipping checkout_loyalty acceptance: no rows in auth.users.';
+    RETURN;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname='dblink') THEN
+    RAISE NOTICE 'Skipping checkout_loyalty concurrency test: dblink extension not available.';
     RETURN;
   END IF;
 
@@ -113,26 +143,44 @@ BEGIN
     RAISE EXCEPTION 'profiles identifier column not found';
   END IF;
 
-  EXECUTE format('INSERT INTO public.profiles(%1$I, loyalty_stamps, free_drinks) VALUES ($1,7,1) ON CONFLICT (%1$I) DO UPDATE SET loyalty_stamps=7, free_drinks=1', pk)
+  EXECUTE format('INSERT INTO public.profiles(%1$I, loyalty_stamps, free_drinks) VALUES ($1,0,0) ON CONFLICT (%1$I) DO UPDATE SET loyalty_stamps=0, free_drinks=0', pk)
     USING u;
-  INSERT INTO public.loyalty_stamps(user_id, stamps) VALUES (u,7);
-  INSERT INTO public.drink_vouchers(user_id, code) VALUES (u, vid);
+  INSERT INTO public.loyalty_stamps(user_id, stamps) VALUES (u,6);
 
-  SELECT * INTO r FROM public.checkout_loyalty(u, oid, 2, 1);
-  IF r.loyalty_stamps <> 9 OR r.free_drinks <> 0 THEN
-    RAISE EXCEPTION 'checkout_loyalty mismatch: % %', r.loyalty_stamps, r.free_drinks;
+  PERFORM dblink_connect('conn1', 'dbname=' || current_database());
+  PERFORM dblink_connect('conn2', 'dbname=' || current_database());
+  PERFORM dblink_exec('conn1', 'BEGIN');
+  PERFORM dblink_exec('conn2', 'BEGIN');
+
+  PERFORM dblink_send_query('conn1', format('SELECT loyalty_stamps, free_drinks FROM public.checkout_loyalty(''%s'',''%s'',2,0);', u::text, oid1));
+  PERFORM dblink_send_query('conn2', format('SELECT loyalty_stamps, free_drinks FROM public.checkout_loyalty(''%s'',''%s'',2,0);', u::text, oid2));
+
+  SELECT * INTO r FROM dblink_get_result('conn1') AS t(loyalty_stamps int, free_drinks int);
+  IF r.loyalty_stamps <> 0 OR r.free_drinks <> 1 THEN
+    RAISE EXCEPTION 'first checkout mismatch: % %', r.loyalty_stamps, r.free_drinks;
   END IF;
 
-  IF EXISTS (SELECT 1 FROM public.drink_vouchers WHERE code = vid AND redeemed = FALSE) THEN
-    RAISE EXCEPTION 'voucher not redeemed';
+  SELECT * INTO r FROM dblink_get_result('conn2') AS t(loyalty_stamps int, free_drinks int);
+  IF r.loyalty_stamps <> 2 OR r.free_drinks <> 1 THEN
+    RAISE EXCEPTION 'second checkout mismatch: % %', r.loyalty_stamps, r.free_drinks;
+  END IF;
+
+  PERFORM dblink_exec('conn1', 'COMMIT');
+  PERFORM dblink_exec('conn2', 'COMMIT');
+  PERFORM dblink_disconnect('conn1');
+  PERFORM dblink_disconnect('conn2');
+
+  SELECT COALESCE(SUM(stamps),0) INTO cnt FROM public.loyalty_stamps WHERE user_id = u;
+  IF cnt <> 2 THEN
+    RAISE EXCEPTION 'loyalty_stamps not normalized: %', cnt;
   END IF;
 
   SELECT COUNT(*) INTO cnt FROM public.drink_vouchers WHERE user_id = u AND redeemed = FALSE;
-  IF cnt <> 0 THEN
+  IF cnt <> 1 THEN
     RAISE EXCEPTION 'unredeemed vouchers mismatch: %', cnt;
   END IF;
 
-  DELETE FROM public.loyalty_tx WHERE order_id = oid;
+  DELETE FROM public.loyalty_tx WHERE order_id IN (oid1, oid2);
   DELETE FROM public.loyalty_stamps WHERE user_id = u;
   DELETE FROM public.drink_vouchers WHERE user_id = u;
   EXECUTE format('DELETE FROM public.profiles WHERE %I=$1', pk) USING u;
