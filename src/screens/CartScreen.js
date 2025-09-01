@@ -322,11 +322,6 @@ export default function CartScreen({ navigation }) {
                     showToast('Failed to refresh stats');
                   }
 
-                  setStats({
-                    loyaltyStamps: loyalty.loyalty_stamps,
-                    vouchers,
-                  });
-
                   if (__DEV__) {
                     console.log(
                       `[LOYALTY] awarded ${stampsToAward}, redeemed ${redeemCount}`,
