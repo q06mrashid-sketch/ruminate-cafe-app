@@ -27,7 +27,7 @@ for (const uid of userIds) {
     .from('loyalty_stamps')
     .select('sum:stamps')
     .eq('user_id', uid)
-    .single();
+    .maybeSingle();
   if (stampErr) throw stampErr;
   const totalStamps = stampAgg?.sum ?? 0;
 
