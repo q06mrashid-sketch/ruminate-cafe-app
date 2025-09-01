@@ -52,12 +52,12 @@ export function StatsProvider({ children }) {
         console.log('loyalty stamps and free drinks have been received');
         return s;
       } catch {
-        const fallback = { loyaltyStamps: 0, freebiesLeft: 0, vouchers: [] };
+        const fallback = globalThis.preloaded?.stats || stats;
         applyStats(fallback);
         return fallback;
       }
     },
-    [applyStats],
+    [applyStats, stats],
   );
 
   const value = useMemo(
