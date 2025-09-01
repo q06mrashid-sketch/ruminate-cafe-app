@@ -84,6 +84,7 @@ BEGIN
         VALUES (p_user, GREATEST(p_add_stamps,0));
     END IF;
 
+
     -- normalize within same transaction
     total_stamps := cur_stamps + GREATEST(p_add_stamps,0);
     vouchers_to_add := total_stamps / 8;
@@ -102,6 +103,7 @@ BEGIN
         VALUES (p_user, stamps_remainder);
     END IF;
     cur_stamps := stamps_remainder;
+
   END IF;
 
   loyalty_stamps := COALESCE(cur_stamps,0);
@@ -166,6 +168,7 @@ BEGIN
   SELECT * INTO r FROM dblink_get_result('conn2') AS t(loyalty_stamps int, free_drinks int);
   IF r.loyalty_stamps <> 2 OR r.free_drinks <> 1 THEN
     RAISE EXCEPTION 'second checkout mismatch: % %', r.loyalty_stamps, r.free_drinks;
+
   END IF;
   PERFORM dblink_exec('conn2', 'COMMIT');
   PERFORM dblink_disconnect('conn1');
@@ -182,6 +185,7 @@ BEGIN
   END IF;
 
   DELETE FROM public.loyalty_tx WHERE order_id IN (oid1, oid2);
+
   DELETE FROM public.loyalty_stamps WHERE user_id = u;
   DELETE FROM public.drink_vouchers WHERE user_id = u;
   EXECUTE format('DELETE FROM public.profiles WHERE %I=$1', pk) USING u;
