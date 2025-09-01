@@ -1,20 +1,10 @@
 -- 0018_normalize_checkout_loyalty.sql
 -- Normalize loyalty after checkout: convert stamps to vouchers and sync profiles
 
-DO $$
-BEGIN
-  IF EXISTS (
-    SELECT 1 FROM pg_proc p
-    JOIN pg_namespace n ON n.oid = p.pronamespace
-    WHERE n.nspname = 'public'
-      AND p.proname = 'checkout_loyalty'
-      AND pg_get_function_identity_arguments(p.oid) = 'uuid, text, integer, integer'
-  ) THEN
-    EXECUTE 'DROP FUNCTION public.checkout_loyalty(uuid, text, integer, integer)';
-  END IF;
-END $$;
+DROP FUNCTION IF EXISTS public.checkout_loyalty(uuid, text, integer, integer);
+DROP FUNCTION IF EXISTS public.checkout_loyalty(uuid, text, int, int);
 
-CREATE FUNCTION public.checkout_loyalty(
+CREATE OR REPLACE FUNCTION public.checkout_loyalty(
   p_user uuid,
   p_order_id text,
   p_add_stamps int,
