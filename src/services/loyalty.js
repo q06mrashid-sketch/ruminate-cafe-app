@@ -14,19 +14,21 @@ export async function redeemLoyaltyReward() {
 export async function checkoutLoyalty(p_user, p_order_id, p_add_stamps, p_redeem) {
   if (!hasSupabase || !supabase) return { data: null, error: new Error('no supabase') };
   try {
-    const res = await supabase.rpc('checkout_loyalty', {
-      p_user,
-      p_order_id,
-      p_add_stamps,
-      p_redeem,
-    });
-    if (res.data) {
+    const { data, error } = await supabase
+      .rpc('checkout_loyalty', {
+        p_user,
+        p_order_id,
+        p_add_stamps,
+        p_redeem,
+      })
+      .single();
+    if (data) {
       console.log(
-        `[LOYALTY] awarding: +${p_add_stamps} stamp(s); new free drinks: ${res.data.free_drinks}; loyalty stamps: ${res.data.loyalty_stamps}`
+        `[LOYALTY] awarding: +${p_add_stamps} stamp(s); new free drinks: ${data.free_drinks}; loyalty stamps: ${data.loyalty_stamps}`
       );
-      console.assert(res.data.loyalty_stamps <= 7, 'loyalty_stamps exceeded 7');
+      console.assert(data.loyalty_stamps <= 7, 'loyalty_stamps exceeded 7');
     }
-    return res;
+    return { data, error };
   } catch (error) {
     return { data: null, error };
   }

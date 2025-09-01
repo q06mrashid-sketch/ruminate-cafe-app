@@ -99,11 +99,16 @@ test('checkoutLoyalty caps stamps at 7 and increments free drinks', async () => 
     `export const hasSupabase = true;
 const state = { stamps: 0, free: 0 };
 export const supabase = {
-  rpc: async (_fn, { p_add_stamps }) => {
+  rpc: (_fn, { p_add_stamps }) => {
     const total = state.stamps + p_add_stamps;
     state.free += Math.floor(total / 8);
     state.stamps = total % 8;
-    return { data: { loyalty_stamps: state.stamps, free_drinks: state.free }, error: null };
+    return {
+      single: async () => ({
+        data: { loyalty_stamps: state.stamps, free_drinks: state.free },
+        error: null,
+      }),
+    };
   },
 };`
   );
@@ -112,12 +117,12 @@ export const supabase = {
   copyFileSync(resolve(dir, '../../src/services/loyalty.js'), resolve(svcDir, 'loyalty.js'));
   const { checkoutLoyalty } = await import('../src/services/loyalty.js');
   const log = mock.method(console, 'log');
-  let res = await checkoutLoyalty('u1', 'o1', 5, 0);
-  assert.equal(res.data?.loyalty_stamps, 5);
-  assert.equal(res.data?.free_drinks, 0);
-  res = await checkoutLoyalty('u1', 'o2', 4, 0);
-  assert.equal(res.data?.loyalty_stamps, 1);
-  assert.equal(res.data?.free_drinks, 1);
+    let { data } = await checkoutLoyalty('u1', 'o1', 5, 0);
+    assert.equal(data?.loyalty_stamps, 5);
+    assert.equal(data?.free_drinks, 0);
+    ({ data } = await checkoutLoyalty('u1', 'o2', 4, 0));
+    assert.equal(data?.loyalty_stamps, 1);
+    assert.equal(data?.free_drinks, 1);
   assert.ok(
     log.mock.calls.some((c) => String(c.arguments[0]).includes('new free drinks: 1'))
   );
