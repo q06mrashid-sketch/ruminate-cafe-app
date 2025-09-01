@@ -57,9 +57,9 @@ async function loadScanner() {
                 } else if(content.startsWith('voucher:')){
                   const voucher_code=content.slice('voucher:'.length);
                   try {
-                    const ok = await redeemVoucher(voucher_code, refreshStats);
-                    if (!ok) {
-                      showToast('Invalid voucher');
+                    const { success, message } = await redeemVoucher(voucher_code, refreshStats);
+                    if (!success) {
+                      showToast(message || 'Invalid voucher');
                       return;
                     }
                     const { data: res } = await supabase.functions.invoke('member-lookup',{ body:{ voucher_code } });
