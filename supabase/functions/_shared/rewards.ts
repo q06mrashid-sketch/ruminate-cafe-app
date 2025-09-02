@@ -39,24 +39,18 @@ export async function normalizeRewards(admin: SupabaseClient, userId: string) {
   const currentStamps = Number(profile?.loyalty_stamps ?? 0);
   const currentFree = Number(profile?.free_drinks ?? 0);
 
-  // Sum all earned stamps
-  const { data: stampAgg, error: stampsErr } = await admin
-    .from("loyalty_stamps")
-    .select("sum(stamps)")
+  // Sum all earned stamps and vouchers redeemed from ledger
+  const { data: txAgg, error: txErr } = await admin
+    .from("loyalty_tx")
+    .select("sum(stamps_awarded) as stamps, sum(vouchers_redeemed) as redeemed")
     .eq("user_id", userId);
-  if (stampsErr) throw stampsErr;
-  const totalEarned = Number(stampAgg?.[0]?.sum ?? 0);
-
-  // Sum all redeemed free drinks to avoid double counting
-  const { data: redeemAgg, error: redeemErr } = await admin
-    .from("orders")
-    .select("sum(free_drinks_redeemed)")
-    .eq("user_id", userId);
-  if (redeemErr) throw redeemErr;
-  const redeemed = Number(redeemAgg?.[0]?.sum ?? 0);
+  if (txErr) throw txErr;
+  const awarded = Number(txAgg?.[0]?.stamps ?? 0);
+  const spent = Number(txAgg?.[0]?.redeemed ?? 0);
+  const totalEarned = Math.max(0, awarded - spent * 8);
 
   // Determine new stamps to apply beyond those already recorded on the profile
-  const processed = currentStamps + (currentFree + redeemed) * 8;
+  const processed = currentStamps + currentFree * 8;
   const pending = Math.max(0, totalEarned - processed);
 
   // Convert new stamps into vouchers
