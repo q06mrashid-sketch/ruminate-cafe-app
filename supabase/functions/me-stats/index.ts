@@ -1,5 +1,4 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { normalizeRewards } from '../_shared/rewards.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -23,7 +22,30 @@ Deno.serve(async (req) => {
     const userId = auth.user.id;
 
     const db = createClient(url, service, { auth: { persistSession: false } });
-    const { loyaltyStamps, vouchers } = await normalizeRewards(db, userId);
+
+    // Determine profiles primary key (id vs user_id)
+    let pk = 'id';
+    const { error: userIdErr } = await db
+      .from('profiles')
+      .select('user_id')
+      .limit(1);
+    if (!userIdErr) {
+      pk = 'user_id';
+    } else {
+      const { error: idErr } = await db.from('profiles').select('id').limit(1);
+      if (idErr) throw idErr;
+    }
+
+    // Fetch current rewards from profile
+    const { data: profile, error: profileErr } = await db
+      .from('profiles')
+      .select('loyalty_stamps, free_drinks')
+      .eq(pk, userId)
+      .single();
+    if (profileErr) throw profileErr;
+
+    const loyaltyStamps = Number(profile?.loyalty_stamps ?? 0);
+    const vouchers = Number(profile?.free_drinks ?? 0);
 
     return new Response(JSON.stringify({ loyaltyStamps, vouchers }), {
       headers: { 'content-type': 'application/json' },
