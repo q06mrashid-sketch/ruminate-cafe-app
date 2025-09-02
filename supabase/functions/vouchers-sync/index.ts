@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { normalizeRewards } from "../_shared/rewards.ts";
+import { getProfileRewards } from "../_shared/rewards.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -23,7 +23,7 @@ serve(async (req: Request) => {
   const { data: { user } } = await auth.auth.getUser();
   if (!user) return new Response("Unauthorized", { status: 401, headers: cors() });
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-  const stats = await normalizeRewards(admin, user.id);
+  const stats = await getProfileRewards(admin, user.id);
 
   return new Response(
     JSON.stringify({ vouchers: stats.vouchers }),
