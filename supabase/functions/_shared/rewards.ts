@@ -40,20 +40,20 @@ export async function normalizeRewards(admin: SupabaseClient, userId: string) {
   const currentFree = Number(profile?.free_drinks ?? 0);
 
   // Sum all earned stamps
-  const { data: stampRows, error: stampsErr } = await admin
+  const { data: stampAgg, error: stampsErr } = await admin
     .from("loyalty_stamps")
-    .select("stamps")
+    .select("sum(stamps)")
     .eq("user_id", userId);
   if (stampsErr) throw stampsErr;
-  const totalEarned = (stampRows ?? []).reduce((sum, r) => sum + Number(r?.stamps ?? 0), 0);
+  const totalEarned = Number(stampAgg?.[0]?.sum ?? 0);
 
   // Sum all redeemed free drinks to avoid double counting
-  const { data: redeemRows, error: redeemErr } = await admin
+  const { data: redeemAgg, error: redeemErr } = await admin
     .from("orders")
-    .select("free_drinks_redeemed")
+    .select("sum(free_drinks_redeemed)")
     .eq("user_id", userId);
   if (redeemErr) throw redeemErr;
-  const redeemed = (redeemRows ?? []).reduce((sum, r) => sum + Number(r?.free_drinks_redeemed ?? 0), 0);
+  const redeemed = Number(redeemAgg?.[0]?.sum ?? 0);
 
   // Determine new stamps to apply beyond those already recorded on the profile
   const processed = currentStamps + (currentFree + redeemed) * 8;

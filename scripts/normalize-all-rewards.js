@@ -26,19 +26,19 @@ const { error: userIdColErr } = await supabase.from('profiles').select('user_id'
 if (!userIdColErr) pk = 'user_id';
 
   for (const uid of userIds) {
-    const { data: stampRows, error: stampsErr } = await supabase
+    const { data: stampAgg, error: stampsErr } = await supabase
       .from('loyalty_stamps')
-      .select('stamps')
+      .select('sum(stamps)')
       .eq('user_id', uid);
     if (stampsErr) throw stampsErr;
-    const totalEarned = (stampRows ?? []).reduce((sum, r) => sum + Number(r?.stamps ?? 0), 0);
+    const totalEarned = Number(stampAgg?.[0]?.sum ?? 0);
 
-    const { data: redeemRows, error: redeemErr } = await supabase
+    const { data: redeemAgg, error: redeemErr } = await supabase
       .from('orders')
-      .select('free_drinks_redeemed')
+      .select('sum(free_drinks_redeemed)')
       .eq('user_id', uid);
     if (redeemErr) throw redeemErr;
-    const redeemed = (redeemRows ?? []).reduce((sum, r) => sum + Number(r?.free_drinks_redeemed ?? 0), 0);
+    const redeemed = Number(redeemAgg?.[0]?.sum ?? 0);
 
     const availableStamps = Math.max(0, totalEarned - redeemed * 8);
     const { vouchersEarned: freebies, stampsRemainder } = applyStampAccrual(0, availableStamps);
