@@ -35,7 +35,7 @@ export default function MembershipScreen({ navigation }) {
   const [summary, setSummary] = useState({ signedIn: false, tier: 'free', status: 'none', next_billing_at: null });
   const [pifSelfCents, setPifSelfCents] = useState(0);
   const { stats, refreshStats } = useContext(StatsContext);
-  const vouchersKey = Array.isArray(stats?.vouchers) ? stats.vouchers.join(',') : '';
+  const vouchersKey = String(stats?.vouchers ?? 0);
   const [memberPayload, setMemberPayload] = useState('ruminate:member');
   const [page, setPage] = useState(0);
   const [user, setUser] = useState(null);
@@ -43,17 +43,17 @@ export default function MembershipScreen({ navigation }) {
   const pagerRef = useRef(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  const vouchers = React.useMemo(() => {
-    if (Array.isArray(stats?.vouchers)) {
-      return stats.vouchers.map((code) => ({
-        id: code,
-        code,
+  const voucherCount = Number(stats?.vouchers ?? 0);
+  const vouchers = React.useMemo(
+    () =>
+      Array.from({ length: voucherCount }, (_, i) => ({
+        id: String(i),
+        code: null,
         used: false,
         expiresAt: null,
-      }));
-    }
-    return [];
-  }, [vouchersKey]);
+      })),
+    [voucherCount]
+  );
 
   const isExpired = React.useCallback((iso) => {
     if (!iso) return false;
@@ -62,7 +62,7 @@ export default function MembershipScreen({ navigation }) {
 
   const visibleVouchers = React.useMemo(
     () => vouchers.filter(v => !v.used && !isExpired(v.expiresAt)),
-    [vouchers, isExpired, vouchersKey]
+    [vouchers, isExpired, voucherCount]
   );
 
   const pageCount = 1 + visibleVouchers.length;
@@ -133,7 +133,7 @@ export default function MembershipScreen({ navigation }) {
 
   useEffect(() => {
     const prev = prevFreebies.current;
-    const curr = stats?.vouchers?.length ?? 0;
+    const curr = Number(stats?.vouchers ?? 0);
     if (curr - prev === 1) {
       Alert.alert('Free drink earned', 'A free drink voucher has been added to your account.');
       setNotice("You've earned a free drink!");
@@ -143,7 +143,7 @@ export default function MembershipScreen({ navigation }) {
     }
     prevFreebies.current = curr;
     if (curr === 0) setNotice('');
-  }, [stats?.vouchers?.length]);
+  }, [stats?.vouchers]);
 
   const handleAddToWallet = useCallback(async () => {
     try {
@@ -161,7 +161,7 @@ export default function MembershipScreen({ navigation }) {
       <View style={[styles.header, { paddingTop: insets.top }]}><Text style={styles.headerTitle}>Membership</Text></View>
       <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />} contentContainerStyle={styles.content}>
         <Text style={styles.title}>Membership</Text>
-        {notice && (stats?.vouchers?.length ?? 0) > 0 ? (
+        {notice && Number(stats?.vouchers ?? 0) > 0 ? (
           <Text style={styles.notice}>{notice}</Text>
         ) : null}
 
@@ -222,7 +222,7 @@ export default function MembershipScreen({ navigation }) {
               )}
             </View>
 
-            {(summary.tier === 'paid' || (stats?.vouchers?.length ?? 0) > 0) && (
+            {(summary.tier === 'paid' || Number(stats?.vouchers ?? 0) > 0) && (
               <View style={{ marginTop: 14 }}>
                 <FreeDrinksCounter />
               </View>

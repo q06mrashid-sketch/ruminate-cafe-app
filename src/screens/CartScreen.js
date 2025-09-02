@@ -18,13 +18,13 @@ import { checkoutLoyalty } from '../services/loyalty';
 
 export default function CartScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const { stats = { vouchers: [] }, refreshStats, setStats } =
+  const { stats = { vouchers: 0 }, refreshStats, setStats } =
     useContext(StatsContext) || {
-      stats: { vouchers: [] },
+      stats: { vouchers: 0 },
       refreshStats: async () => {},
       setStats: () => {},
     };
-  const freeDrinks = stats?.vouchers?.length ?? 0;
+  const freeDrinks = Number(stats?.vouchers ?? 0);
   const { setHasOrders, refreshOrdersPresence } = useOrdersPresence();
 
   const showToast = (msg) => {

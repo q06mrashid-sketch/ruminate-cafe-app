@@ -136,7 +136,7 @@ export default function HomeScreen({ navigation }) {
               <LoyaltyStampTile count={stats.loyaltyStamps} />
             </View>
 
-            {(member?.tier === 'paid' || (stats.vouchers?.length ?? 0) > 0) && (
+            {(member?.tier === 'paid' || Number(stats.vouchers ?? 0) > 0) && (
                 <View style={{ marginTop: 16 }}>
                   <FreeDrinksCounter />
                 </View>

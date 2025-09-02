@@ -58,7 +58,7 @@ export default function MembershipSignedInPanel({ summary, stats, user }) {
         <View style={styles.gridRow}>
           <Stat
             label="Free drinks left"
-            value={stats.vouchers?.length ?? 0}
+            value={Number(stats.vouchers ?? 0)}
           />
           <Stat
             label="Dividends pending"

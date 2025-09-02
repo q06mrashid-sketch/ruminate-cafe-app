@@ -33,12 +33,11 @@ serve(async (req: Request) => {
     .maybeSingle();
 
   const count = Number(profile?.free_drinks ?? 0);
-  const vouchers = Array.from({ length: count }, () => `ruminate:voucher:${crypto.randomUUID()}`);
 
   return new Response(
     JSON.stringify({
       payload: `ruminate:member:${member_uuid}`,
-      vouchers,
+      free_drinks: count,
     }),
     { headers: { ...cors(), "content-type": "application/json" } }
   );
