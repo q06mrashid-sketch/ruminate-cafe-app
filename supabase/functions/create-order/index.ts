@@ -1,11 +1,9 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { normalizeRewards } from "../_shared/rewards.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const FUNCTIONS_URL = Deno.env.get("FUNCTIONS_URL")!;
 
 type MenuItem = { price: number; hot: boolean };
 const MENU: Record<string, MenuItem> = {
@@ -44,6 +42,7 @@ serve(async (req) => {
   const syrupShots = Number(body.syrupShots) || 0;
   const payItForward = Number(body.payItForward) || 0;
   const voucherCodes: string[] = Array.isArray(body.voucherCodes) ? body.voucherCodes : [];
+  const redeemCount = voucherCodes.length;
   const timeslot = typeof body.timeslot === "string" ? body.timeslot : null;
 
   let total = 0;
@@ -62,19 +61,7 @@ serve(async (req) => {
   total += SYRUP_PRICE * syrupShots;
   total += PIF_PRICE * payItForward;
 
-  for (const code of voucherCodes) {
-    const res = await fetch(`${FUNCTIONS_URL}/voucher-redeem`, {
-      method: "POST",
-      headers: { "content-type": "application/json", Authorization: authHeader },
-      body: JSON.stringify({ code }),
-    });
-    const j = await res.json().catch(() => null);
-    if (!res.ok || !j?.success) {
-      return new Response(JSON.stringify({ error: `voucher ${code} failed` }), { status: 400, headers: { ...cors(), "content-type": "application/json" } });
-    }
-  }
-
-  total -= VOUCHER_VALUE * voucherCodes.length;
+  total -= VOUCHER_VALUE * redeemCount;
   if (total < 0) total = 0;
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
@@ -133,10 +120,14 @@ serve(async (req) => {
     await admin.from("pif_ledger").insert({ type: "purchase", count: payItForward, source_order_id: orderId });
   }
 
-  if (hotCount > 0) {
-    await admin.from("loyalty_stamps").insert({ user_id: user.id, stamps: hotCount });
+  if (hotCount > 0 || redeemCount > 0) {
+    await admin.rpc("checkout_loyalty", {
+      p_user: user.id,
+      p_order_id: orderId,
+      p_add_stamps: hotCount,
+      p_redeem: redeemCount,
+    });
   }
-  await normalizeRewards(admin, user.id);
 
   return new Response(JSON.stringify({ orderId, pickup_code, total_cents: total }), {
     status: 200,

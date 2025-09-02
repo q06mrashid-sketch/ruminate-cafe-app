@@ -90,7 +90,7 @@ test('awardStamps rollover with idempotency', () => {
   assert.deepEqual(profile, { stamps: 2, freebies: 1 });
 });
 
-test('awardStamps caps stamps at 7 and increments free drinks', { concurrency: false }, async () => {
+test('checkoutLoyalty caps stamps at 7 and increments free drinks', { concurrency: false }, async () => {
   const dir = dirname(fileURLToPath(import.meta.url));
   const libDir = resolve(dir, '../src/lib');
   mkdirSync(libDir, { recursive: true });
@@ -99,13 +99,16 @@ test('awardStamps caps stamps at 7 and increments free drinks', { concurrency: f
     `export const hasSupabase = true;
 const state = { stamps: 0, free: 0 };
 export const supabase = {
-  rpc: (_fn, { p_add }) => {
-    const total = state.stamps + p_add;
+  rpc: (_fn, { p_add_stamps, p_redeem }) => {
+    const add = Number(p_add_stamps || 0);
+    const redeem = Math.min(Number(p_redeem || 0), state.free);
+    state.free -= redeem;
+    const total = state.stamps + add;
     state.free += Math.floor(total / 8);
     state.stamps = total % 8;
     return {
       maybeSingle: async () => ({
-        data: { o_loyalty_stamps: state.stamps, o_free_drinks: state.free },
+        data: { loyalty_stamps: state.stamps, free_drinks: state.free },
         error: null,
       }),
     };
@@ -114,37 +117,15 @@ export const supabase = {
   );
   const svcDir = resolve(dir, '../src/services');
   mkdirSync(svcDir, { recursive: true });
-  writeFileSync(
-    resolve(svcDir, 'loyalty.js'),
-    `import { supabase, hasSupabase } from '../lib/supabase.js';
-export async function awardStamps(p_user, p_order_id, p_add){
-  if(!hasSupabase || !supabase) return { data: null, error: new Error('no supabase') };
-  try {
-    const { data: rawData, error } = await supabase
-      .rpc('award_stamps', { p_user, p_order_id, p_add })
-      .maybeSingle();
-    const data = rawData ?? { o_loyalty_stamps: 0, o_free_drinks: 0 };
-    if(!error){
-      console.log(
-        \`[LOYALTY] awarding: +\${p_add} stamp(s); new free drinks: \${data.o_free_drinks}; loyalty stamps: \${data.o_loyalty_stamps}\`
-      );
-      console.assert(data.o_loyalty_stamps <= 7, 'o_loyalty_stamps exceeded 7');
-    }
-    return { data, error };
-  } catch(error){
-    return { data: null, error };
-  }
-}
-`
-  );
-  const { awardStamps } = await import('../src/services/loyalty.js');
+  copyFileSync(resolve(dir, '../../src/services/loyalty.js'), resolve(svcDir, 'loyalty.js'));
+  const { checkoutLoyalty } = await import('../src/services/loyalty.js');
   const log = mock.method(console, 'log');
-  let { data } = await awardStamps('u1', 'o1', 5);
-  assert.equal(data?.o_loyalty_stamps, 5);
-  assert.equal(data?.o_free_drinks, 0);
-  ({ data } = await awardStamps('u1', 'o2', 4));
-  assert.equal(data?.o_loyalty_stamps, 1);
-  assert.equal(data?.o_free_drinks, 1);
+  let { data } = await checkoutLoyalty('u1', 'o1', 5, 0);
+  assert.equal(data?.loyalty_stamps, 5);
+  assert.equal(data?.free_drinks, 0);
+  ({ data } = await checkoutLoyalty('u1', 'o2', 4, 0));
+  assert.equal(data?.loyalty_stamps, 1);
+  assert.equal(data?.free_drinks, 1);
   assert.ok(
     log.mock.calls.some((c) => String(c.arguments[0]).includes('new free drinks: 1'))
   );
