@@ -55,17 +55,16 @@ async function loadScanner() {
                   const { data: res } = await supabase.functions.invoke('member-lookup',{ body:{ member_uuid } });
                   setInfo(res);
                 } else if(content.startsWith('voucher:')){
-                  const voucher_code=content.slice('voucher:'.length);
                   try {
-                    const { success, message } = await redeemVoucher(voucher_code, refreshStats);
+                    const { success, message } = await redeemVoucher(refreshStats);
                     if (!success) {
                       showToast(message || 'Invalid voucher');
                       return;
                     }
-                    const { data: res } = await supabase.functions.invoke('member-lookup',{ body:{ voucher_code } });
-                    setInfo(res);
+                    showToast('Voucher redeemed');
+                    setInfo(null);
                   } catch {
-                    showToast('Failed to refresh stats');
+                    showToast('Failed to redeem voucher');
                   }
                 }
               } catch(err){ console.log('lookup failed', err); }

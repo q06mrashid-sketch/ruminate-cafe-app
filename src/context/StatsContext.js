@@ -6,8 +6,8 @@ import { markLoaded } from '../boot/loadingSignals';
 import { supabase } from '../lib/supabase';
 
 export const StatsContext = createContext({
-  stats: { loyaltyStamps: 0, vouchers: [], freebiesLeft: 0 },
-  refreshStats: async () => ({ loyaltyStamps: 0, vouchers: [], freebiesLeft: 0 }),
+  stats: { loyaltyStamps: 0, vouchers: 0, freebiesLeft: 0 },
+  refreshStats: async () => ({ loyaltyStamps: 0, vouchers: 0, freebiesLeft: 0 }),
   setStats: () => {},
 });
 
@@ -15,26 +15,24 @@ export function StatsProvider({ children }) {
 
   const initialRaw = globalThis.preloaded?.stats || {
     loyaltyStamps: 0,
-    vouchers: [],
+    vouchers: 0,
   };
   const initial = {
     loyaltyStamps: Number(initialRaw.loyaltyStamps) || 0,
-    vouchers: Array.isArray(initialRaw.vouchers)
-      ? initialRaw.vouchers.filter(Boolean)
-      : [],
+    vouchers: Number(initialRaw.vouchers) || 0,
   };
-  initial.freebiesLeft = initial.vouchers.length;
+  initial.freebiesLeft = initial.vouchers;
 
   const [stats, setStatsState] = useState(initial);
   const statsRef = useRef(initial);
 
   const applyStats = useCallback((s) => {
 
-    const vouchers = Array.isArray(s.vouchers) ? s.vouchers.filter(Boolean) : [];
+    const vouchers = Number(s.vouchers) || 0;
     const next = {
       loyaltyStamps: Number(s.loyaltyStamps) || 0,
       vouchers,
-      freebiesLeft: vouchers.length,
+      freebiesLeft: vouchers,
     };
     statsRef.current = next;
     setStatsState(next);
@@ -60,12 +58,12 @@ export function StatsProvider({ children }) {
         );
         s.loyaltyStamps = stampsRemainder;
         if (vouchersEarned > 0) {
-          s.vouchers = Array.isArray(s.vouchers) ? s.vouchers : [];
+          s.vouchers = Number(s.vouchers) || 0;
         }
       }
       const decorated = {
         ...s,
-        freebiesLeft: Array.isArray(s.vouchers) ? s.vouchers.length : 0,
+        freebiesLeft: Number(s.vouchers) || 0,
       };
       applyStats(decorated);
       markLoaded('stamps');
@@ -80,7 +78,7 @@ export function StatsProvider({ children }) {
 
   useEffect(() => {
     if (!supabase?.auth) return;
-    const zero = { loyaltyStamps: 0, vouchers: [] };
+    const zero = { loyaltyStamps: 0, vouchers: 0 };
     const sub = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!session?.user) {
         applyStats(zero);

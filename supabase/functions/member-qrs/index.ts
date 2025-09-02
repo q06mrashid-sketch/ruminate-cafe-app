@@ -34,29 +34,12 @@ serve(async (req: Request) => {
 
   const count = Number(profile?.free_drinks ?? 0);
 
-  const { data: existing } = await admin
-    .from("vouchers")
-    .select("code")
-    .eq("user_id", member_uuid)
-    .eq("redeemed", false);
 
-  const codes = existing?.map((v) => v.code) ?? [];
-
-  if (codes.length < count) {
-    const toCreate = count - codes.length;
-    const newCodes = Array.from({ length: toCreate }, () => `ruminate:voucher:${crypto.randomUUID()}`);
-    await admin
-      .from("vouchers")
-      .insert(newCodes.map((code) => ({ code, user_id: member_uuid }))); 
-    codes.push(...newCodes);
-  }
-
-  const vouchers = codes.slice(0, count);
 
   return new Response(
     JSON.stringify({
       payload: `ruminate:member:${member_uuid}`,
-      vouchers,
+      free_drinks: count,
     }),
     { headers: { ...cors(), "content-type": "application/json" } }
   );

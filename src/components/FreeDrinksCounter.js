@@ -7,7 +7,7 @@ import { StatsContext } from '../context/StatsContext';
 
 export default function FreeDrinksCounter() {
   const { stats } = useContext(StatsContext);
-  const count = Math.max(0, Number(stats?.vouchers?.length || 0));
+  const count = Math.max(0, Number(stats?.vouchers || 0));
   const limit = 3;
   const ratio = Math.max(0, Math.min(1, count / limit));
   const size = 64;
