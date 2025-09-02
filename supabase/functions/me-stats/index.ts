@@ -23,9 +23,9 @@ Deno.serve(async (req) => {
     const userId = auth.user.id;
 
     const db = createClient(url, service, { auth: { persistSession: false } });
-    const stats = await normalizeRewards(db, userId);
+    const { loyaltyStamps, vouchers } = await normalizeRewards(db, userId);
 
-    return new Response(JSON.stringify(stats), {
+    return new Response(JSON.stringify({ loyaltyStamps, vouchers }), {
       headers: { 'content-type': 'application/json' },
     });
   } catch (e) {

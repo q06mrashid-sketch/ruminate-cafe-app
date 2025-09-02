@@ -12,63 +12,7 @@ export function applyStampAccrual(prevStamps: number, delta: number) {
 
 export async function normalizeRewards(admin: SupabaseClient, userId: string) {
 
-  const { data: stampAgg, error: stampErr } = await admin
-    .from("loyalty_stamps")
-    .select("sum:stamps")
-    .eq("user_id", userId)
-    .single();
-  if (stampErr) throw stampErr;
-  const totalStamps = stampAgg?.sum ?? 0;
-
-  let { data: unredeemed, error: unredeemedErr } = await admin
-    .from("drink_vouchers")
-    .select("code")
-    .eq("user_id", userId)
-    .eq("redeemed", false)
-    .order("created_at", { ascending: false });
-  if (unredeemedErr) throw unredeemedErr;
-
-
-  const { vouchersEarned, stampsRemainder } = applyStampAccrual(0, totalStamps);
-
-  if (vouchersEarned > 0) {
-    const inserts = Array.from({ length: vouchersEarned }, () => ({
-
-      user_id: userId,
-      code: crypto.randomUUID(),
-    }));
-
-    const { error: insertErr } = await admin.from("drink_vouchers").insert(inserts);
-    if (insertErr) throw insertErr;
-
-    const { data: refreshed, error: refreshErr } = await admin
-      .from("drink_vouchers")
-      .select("code")
-      .eq("user_id", userId)
-      .eq("redeemed", false)
-      .order("created_at", { ascending: false });
-    if (refreshErr) throw refreshErr;
-    unredeemed = refreshed ?? [];
-  }
-
-
-  if (totalStamps !== stampsRemainder) {
-
-    const { error: delErr } = await admin
-      .from("loyalty_stamps")
-      .delete()
-      .eq("user_id", userId);
-    if (delErr) throw delErr;
-    if (stampsRemainder > 0) {
-      const { error: insErr } = await admin
-        .from("loyalty_stamps")
-        .insert({ user_id: userId, stamps: stampsRemainder });
-
-      if (insErr) throw insErr;
-    }
-  }
-
-  // Sync aggregates to public.profiles.{loyalty_stamps, free_drinks}
+  // Determine profiles primary key column
   let pk = "id";
   const { error: userIdColErr } = await admin
     .from("profiles")
@@ -83,25 +27,41 @@ export async function normalizeRewards(admin: SupabaseClient, userId: string) {
       .limit(1);
     if (idColErr) throw idColErr;
   }
-  const { error: profileErr } = await admin
+
+  // Fetch current profile totals
+  const { data: profile, error: fetchErr } = await admin
+    .from("profiles")
+    .select("loyalty_stamps, free_drinks")
+    .eq(pk, userId)
+    .single();
+  if (fetchErr) throw fetchErr;
+
+  const currentStamps = Number(profile?.loyalty_stamps ?? 0);
+  const currentFree = Number(profile?.free_drinks ?? 0);
+
+  // Convert any excess stamps into free drinks
+  const { vouchersEarned, stampsRemainder } = applyStampAccrual(0, currentStamps);
+
+  const newFree = currentFree + vouchersEarned;
+
+  const { error: updateErr } = await admin
     .from("profiles")
     .update({
       loyalty_stamps: stampsRemainder,
-      free_drinks: unredeemed?.length ?? 0,
+      free_drinks: newFree,
     })
     .eq(pk, userId);
-  if (profileErr) throw profileErr;
+  if (updateErr) throw updateErr;
 
   console.log("[ME_STATS]", {
-    totalStamps,
+    totalStamps: currentStamps,
     vouchersEarned,
     remainder: stampsRemainder,
-    freebiesLeft: unredeemed?.length ?? 0,
+    freebiesLeft: newFree,
   });
 
   return {
     loyaltyStamps: stampsRemainder,
-    freebiesLeft: unredeemed?.length ?? 0,
-    vouchers: (unredeemed ?? []).map(v => v.code),
+    vouchers: newFree,
   };
 }
