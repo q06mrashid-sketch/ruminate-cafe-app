@@ -26,17 +26,19 @@ serve(async (req: Request) => {
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-  // fetch existing unredeemed vouchers
-  const { data: vouchers } = await admin
-    .from("drink_vouchers")
-    .select("code")
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("free_drinks")
     .eq("user_id", member_uuid)
-    .eq("redeemed", false);
+    .maybeSingle();
+
+  const count = Number(profile?.free_drinks ?? 0);
+  const vouchers = Array.from({ length: count }, () => `ruminate:voucher:${crypto.randomUUID()}`);
 
   return new Response(
     JSON.stringify({
       payload: `ruminate:member:${member_uuid}`,
-      vouchers: (vouchers ?? []).map((v) => `ruminate:voucher:${v.code}`),
+      vouchers,
     }),
     { headers: { ...cors(), "content-type": "application/json" } }
   );

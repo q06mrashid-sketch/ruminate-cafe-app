@@ -157,7 +157,7 @@ test('specials items are treated as drinks and award stamps', { concurrency: fal
   mkdirSync(libDir, { recursive: true });
   writeFileSync(
     resolve(libDir, 'supabase.js'),
-    'export const hasSupabase = true; export const supabase = {};',
+    "export const hasSupabase = true; export const supabase = { from: () => ({ insert: () => ({ select: () => ({ single: async () => ({ data: { id: 'o1' }, error: null }) }) }) }) };",
   );
   // @ts-ignore
   const { isDrinkItem } = await import('../../src/utils/isDrinkItem.js');
