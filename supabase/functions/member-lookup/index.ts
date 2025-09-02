@@ -28,10 +28,18 @@ serve(async (req: Request) => {
 
   let uuid = member_uuid;
   if (!uuid && voucher_code) {
-    return new Response(JSON.stringify({ error: "voucher codes deprecated" }), {
-      status: 400,
-      headers: { ...cors(), "content-type": "application/json" },
-    });
+    const { data: v } = await admin
+      .from("vouchers")
+      .select("user_id")
+      .eq("code", voucher_code)
+      .maybeSingle();
+    if (!v) {
+      return new Response(JSON.stringify({ error: "voucher not found" }), {
+        status: 400,
+        headers: { ...cors(), "content-type": "application/json" },
+      });
+    }
+    uuid = v.user_id;
   }
 
   const { data: profile } = await admin.from("profiles").select("tier").eq("user_id", uuid).maybeSingle();
