@@ -22,22 +22,38 @@ serve(async (req: Request) => {
   const { data: { user } } = await auth.auth.getUser();
   if (!user) return new Response("Unauthorized", { status: 401, headers: cors() });
 
-  let body: any = {};
-  try { body = await req.json(); } catch {}
-  const code = body?.code as string | undefined;
-  if (!code) {
-    return new Response(JSON.stringify({ success: false, error: "code required" }), { status: 400, headers: { ...cors(), "content-type": "application/json" } });
+  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  let pk = "id";
+  const { error: userIdColErr } = await admin.from("profiles").select("user_id").limit(1);
+  if (!userIdColErr) {
+    pk = "user_id";
+  } else {
+    const { error: idColErr } = await admin.from("profiles").select("id").limit(1);
+    if (idColErr) throw idColErr;
   }
 
-  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-  const { data, error } = await admin
-    .from("drink_vouchers")
-    .update({ redeemed: true, redeemed_at: new Date().toISOString() })
-    .eq("code", code)
-    .eq("user_id", user.id)
-    .eq("redeemed", false)
-    .select("id");
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("free_drinks")
+    .eq(pk, user.id)
+    .single();
 
-  const success = !error && (data?.length ?? 0) > 0;
-  return new Response(JSON.stringify({ success }), { status: success ? 200 : 400, headers: { ...cors(), "content-type": "application/json" } });
+  const freebies = profile?.free_drinks ?? 0;
+  if (freebies <= 0) {
+    return new Response(JSON.stringify({ success: false }), {
+      status: 400,
+      headers: { ...cors(), "content-type": "application/json" },
+    });
+  }
+
+  await admin
+    .from("profiles")
+    .update({ free_drinks: freebies - 1 })
+    .eq(pk, user.id);
+
+  return new Response(JSON.stringify({ success: true }), {
+    status: 200,
+    headers: { ...cors(), "content-type": "application/json" },
+  });
 });

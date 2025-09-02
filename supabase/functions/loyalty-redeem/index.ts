@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { applyStampAccrual, normalizeRewards } from "../_shared/rewards.ts";
+import { applyStampAccrual } from "../_shared/rewards.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -24,12 +24,26 @@ serve(async (req: Request) => {
   if (!user) return new Response("Unauthorized", { status: 401, headers: cors() });
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-  const { data: stampRows } = await admin
-    .from("loyalty_stamps")
-    .select("id, stamps")
-    .eq("user_id", user.id);
-  const total = (stampRows ?? []).reduce((sum, r) => sum + (r.stamps || 0), 0);
+
+  let pk = "id";
+  const { error: userIdColErr } = await admin.from("profiles").select("user_id").limit(1);
+  if (!userIdColErr) {
+    pk = "user_id";
+  } else {
+    const { error: idColErr } = await admin.from("profiles").select("id").limit(1);
+    if (idColErr) throw idColErr;
+  }
+
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("loyalty_stamps, free_drinks")
+    .eq(pk, user.id)
+    .single();
+
+  const total = profile?.loyalty_stamps ?? 0;
+  const currentFree = profile?.free_drinks ?? 0;
   const { vouchersEarned, stampsRemainder } = applyStampAccrual(0, total);
+
   if (vouchersEarned === 0) {
     return new Response(JSON.stringify({ success: false }), {
       status: 200,
@@ -37,18 +51,13 @@ serve(async (req: Request) => {
     });
   }
 
-  await admin.from("loyalty_stamps").delete().eq("user_id", user.id);
-  if (stampsRemainder > 0) {
-    await admin.from("loyalty_stamps").insert({ user_id: user.id, stamps: stampsRemainder });
-  }
-
-  const voucherRows = Array.from({ length: vouchersEarned }, () => ({
-    user_id: user.id,
-    code: crypto.randomUUID(),
-  }));
-  await admin.from("drink_vouchers").insert(voucherRows);
-
-  await normalizeRewards(admin, user.id);
+  await admin
+    .from("profiles")
+    .update({
+      loyalty_stamps: stampsRemainder,
+      free_drinks: currentFree + vouchersEarned,
+    })
+    .eq(pk, user.id);
 
   return new Response(JSON.stringify({ success: true }), {
     status: 200,

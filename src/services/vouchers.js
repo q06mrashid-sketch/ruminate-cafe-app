@@ -12,14 +12,14 @@ export async function syncVouchers() {
   }
 }
 
-export async function redeemVoucher(code, refreshStats) {
+export async function redeemVoucher(_code, refreshStats) {
   if (!hasSupabase || !supabase) return { success: false, message: 'Redeem service unavailable' };
-  const { data, error } = await supabase.functions.invoke('voucher-redeem', { body: { code } });
+  const { data, error } = await supabase.functions.invoke('voucher-redeem', { body: {} });
   const success = !error && (data?.success ?? false);
   if (success) {
     // Loyalty values change after redemption; bypass any cached stats
     await refreshStats?.(true);
     return { success: true };
   }
-  return { success: false, message: 'Invalid or already redeemed voucher' };
+  return { success: false, message: 'No vouchers available' };
 }
