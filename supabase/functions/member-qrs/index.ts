@@ -34,6 +34,8 @@ serve(async (req: Request) => {
 
   const count = Number(profile?.free_drinks ?? 0);
 
+
+
   return new Response(
     JSON.stringify({
       payload: `ruminate:member:${member_uuid}`,
