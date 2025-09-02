@@ -113,6 +113,7 @@ export const supabase = {
       }),
     };
   },
+  from: () => ({ insert: () => ({ select: () => ({ single: async () => ({ data: { id: 'o1' }, error: null }) }) }) })
 };`
   );
   const svcDir = resolve(dir, '../src/services');

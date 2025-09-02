@@ -25,29 +25,32 @@ let pk = 'id';
 const { error: userIdColErr } = await supabase.from('profiles').select('user_id').limit(1);
 if (!userIdColErr) pk = 'user_id';
 
-for (const uid of userIds) {
-  const { data: profile, error: profileErr } = await supabase
-    .from('profiles')
-    .select('loyalty_stamps, free_drinks')
-    .eq(pk, uid)
-    .maybeSingle();
-  if (profileErr) throw profileErr;
+  for (const uid of userIds) {
+    const { data: stampRows, error: stampsErr } = await supabase
+      .from('loyalty_stamps')
+      .select('stamps')
+      .eq('user_id', uid);
+    if (stampsErr) throw stampsErr;
+    const totalEarned = (stampRows ?? []).reduce((sum, r) => sum + Number(r?.stamps ?? 0), 0);
 
-  const currentStamps = profile?.loyalty_stamps ?? 0;
-  const currentFree = profile?.free_drinks ?? 0;
+    const { data: redeemRows, error: redeemErr } = await supabase
+      .from('orders')
+      .select('free_drinks_redeemed')
+      .eq('user_id', uid);
+    if (redeemErr) throw redeemErr;
+    const redeemed = (redeemRows ?? []).reduce((sum, r) => sum + Number(r?.free_drinks_redeemed ?? 0), 0);
 
-  const { vouchersEarned, stampsRemainder } = applyStampAccrual(currentStamps, 0);
+    const availableStamps = Math.max(0, totalEarned - redeemed * 8);
+    const { vouchersEarned: freebies, stampsRemainder } = applyStampAccrual(0, availableStamps);
 
-  if (vouchersEarned > 0 || stampsRemainder !== currentStamps) {
     const { error: updErr } = await supabase
       .from('profiles')
       .update({
         loyalty_stamps: stampsRemainder,
-        free_drinks: currentFree + vouchersEarned,
+        free_drinks: freebies,
       })
       .eq(pk, uid);
     if (updErr) throw updErr;
-  }
 
-  console.log(`[SCRIPT] Normalized rewards for user ${uid}`);
-}
+    console.log(`[SCRIPT] Normalized rewards for user ${uid}`);
+  }
