@@ -30,7 +30,8 @@ test('saveReceiptForUser logs source app', async () => {
     resolve(libDir, 'supabase.js'),
     "export const supabase = { from: () => ({ insert: () => ({ select: () => ({ single: async () => ({ data: { id: 'o1' }, error: null }) }) }) }) };"
   );
-  const { saveReceiptForUser } = await import('../src/services/orders.js');
+  // @ts-ignore
+  const { saveReceiptForUser } = await import('../src/services/orders.js?test');
 
   const log = mock.method(console, 'log');
   await saveReceiptForUser('u1', {
