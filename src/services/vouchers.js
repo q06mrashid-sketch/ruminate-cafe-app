@@ -12,9 +12,9 @@ export async function syncVouchers() {
   }
 }
 
-export async function redeemVoucher(_code, refreshStats) {
+export async function redeemVoucher(code, refreshStats) {
   if (!hasSupabase || !supabase) return { success: false, message: 'Redeem service unavailable' };
-  const { data, error } = await supabase.functions.invoke('voucher-redeem', { body: {} });
+  const { data, error } = await supabase.functions.invoke('voucher-redeem', { body: { voucher_code: code } });
   const success = !error && (data?.success ?? false);
   if (success) {
     // Loyalty values change after redemption; bypass any cached stats

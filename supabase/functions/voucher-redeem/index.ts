@@ -22,7 +22,28 @@ serve(async (req: Request) => {
   const { data: { user } } = await auth.auth.getUser();
   if (!user) return new Response("Unauthorized", { status: 401, headers: cors() });
 
+  const { voucher_code } = await req.json().catch(() => ({}));
+  if (!voucher_code) {
+    return new Response(JSON.stringify({ success: false, error: "voucher_code required" }), {
+      status: 400,
+      headers: { ...cors(), "content-type": "application/json" },
+    });
+  }
+
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  const { data: voucher } = await admin
+    .from("vouchers")
+    .select("user_id, redeemed")
+    .eq("code", voucher_code)
+    .maybeSingle();
+
+  if (!voucher || voucher.redeemed) {
+    return new Response(JSON.stringify({ success: false }), {
+      status: 400,
+      headers: { ...cors(), "content-type": "application/json" },
+    });
+  }
 
   let pk = "id";
   const { error: userIdColErr } = await admin.from("profiles").select("user_id").limit(1);
@@ -36,7 +57,7 @@ serve(async (req: Request) => {
   const { data: profile } = await admin
     .from("profiles")
     .select("free_drinks")
-    .eq(pk, user.id)
+    .eq(pk, voucher.user_id)
     .single();
 
   const freebies = profile?.free_drinks ?? 0;
@@ -50,7 +71,12 @@ serve(async (req: Request) => {
   await admin
     .from("profiles")
     .update({ free_drinks: freebies - 1 })
-    .eq(pk, user.id);
+    .eq(pk, voucher.user_id);
+
+  await admin
+    .from("vouchers")
+    .update({ redeemed: true, redeemed_at: new Date().toISOString() })
+    .eq("code", voucher_code);
 
   return new Response(JSON.stringify({ success: true }), {
     status: 200,
