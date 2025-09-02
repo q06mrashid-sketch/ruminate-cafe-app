@@ -4,7 +4,7 @@ import { getFunctionsUrl } from '../lib/config';
 export async function getMyStats() {
   try {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.access_token) return { loyaltyStamps: 0, vouchers: [] };
+    if (!session?.access_token) return { loyaltyStamps: 0, vouchers: 0 };
 
     const base = getFunctionsUrl();
     const url = `${base.replace(/\/$/, '')}/me-stats`;
@@ -24,18 +24,18 @@ export async function getMyStats() {
 
     if (!res.ok) {
       console.error('me-stats error', res.status, json);
-      return { loyaltyStamps: 0, vouchers: [] };
+      return { loyaltyStamps: 0, vouchers: 0 };
     }
     const result = {
       loyaltyStamps: Number(json?.loyaltyStamps ?? 0),
-      vouchers: Array.isArray(json?.vouchers) ? json.vouchers.filter(Boolean) : [],
+      vouchers: Number(json?.vouchers ?? 0),
     };
     console.log(
-      `[LOYALTY] stats received → stamps: ${result.loyaltyStamps}, free drinks: ${result.vouchers.length}`,
+      `[LOYALTY] stats received → stamps: ${result.loyaltyStamps}, free drinks: ${result.vouchers}`,
     );
     return result;
   } catch (e) {
     console.error('getMyStats failed', e);
-    return { loyaltyStamps: 0, vouchers: [] };
+    return { loyaltyStamps: 0, vouchers: 0 };
   }
 }
