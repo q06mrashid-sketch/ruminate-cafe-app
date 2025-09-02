@@ -39,11 +39,15 @@ async function getUserByEmailOrList(email) {
 const user = await getUserByEmailOrList(email);
 const uid = user.id;
 
-const { error: e1 } = await supabase.from('drink_vouchers').delete().eq('user_id', uid);
-if (e1) throw e1;
+let pk = 'id';
+const { error: userIdColErr } = await supabase.from('profiles').select('user_id').limit(1);
+if (!userIdColErr) pk = 'user_id';
 
-const { error: e2 } = await supabase.from('loyalty_stamps').delete().eq('user_id', uid);
-if (e2) throw e2;
+const { error } = await supabase
+  .from('profiles')
+  .update({ loyalty_stamps: 0, free_drinks: 0 })
+  .eq(pk, uid);
+if (error) throw error;
 
 console.log(`[SCRIPT] Reset free drinks and loyalty stamps for ${email}`);
 

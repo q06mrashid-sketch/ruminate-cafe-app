@@ -1,8 +1,6 @@
 #!/usr/bin/env node
 import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
-import crypto from 'node:crypto';
-import { applyStampAccrual } from '../src/utils/rewards.js';
 
 const [,, email, freeDrinksArg, stampsArg] = process.argv;
 if (!email) {
@@ -44,41 +42,14 @@ async function getUserByEmailOrList(email) {
 const user = await getUserByEmailOrList(email);
 const uid = user.id;
 
-let voucherRows = [];
-
-if (stampsToAdd > 0) {
-  const { vouchersEarned, stampsRemainder } = applyStampAccrual(0, stampsToAdd);
-  if (stampsRemainder > 0) {
-    const { error } = await supabase
-      .from('loyalty_stamps')
-      .insert([{ user_id: uid, stamps: stampsRemainder }], { returning: 'minimal' });
-    if (error) throw error;
-  }
-  if (vouchersEarned > 0) {
-    voucherRows.push(
-      ...Array.from({ length: vouchersEarned }, () => ({
-        user_id: uid,
-        code: crypto.randomUUID(),
-        redeemed: false,
-      }))
-    );
-  }
-}
-
-if (freeDrinksToAdd > 0) {
-  voucherRows.push(
-    ...Array.from({ length: freeDrinksToAdd }, () => ({
-      user_id: uid,
-      code: crypto.randomUUID(),
-      redeemed: false,
-    }))
-  );
-}
-
-if (voucherRows.length > 0) {
-  const { error } = await supabase
-    .from('drink_vouchers')
-    .insert(voucherRows, { returning: 'minimal' });
+const totalAdd = stampsToAdd + freeDrinksToAdd * 8;
+if (totalAdd > 0) {
+  const { error } = await supabase.rpc('checkout_loyalty', {
+    p_user: uid,
+    p_order_id: `script_${Date.now()}`,
+    p_add_stamps: totalAdd,
+    p_redeem: 0,
+  }).maybeSingle();
   if (error) throw error;
 }
 
