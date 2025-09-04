@@ -55,8 +55,8 @@ export function buildMenuData(cmsMap = {}) {
 }
 
 export async function getMenuData() {
-  const { getAll } = await import('./cmsClient');
-  const cms = await getAll();
+  const { getCMS } = await import('./cms.js');
+  const cms = await getCMS();
   return buildMenuData(cms);
 }
 
