@@ -1,5 +1,5 @@
 import { supabase, hasSupabase } from '../lib/supabase';
-import { getCMS } from './cms';
+import { getAll } from './cmsClient';
 
 export async function getMenuItems() {
   if (!hasSupabase || !supabase) return [];
@@ -8,7 +8,7 @@ export async function getMenuItems() {
       .from('menu_items')
       .select('id,name,type,base_price,options,cms_key');
     if (error) return [];
-    const cms = await getCMS();
+    const cms = await getAll();
     return (data || [])
       .filter(item => {
         if (!item.cms_key) return true;
