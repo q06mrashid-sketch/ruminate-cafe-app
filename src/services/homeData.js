@@ -1,6 +1,6 @@
 import { Linking } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getCMS } from './cms';
+import { getAll } from './cmsClient';
 
 // helpers
 function parseHHMM(s) {
@@ -30,7 +30,7 @@ function statusForIntervals(iv, now) {
 
 export async function getToday() {
   try {
-    const cms = await getCMS();
+    const cms = await getAll();
     const key = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][new Date().getDay()];
     let intervals = [];
     if (key === 'fri') {
@@ -53,7 +53,7 @@ export async function getToday() {
 
 export async function getWeeklyHours() {
   try {
-    const cms = await getCMS();
+    const cms = await getAll();
     const days = [
       { k: 'mon', label: 'Mon' }, { k: 'tue', label: 'Tue' }, { k: 'wed', label: 'Wed' }, { k: 'thu', label: 'Thu' },
       { k: 'fri', label: 'Fri' }, { k: 'sat', label: 'Sat' }, { k: 'sun', label: 'Sun' }
