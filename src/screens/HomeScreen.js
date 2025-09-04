@@ -14,7 +14,7 @@ import { getMembershipSummary } from '../services/membership';
 import { getFundCurrent, getFundProgress } from '../services/community';
 import { getToday, openInstagramProfile, getWeeklyHours, getLatestInstagramPost, openInstagramUrl } from '../services/homeData';
 import { StatsContext } from '../context/StatsContext';
-import { useCMS } from '../state/cms';
+import { getCMS } from '../services/cms';
 import logo from '../../assets/logo.png';
 
 function ProgressBar({ value, max, tint = palette.clay, track = '#EED8C4' }) {
@@ -46,14 +46,6 @@ export default function HomeScreen({ navigation }) {
   const [rumiQuote, setRumiQuote] = useState(null);
   const [igPost, setIgPost] = useState({ image: null, caption: '', url: null });
   const [refreshing, setRefreshing] = useState(false);
-  const { data: cmsData, error: cmsError, refresh: refreshCMS } = useCMS();
-
-  useEffect(() => {
-    const s1 = cmsData['special 1'] || null;
-    const s2 = cmsData['special 2'] || null;
-    if (s1 || s2) setToday(prev => ({ ...prev, specials: [s1, s2].filter(Boolean) }));
-    if (cmsData['rumi quote']) setRumiQuote(cmsData['rumi quote']);
-  }, [cmsData]);
 
   const refresh = useCallback(async (force = false) => {
     getFundProgress().then(setFund).catch(() => setFund({ progress: 0, total_cents: 0, goal_cents: 0 }));
@@ -64,8 +56,16 @@ export default function HomeScreen({ navigation }) {
     try { const s = await getPIFStats(); setPif(s); } catch {}
     try { await refreshStats(force); } catch {}
     try { const ig = await getLatestInstagramPost(); setIgPost(ig); } catch {}
-    try { await refreshCMS(); } catch {}
-  }, [refreshStats, member.signedIn, refreshCMS]);
+    try {
+      const cms = await getCMS(force);
+      if (cms) {
+        const s1 = cms['special 1'] || null;
+        const s2 = cms['special 2'] || null;
+        if (s1 || s2) setToday(prev => ({ ...prev, specials: [s1, s2].filter(Boolean) }));
+        if (cms['rumi quote']) setRumiQuote(cms['rumi quote']);
+      }
+    } catch {}
+  }, [refreshStats, member.signedIn]);
 
   useEffect(() => { refresh(false); }, [refresh]);
   useFocusEffect(useCallback(() => { let on = true; (async()=>{ if(on) await refresh(true); })(); return () => { on = false; }; }, [refresh]));
@@ -113,12 +113,6 @@ export default function HomeScreen({ navigation }) {
         <Image source={logo} style={styles.logo} />
       </View>
       <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />} contentContainerStyle={styles.content}>
-        {cmsError ? (
-          <View style={styles.cmsError}>
-            <Text style={styles.cmsErrorText}>{cmsError}</Text>
-            <TouchableOpacity onPress={refreshCMS}><Text style={styles.cmsErrorRetry}>Retry</Text></TouchableOpacity>
-          </View>
-        ) : null}
         <View style={styles.hero}>
           <Text style={styles.subcopy}>Track perks, collect stamps, and support the community fund.</Text>
           <View style={{ height: 18 }} />
@@ -304,7 +298,4 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   logo: { width: 80, height: 80, resizeMode: 'contain' },
-  cmsError: { backgroundColor: '#fcc', padding: 8, borderRadius: 8, marginBottom: 10 },
-  cmsErrorText: { color: '#900', textAlign: 'center', marginBottom: 4 },
-  cmsErrorRetry: { color: '#900', textAlign: 'center', textDecorationLine: 'underline' },
 });
