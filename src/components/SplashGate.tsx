@@ -6,8 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { palette } from '../design/theme';
 import logo from '../../assets/logo.png';
 import { subscribe, getLoadingState, markLoaded } from '../boot/loadingSignals';
-
-import { preloadMenuItems } from '../boot/preload';
+import { fetchCMSMap } from '../cms/cmsClient';
 
 
 const LINES = [
@@ -33,7 +32,17 @@ export default function SplashGate() {
 
 
   useEffect(() => {
-    preloadMenuItems().finally(() => markLoaded('cms'));
+    (async () => {
+      try {
+        const map = await fetchCMSMap();
+        console.log('[CMS] received', Object.keys(map).length, 'keys');
+        // TODO: pass `map` into whatever state or parser the app uses for menu rendering
+      } catch (e) {
+        console.warn('[CMS] failed', e);
+      } finally {
+        markLoaded('cms');
+      }
+    })();
 
     const unsub = subscribe((st) => {
       if (st.auth && st.stamps && st.cms) {
