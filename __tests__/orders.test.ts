@@ -4,6 +4,7 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { buildOrderRow, normalizeSource } from '../src/services/order-row.js';
+import { calculateOrderTotals } from '../supabase/functions/create-order/calc.js';
 
 test('buildOrderRow includes pickup_code and preserves normalized source_meta', () => {
   const { source, source_meta } = normalizeSource('legacy-web');
@@ -50,4 +51,32 @@ test('saveReceiptForUser logs source app', async () => {
   assert.equal(call?.arguments[1], 'app');
   assert.equal(call?.arguments[3], 'app');
   log.mock.restore();
+});
+
+test('calculateOrderTotals applies membership discount', () => {
+  const { total } = calculateOrderTotals({
+    items: [
+      { sku: 'latte', qty: 2 },
+      { sku: 'tea', qty: 1 },
+    ],
+    syrupShots: 0,
+    payItForward: 0,
+    redeemCount: 0,
+    membershipTier: 'paid',
+    freebies: 0,
+  });
+  // latte 350*2 + tea 250 = 950 -> 10% discount = 95 -> total 855
+  assert.equal(total, 855);
+});
+
+test('calculateOrderTotals skips discount when freebie present', () => {
+  const { total } = calculateOrderTotals({
+    items: [{ sku: 'latte', qty: 1 }],
+    syrupShots: 0,
+    payItForward: 0,
+    redeemCount: 0,
+    membershipTier: 'paid',
+    freebies: 1,
+  });
+  assert.equal(total, 350);
 });

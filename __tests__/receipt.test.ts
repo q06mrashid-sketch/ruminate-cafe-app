@@ -67,3 +67,36 @@ test('buildReceipt sets source to app', () => {
   });
   assert.equal(receipt.source, 'app');
 });
+
+test('applies membership discount when no vouchers used', () => {
+  const receipt = buildReceipt({
+    cartItems: [
+      { id: 'coffee:latte', name: 'Latte', quantity: 2, price: 3 },
+      { id: 'bagel', name: 'Bagel', quantity: 1, price: 2 },
+    ],
+    selectedTimeSlot: { start: new Date(0), end: new Date(600000) },
+    vouchersApplied: 0,
+    discountRate: 0.1,
+    rng: () => 0.5,
+    uuidGenerator: () => 'd1',
+  });
+  // only latte items (drinks) get discount: 2 * 3 * 0.1 = 0.6
+  assert.equal(receipt.totals.discounts, 0.6);
+  assert.equal(receipt.totals.grandTotal, 7.4);
+});
+
+test('membership discount ignored when voucher applied', () => {
+  const receipt = buildReceipt({
+    cartItems: [
+      { id: 'coffee:latte', name: 'Latte', quantity: 1, price: 3 },
+    ],
+    selectedTimeSlot: { start: new Date(0), end: new Date(600000) },
+    vouchersApplied: 1,
+    discountRate: 0.1,
+    rng: () => 0.6,
+    uuidGenerator: () => 'd2',
+  });
+  // voucher covers the drink; membership discount not applied
+  assert.equal(receipt.totals.discounts, 3);
+  assert.equal(receipt.totals.grandTotal, 0);
+});
