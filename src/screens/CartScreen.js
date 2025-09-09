@@ -47,6 +47,8 @@ export default function CartScreen({ navigation }) {
     ? cartValue.entries
     : [];
 
+  const safeItems = Array.isArray(items) ? items : [];
+
   const [membershipTier, setMembershipTier] = useState('free');
   useEffect(() => {
     (async () => {
@@ -61,7 +63,7 @@ export default function CartScreen({ navigation }) {
     membershipTier === 'paid' && freebiesLeft === 0 ? 0.1 : 0;
   const membershipDiscount = useMemo(() => {
     if (membershipDiscountRate <= 0) return 0;
-    return items
+    return safeItems
       .filter(isDrinkItem)
       .reduce(
         (sum, it) => sum + (it.price || 0) * (it.quantity || 0) * membershipDiscountRate,
@@ -81,7 +83,7 @@ export default function CartScreen({ navigation }) {
   const tabBarHeight = useTabBarHeight();
 
   const drinkCount = useMemo(
-    () => items.filter(isDrinkItem).reduce((sum, it) => sum + (it.quantity || 0), 0),
+    () => safeItems.filter(isDrinkItem).reduce((sum, it) => sum + (it.quantity || 0), 0),
     [items]
   );
   const maxRedeemable = Math.min(drinkCount, freeDrinks);
