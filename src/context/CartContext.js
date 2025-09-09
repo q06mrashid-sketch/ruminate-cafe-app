@@ -17,32 +17,35 @@ export function CartProvider({ children }) {
 
   const addItem = (item) => {
     setItems((prev) => {
-      const existing = prev.find((i) => i.id === item.id);
+      const list = Array.isArray(prev) ? prev : [];
+      const existing = list.find((i) => i.id === item.id);
       if (existing) {
-        return prev.map((i) =>
+        return list.map((i) =>
           i.id === item.id ? { ...i, quantity: i.quantity + (item.quantity || 1) } : i
         );
       }
-      return [...prev, { ...item, quantity: item.quantity || 1 }];
+      return [...list, { ...item, quantity: item.quantity || 1 }];
     });
     console.log(`[CART] add ${item.id} x${item.quantity || 1}`);
   };
 
   const removeItem = (id) => {
-    setItems((prev) => prev.filter((i) => i.id !== id));
+    setItems((prev) => (Array.isArray(prev) ? prev.filter((i) => i.id !== id) : []));
     console.log(`[CART] remove ${id}`);
   };
 
   const incrementItem = (id) => {
     setItems((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, quantity: i.quantity + 1 } : i))
+      (Array.isArray(prev) ? prev : []).map((i) =>
+        i.id === id ? { ...i, quantity: i.quantity + 1 } : i
+      )
     );
     console.log(`[CART] increment ${id}`);
   };
 
   const decrementItem = (id) => {
     setItems((prev) =>
-      prev.map((i) =>
+      (Array.isArray(prev) ? prev : []).map((i) =>
         i.id === id ? { ...i, quantity: Math.max(1, i.quantity - 1) } : i
       )
     );
@@ -53,7 +56,7 @@ export function CartProvider({ children }) {
     if (delta === 'remove') return removeItem(id);
     if (typeof delta === 'number') {
       setItems((prev) =>
-        prev.map((i) =>
+        (Array.isArray(prev) ? prev : []).map((i) =>
           i.id === id
             ? { ...i, quantity: Math.max(1, i.quantity + delta) }
             : i
@@ -68,12 +71,16 @@ export function CartProvider({ children }) {
     console.log('[CART] clear');
   };
 
-  const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
-  const subtotal = items.reduce((sum, i) => sum + (i.price || 0) * i.quantity, 0);
+  const safeItems = Array.isArray(items) ? items : [];
+  const itemCount = safeItems.reduce((sum, i) => sum + (i.quantity || 0), 0);
+  const subtotal = safeItems.reduce(
+    (sum, i) => sum + (i.price || 0) * (i.quantity || 0),
+    0
+  );
 
   const value = useMemo(
     () => ({
-      items,
+      items: safeItems,
       addItem,
       removeItem,
       incrementItem,
@@ -83,7 +90,7 @@ export function CartProvider({ children }) {
       itemCount,
       subtotal,
     }),
-    [items, itemCount, subtotal]
+    [safeItems, itemCount, subtotal]
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

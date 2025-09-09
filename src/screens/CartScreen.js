@@ -18,14 +18,34 @@ import { checkoutLoyalty } from '../services/loyalty';
 
 export default function CartScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const { stats = { vouchers: 0, freebiesLeft: 0 }, refreshStats, setStats } =
-    useContext(StatsContext) || {
-      stats: { vouchers: 0, freebiesLeft: 0 },
-      refreshStats: async () => {},
-      setStats: () => {},
-    };
-  const freeDrinks = Number(stats?.vouchers ?? 0);
-  const freebiesLeft = Number(stats?.freebiesLeft ?? 0);
+  const {
+    stats: rawStats,
+    refreshStats = async () => {},
+    setStats = () => {},
+  } = useContext(StatsContext) || {};
+  const stats = rawStats || { vouchers: 0, freebiesLeft: 0, stamps: 0 };
+  const freeDrinks = Number(stats.vouchers ?? 0);
+  const freebiesLeft = Number(stats.freebiesLeft ?? 0);
+
+  // Cart values (defensive defaults)
+  const cartValue = useContext(CartContext) || {};
+  const {
+    subtotal = 0,
+    incrementItem,
+    decrementItem,
+    removeItem,
+    updateQuantity,
+    clearItem, // some apps name it like this
+    clear,
+  } = cartValue;
+
+  const items = Array.isArray(cartValue.items)
+    ? cartValue.items
+    : Array.isArray(cartValue.lines)
+    ? cartValue.lines
+    : Array.isArray(cartValue.entries)
+    ? cartValue.entries
+    : [];
 
   const [membershipTier, setMembershipTier] = useState('free');
   useEffect(() => {
@@ -59,19 +79,6 @@ export default function CartScreen({ navigation }) {
   };
 
   const tabBarHeight = useTabBarHeight();
-  // Be defensive about what's available in CartContext
-  const cart = useContext(CartContext) || {};
-  const {
-    items = [],
-    subtotal = 0,
-    // optional methods (use whichever exist)
-    incrementItem,
-    decrementItem,
-    removeItem,
-    updateQuantity,
-    clearItem, // some apps name it like this
-    clear,
-  } = cart;
 
   const drinkCount = useMemo(
     () => items.filter(isDrinkItem).reduce((sum, it) => sum + (it.quantity || 0), 0),

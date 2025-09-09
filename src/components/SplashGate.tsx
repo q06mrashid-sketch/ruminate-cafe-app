@@ -32,6 +32,8 @@ export default function SplashGate() {
 
 
   useEffect(() => {
+    let mounted = true;
+
     (async () => {
       try {
         const map = await fetchCMSMap();
@@ -44,41 +46,52 @@ export default function SplashGate() {
       }
     })();
 
+    const hideGate = () => {
+      Animated.timing(gateOpacity, {
+        toValue: 0,
+        duration: FADE_MS,
+        useNativeDriver: true,
+      }).start(() => {
+        if (mounted) setVisible(false);
+      });
+    };
+
     const unsub = subscribe((st) => {
       if (st.auth && st.stamps && st.cms) {
-        InteractionManager.runAfterInteractions(() => {
-          Animated.timing(gateOpacity, { toValue: 0, duration: FADE_MS, useNativeDriver: true })
-            .start(() => setVisible(false));
-        });
+        InteractionManager.runAfterInteractions(hideGate);
       }
     });
 
-    const tmr = setTimeout(() => {
-      Animated.timing(gateOpacity, { toValue: 0, duration: FADE_MS, useNativeDriver: true })
-        .start(() => setVisible(false));
-    }, HARD_TIMEOUT_MS);
+    const tmr = setTimeout(hideGate, HARD_TIMEOUT_MS);
 
     const rot = setInterval(() => {
-      Animated.timing(opacity, { toValue: 0, duration: FADE_MS, useNativeDriver: true }).start(() => {
-        setIdx(i => (i + 1) % LINES.length);
-        Animated.timing(opacity, { toValue: 1, duration: FADE_MS, useNativeDriver: true }).start();
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: FADE_MS,
+        useNativeDriver: true,
+      }).start(() => {
+        if (mounted) setIdx((i) => (i + 1) % LINES.length);
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: FADE_MS,
+          useNativeDriver: true,
+        }).start();
       });
     }, ROTATE_MS);
-
 
     // If all are already ready (e.g. dev reload), hide immediately
     const s = getLoadingState();
     if (s.auth && s.stamps && s.cms) {
-      InteractionManager.runAfterInteractions(() => {
-        Animated.timing(gateOpacity, { toValue: 0, duration: FADE_MS, useNativeDriver: true })
-          .start(() => setVisible(false));
-      });
+      InteractionManager.runAfterInteractions(hideGate);
     }
 
     return () => {
+      mounted = false;
       unsub?.();
       clearTimeout(tmr);
       clearInterval(rot);
+      gateOpacity.stopAnimation();
+      opacity.stopAnimation();
     };
   }, []);
 
