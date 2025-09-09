@@ -1,5 +1,6 @@
 
 import formatCurrency from './formatCurrency.js';
+import { isDrinkItem } from './isDrinkItem.js';
 
 export type ReceiptItemModifier =
   | { type: 'altMilk'; label: string; priceDelta: number }
@@ -58,6 +59,7 @@ export function buildReceipt({
   customer,
   pifContribution = 0,
   vouchersApplied = 0,
+  discountRate = 0,
   paymentMethod = 'test',
   rng = Math.random,
   uuidGenerator = () => (globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : Math.random().toString(36).slice(2)),
@@ -79,6 +81,7 @@ export function buildReceipt({
   customer?: { id?: string; email?: string } | null;
   pifContribution?: number;
   vouchersApplied?: number;
+  discountRate?: number;
   paymentMethod?: 'apple_pay' | 'card' | 'cash' | 'test';
   rng?: () => number;
   uuidGenerator?: () => string;
@@ -129,7 +132,15 @@ export function buildReceipt({
     discounts += redeem * item.unitBasePrice;
     vouchersLeft -= redeem;
   }
-  discounts = round2(discounts);
+  let membershipDiscount = 0;
+  if (vouchersApplied === 0 && discountRate > 0) {
+    for (const item of items) {
+      if (isDrinkItem(item)) {
+        membershipDiscount += item.unitBasePrice * item.quantity * discountRate;
+      }
+    }
+  }
+  discounts = round2(discounts + membershipDiscount);
   const tax = 0;
   const pif = round2(pifContribution);
   const grandTotal = round2(subtotal - discounts + pif + tax);

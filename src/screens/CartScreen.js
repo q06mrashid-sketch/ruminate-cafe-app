@@ -18,13 +18,36 @@ import { checkoutLoyalty } from '../services/loyalty';
 
 export default function CartScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const { stats = { vouchers: 0 }, refreshStats, setStats } =
+  const { stats = { vouchers: 0, freebiesLeft: 0 }, refreshStats, setStats } =
     useContext(StatsContext) || {
-      stats: { vouchers: 0 },
+      stats: { vouchers: 0, freebiesLeft: 0 },
       refreshStats: async () => {},
       setStats: () => {},
     };
   const freeDrinks = Number(stats?.vouchers ?? 0);
+  const freebiesLeft = Number(stats?.freebiesLeft ?? 0);
+
+  const [membershipTier, setMembershipTier] = useState('free');
+  useEffect(() => {
+    (async () => {
+      try {
+        const m = await getMembershipSummary();
+        setMembershipTier(m?.tier || 'free');
+      } catch {}
+    })();
+  }, []);
+
+  const membershipDiscountRate =
+    membershipTier === 'paid' && freebiesLeft === 0 ? 0.1 : 0;
+  const membershipDiscount = useMemo(() => {
+    if (membershipDiscountRate <= 0) return 0;
+    return items
+      .filter(isDrinkItem)
+      .reduce(
+        (sum, it) => sum + (it.price || 0) * (it.quantity || 0) * membershipDiscountRate,
+        0,
+      );
+  }, [items, membershipDiscountRate]);
   const { setHasOrders, refreshOrdersPresence } = useOrdersPresence();
 
   const showToast = (msg) => {
@@ -229,6 +252,13 @@ export default function CartScreen({ navigation }) {
           <Text style={styles.subtotalValue}>{formatCurrency(subtotal)}</Text>
         </View>
 
+        {membershipDiscountRate > 0 && membershipDiscount > 0 && (
+          <View style={styles.footerTopRow}>
+            <Text style={styles.subtotalLabel}>Membership discount</Text>
+            <Text style={styles.subtotalValue}>- {formatCurrency(membershipDiscount)}</Text>
+          </View>
+        )}
+
         <View style={styles.voucherPanel}>
           <Text style={styles.voucherText}>Free drinks available: {freeDrinks}</Text>
           <View style={styles.voucherRow}>
@@ -273,6 +303,7 @@ export default function CartScreen({ navigation }) {
                 customer: null,
                 pifContribution: 0,
                 vouchersApplied: redeemCount,
+                discountRate: membershipDiscountRate,
                 paymentMethod: 'test',
               });
 

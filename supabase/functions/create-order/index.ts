@@ -1,22 +1,16 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  MENU,
+  SYRUP_PRICE,
+  PIF_PRICE,
+  VOUCHER_VALUE,
+  calculateOrderTotals,
+} from "./calc.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-type MenuItem = { price: number; hot: boolean };
-const MENU: Record<string, MenuItem> = {
-  latte: { price: 350, hot: true },
-  cappuccino: { price: 350, hot: true },
-  americano: { price: 300, hot: true },
-  tea: { price: 250, hot: true },
-  iced_latte: { price: 400, hot: false },
-};
-
-const SYRUP_PRICE = 50;
-const PIF_PRICE = 300;
-const VOUCHER_VALUE = 300;
 
 function cors() {
   return {
@@ -45,26 +39,36 @@ serve(async (req) => {
   const redeemCount = voucherCodes.length;
   const timeslot = typeof body.timeslot === "string" ? body.timeslot : null;
 
-  let total = 0;
-  let hotCount = 0;
-  for (const it of items) {
-    const sku = String(it?.sku || "");
-    const qty = Number(it?.qty) || 0;
-    const def = MENU[sku];
-    if (!def) {
-      return new Response(JSON.stringify({ error: `invalid item ${sku}` }), { status: 400, headers: { ...cors(), "content-type": "application/json" } });
-    }
-    total += def.price * qty;
-    if (def.hot) hotCount += qty;
-  }
-
-  total += SYRUP_PRICE * syrupShots;
-  total += PIF_PRICE * payItForward;
-
-  total -= VOUCHER_VALUE * redeemCount;
-  if (total < 0) total = 0;
-
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+
+  const { data: membership } = await admin
+    .from("memberships")
+    .select("status")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("free_drinks")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const membershipTier = membership?.status === "active" ? "paid" : "free";
+  const freebies = Number(profile?.free_drinks ?? 0);
+
+  let total: number;
+  let hotCount: number;
+  try {
+    ({ total, hotCount } = calculateOrderTotals({
+      items,
+      syrupShots,
+      payItForward,
+      redeemCount,
+      membershipTier,
+      freebies,
+    }));
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return new Response(JSON.stringify({ error: msg }), { status: 400, headers: { ...cors(), "content-type": "application/json" } });
+  }
 
   let pickup_code = "";
   while (true) {
