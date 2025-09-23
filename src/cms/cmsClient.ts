@@ -38,3 +38,10 @@ export async function fetchCMSMap(): Promise<Record<string,string>> {
   for (const [k, v] of pairs) if (v != null) out[k] = v;
   return out;
 }
+
+export async function deleteKey(key: string): Promise<boolean> {
+  const url = `${FNS}/cms-del?key=${encodeURIComponent(key)}`;
+  const res = await fetch(url, { method: 'DELETE', headers: h() });
+  console.log('[CMS] delete', key, '→', res.status);
+  return res.ok;
+}
