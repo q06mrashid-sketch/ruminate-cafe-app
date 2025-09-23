@@ -1,8 +1,28 @@
 const FNS  = 'https://eamewialuovzguldcdcf.functions.supabase.co';
 const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhbWV3aWFsdW92emd1bGRjZGNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUxNjY5MjIsImV4cCI6MjA3MDc0MjkyMn0.oZy-UH7mB7NSFZZyivm3dbCtjsbOahcD2_coUNiiQNs';
 
+const env =
+  typeof process !== 'undefined' && process?.env
+    ? (process.env as Record<string, string | undefined>)
+    : {};
+
+const CMS_WRITE_SECRET =
+  env.EXPO_PUBLIC_CMS_WRITE_SECRET ||
+  env.CMS_WRITE_SECRET ||
+  '';
+
 function h(extra: Record<string,string> = {}) {
   return { Authorization: `Bearer ${ANON}`, apikey: ANON, ...extra };
+}
+
+function withCmsSecret(extra: Record<string, string> = {}) {
+  if (CMS_WRITE_SECRET) {
+    return h({ ...extra, 'x-cms-secret': CMS_WRITE_SECRET });
+  }
+  if (typeof console !== 'undefined') {
+    console.warn('[CMS] CMS_WRITE_SECRET is not set; delete operations may fail.');
+  }
+  return h(extra);
 }
 
 export async function listKeys(like = '%'): Promise<string[]> {
@@ -37,4 +57,11 @@ export async function fetchCMSMap(): Promise<Record<string,string>> {
   const out: Record<string,string> = {};
   for (const [k, v] of pairs) if (v != null) out[k] = v;
   return out;
+}
+
+export async function deleteKey(key: string): Promise<boolean> {
+  const url = `${FNS}/cms-del?key=${encodeURIComponent(key)}`;
+  const res = await fetch(url, { method: 'DELETE', headers: withCmsSecret() });
+  console.log('[CMS] delete', key, '→', res.status);
+  return res.ok;
 }
