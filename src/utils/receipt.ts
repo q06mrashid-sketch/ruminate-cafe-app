@@ -216,9 +216,7 @@ export function printReceiptToConsole(receipt: Receipt): void {
 
 export async function sendReceiptToPOS(receipt: Receipt): Promise<void> {
   const endpoint = process.env.EXPO_PUBLIC_POS_ENDPOINT;
-
   if (!endpoint) return;
-
   try {
     await fetch(endpoint, {
       method: 'POST',
@@ -227,7 +225,6 @@ export async function sendReceiptToPOS(receipt: Receipt): Promise<void> {
     });
   } catch (err) {
     console.error('Failed to send receipt to POS', err);
-
   }
 }
 
