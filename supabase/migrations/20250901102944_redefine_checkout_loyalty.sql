@@ -66,7 +66,7 @@ BEGIN
     ON CONFLICT (order_id) DO NOTHING;
   GET DIAGNOSTICS inserted = ROW_COUNT;
 
-  -- lock relevant rows then compute current totals
+  -- lock relevant rows first
   PERFORM 1 FROM public.loyalty_stamps
     WHERE user_id = p_user
     FOR UPDATE;
@@ -75,6 +75,7 @@ BEGIN
     WHERE user_id = p_user AND redeemed = FALSE
     FOR UPDATE;
 
+  -- then compute totals without FOR UPDATE
   SELECT COALESCE(SUM(stamps),0) INTO cur_stamps
     FROM public.loyalty_stamps
     WHERE user_id = p_user;
